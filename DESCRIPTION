@@ -1,0 +1,13 @@
+Package: pMineR
+Type: Package
+Title: Package for handling processes mining techniques
+Version: 0.02
+Date: 2016-01-15
+Author: Roberto Gatta, Nicola Dinapoli
+Maintainer: Roberto Gatta <roberto.gatta.bs@gmail.com>
+Description: Allows to handle with processes
+License: GPL-2
+Imports:
+    DiagrammeR (>= 0.8.2),
+    stringr (>= 1.0.0)
+NeedsCompilation: yes
