@@ -1,10 +1,10 @@
-
+# 
 # obj<-PManager();
 # obj$createModel(modelName = "1",kindOfModel = "alphaAlgorithm")
-# obj$trainModel(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",EVENTName = "DES")
+# obj$trainModel(nomeFile = "../otherFiles/test_02.csv",IDName = "ID",EVENTName = "DES")
 # model.xml<-obj$getModel(modelName = "1")
 # obj$plot( modelName = "1" )
-
+# obj$replay(nomeFile = "../otherFiles/test_02.csv", IDName = "ID",EVENTName = "DES")
 # 
 # 
 # 

@@ -57,21 +57,19 @@ PManager<-function() {
     obj.dataLoader$load(nomeFile = nomeFile,IDName = IDName,EVENTName = EVENTName);
     # prendine i valori
     loadedData<-obj.dataLoader$getData();   
-    browser();
     for(i in listaModelliDaCaricare) {
-      # carica il dataset in ogni modello
-      listOfModels[[i]]$replay( 
-        transMatrix=loadedData$MMatrix ,
-        footPrintTable = loadedData$footPrint
-      )    
+      # replay di ogni modello
+      single.res<-listOfModels[[i]]$replay( wordSequence.raw = loadedData$wordSequence.raw );     
+      browser()
     }
     return;
   }  
   #=================================================================================
   # trainModel
   #=================================================================================    
-  trainModel<-function( allModels = TRUE, modelName='', nomeFile , IDName , EVENTName ) {
+  trainModel<-function( allModels = TRUE, modelName='', nomeFile , IDName , EVENTName) {
     obj.dataLoader<-dataLoader()
+    
     # se tutti i modelli sono da addestrare in un colpo solo
     if(allModels == TRUE ) {
       listaModelliDaCaricare<-seq(1,length(listOfModels))
@@ -118,6 +116,7 @@ PManager<-function() {
     "createModel"=createModel,
     "trainModel" = trainModel,
     "getModel" = getModel,
+    "replay" = replay,
     "plot" = plot
     ))    
 }

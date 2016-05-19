@@ -23,6 +23,37 @@ alphaAlgorithm<-function( ) {
   #=================================================================================
   # trainModel
   #=================================================================================   
+  replay<-function( wordSequence.raw ) {
+    # initialize variables
+    res<-list(); 
+    status.ok<-0; status.warning<-0; status.error<-0; 
+    resTable<-c();
+    # build a PETRI NETWORK OBJECT
+    objPN<-petriNetworkModel();
+    # Load a model into the PETRI NETWORK OBJECT
+    objPN$loadModel.xml( xmlModel = model.XML )
+    # now loop for each word and check if it complains with the PETRI NETWORK
+    for(PatID in names(wordSequence.raw)) {
+      singleRes<-objPN$replay( wordSequence.raw[[ PatID ]] )
+      # build a quick summary table
+      if(singleRes$status=="ok") status.ok<-status.ok+1;
+      if(singleRes$status=="warning") status.warning<-status.warning+1;
+      if(singleRes$status=="error") status.error<-status.error+1;
+      # build the final resuls structure
+      resTable<-rbind(resTable,c(PatID,singleRes$status,singleRes$msg))
+    }
+    # finalize the summary table
+    res<-list()
+    res$resultTable<-resTable
+    res$summaryTable<-c(status.ok,status.warning,status.error)
+    res$summaryTable<-rbind(res$summaryTable,res$summaryTable/sum(res$summaryTable))
+    colnames(res$resultTable)<-c("PatID","status","msg")
+    colnames(res$summaryTable)<-c("ok","warning","error")
+    return(res)
+  }
+  #=================================================================================
+  # trainModel
+  #=================================================================================   
   trainModel<-function() {
     if(is.dataLoaded == FALSE) stop("data is not yet loaded in model!");
     # 1) TL
@@ -277,8 +308,10 @@ alphaAlgorithm<-function( ) {
     
     nodeArr_01<-nodeList$arrayTokenUtili
     nodeArr_02<- nodeList$arrayNodiComplessi
-    nodeArr_02<-c(nodeArr_02, "BEGIN")
-    nodeArr_02<-c(nodeArr_02, "END")
+    nodeArr_01<-c(nodeArr_01, "BEGIN")
+    nodeArr_01<-c(nodeArr_01, "END")    
+#     nodeArr_02<-c(nodeArr_02, "BEGIN")
+#     nodeArr_02<-c(nodeArr_02, "END")
     
     testo$add("<xml>");
     testo$add("\t<graphStructure>");
@@ -288,10 +321,10 @@ alphaAlgorithm<-function( ) {
     testo$add("\t\t</nodeList>")
     testo$add("\t\t<links>")
     for(i in seq(1,nrow(linkArr_03))) {
-      testo$add(c("\t\t\t<link from='",linkArr_03[i,1],"' to='",linkArr_03[i,2],"'></node>"))        
+      testo$add(c("\t\t\t<link from='",linkArr_03[i,1],"' to='",linkArr_03[i,2],"'></link>"))        
     }
     testo$add("\t\t</links>")
-    testo$add("\t</graph>");
+    testo$add("\t</graphStructure>");
     testo$add("</xml>");
     return( testo$get() );
   }  
@@ -327,6 +360,7 @@ alphaAlgorithm<-function( ) {
     "getModel"=getModel,
     "loadDataset"=loadDataset,
     "trainModel"=trainModel,
+    "replay"=replay,
     "plot"=plot
   ) )
 }
