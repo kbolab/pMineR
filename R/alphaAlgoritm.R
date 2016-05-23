@@ -32,6 +32,7 @@ alphaAlgorithm<-function( ) {
     objPN<-petriNetworkModel();
     # Load a model into the PETRI NETWORK OBJECT
     objPN$loadModel.xml( xmlModel = model.XML )
+    
     # now loop for each word and check if it complains with the PETRI NETWORK
     for(PatID in names(wordSequence.raw)) {
       singleRes<-objPN$replay( wordSequence.raw[[ PatID ]] )
@@ -42,6 +43,7 @@ alphaAlgorithm<-function( ) {
       # build the final resuls structure
       resTable<-rbind(resTable,c(PatID,singleRes$status,singleRes$msg))
     }
+
     # finalize the summary table
     res<-list()
     res$resultTable<-resTable

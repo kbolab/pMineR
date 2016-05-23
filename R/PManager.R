@@ -47,27 +47,35 @@ PManager<-function() {
   #=================================================================================
   # replay
   #=================================================================================  
-  replay<-function( allModels = TRUE, modelName='', nomeFile , IDName , EVENTName  ) {
+  replay<-function( allModels = TRUE, modelName='', nomeFile = NA , IDName =NA , EVENTName =NA,
+                    wordSequence.raw=NA ) {
+    
     obj.dataLoader<-dataLoader()
+
     # se tutti i modelli sono da addestrare in un colpo solo
     if(allModels == TRUE ) {
       listaModelliDaCaricare<-seq(1,length(listOfModels))
     } else listaModelliDaCaricare<-c(modelName)
     # carica il dataset
-    obj.dataLoader$load(nomeFile = nomeFile,IDName = IDName,EVENTName = EVENTName);
-    # prendine i valori
-    loadedData<-obj.dataLoader$getData();   
+    if(!is.na(nomeFile)) {
+      obj.dataLoader$load(nomeFile = nomeFile,IDName = IDName,EVENTName = EVENTName);
+      # prendine i valori
+      loadedData<-obj.dataLoader$getData();   
+    } else {
+      loadedData<-list();
+      loadedData$wordSequence.raw<-wordSequence.raw
+    }
     for(i in listaModelliDaCaricare) {
       # replay di ogni modello
-      single.res<-listOfModels[[i]]$replay( wordSequence.raw = loadedData$wordSequence.raw );     
-      browser()
+      single.res<-listOfModels[[i]]$replay( wordSequence.raw = loadedData$wordSequence.raw ); 
     }
-    return;
+    return(single.res)
   }  
   #=================================================================================
   # trainModel
   #=================================================================================    
-  trainModel<-function( allModels = TRUE, modelName='', nomeFile , IDName , EVENTName) {
+  trainModel<-function( allModels = TRUE, modelName='', nomeFile = NA , IDName , EVENTName, 
+                        transMatrix=NA, footPrintTable = NA) {
     obj.dataLoader<-dataLoader()
     
     # se tutti i modelli sono da addestrare in un colpo solo
@@ -75,10 +83,17 @@ PManager<-function() {
       listaModelliDaCaricare<-seq(1,length(listOfModels))
     } else listaModelliDaCaricare<-c(modelName)
     
-    # carica il dataset
-    obj.dataLoader$load(nomeFile = nomeFile,IDName = IDName,EVENTName = EVENTName);
-    # prendine i valori
-    loadedData<-obj.dataLoader$getData();
+    if( !is.na(nomeFile)) {
+      # carica il dataset
+      obj.dataLoader$load(nomeFile = nomeFile,IDName = IDName,EVENTName = EVENTName);
+      # prendine i valori
+      loadedData<-obj.dataLoader$getData();
+    } else {
+      if(!is.matrix(transMatrix) | !is.matrix(footPrintTable)) stop("If you dont' pass the fileName you should at least pass 'transMatrix and 'footPrintTable ")
+      loadedData<-list();
+      loadedData$MMatrix<-transMatrix
+      loadedData$footPrint<-footPrintTable
+    }
     # cicla per ogni modelli
     for(i in listaModelliDaCaricare) {
       # carica il dataset in ogni modello
@@ -89,7 +104,6 @@ PManager<-function() {
       # addestra il modello
       listOfModels[[i]]$trainModel();
     }
-     
   }
   #=================================================================================
   # getModel

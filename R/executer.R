@@ -1,11 +1,19 @@
 # 
 # obj<-PManager();
 # obj$createModel(modelName = "1",kindOfModel = "alphaAlgorithm")
-# obj$trainModel(nomeFile = "../otherFiles/test_02.csv",IDName = "ID",EVENTName = "DES")
+# obj$trainModel(nomeFile = "../otherFiles/rettoMammella.csv",IDName = "ID",EVENTName = "GROUP2")
+# obj$trainModel(nomeFile = "../otherFiles/test_01.csv",IDName = "ID",EVENTName = "DES")
 # model.xml<-obj$getModel(modelName = "1")
 # obj$plot( modelName = "1" )
-# obj$replay(nomeFile = "../otherFiles/test_02.csv", IDName = "ID",EVENTName = "DES")
+# # obj$replay(nomeFile = "../otherFiles/rettoMammella.csv", IDName = "ID",EVENTName = "GROUP2")
+# obj$replay(nomeFile = "../otherFiles/test_01.csv", IDName = "ID",EVENTName = "DES")
 # 
+# obj<-PManager();
+# obj$createModel(modelName = "1",kindOfModel = "alphaAlgorithm")
+# obj$trainModel(nomeFile = "../otherFiles/rettoMammella.csv",IDName = "ID",EVENTName = "GROUP2")
+# obj$plot( modelName = "1" )
+# obj$replay(nomeFile = "../otherFiles/rettoMammella.csv", IDName = "ID",EVENTName = "GROUP2")
+
 # 
 # 
 # obj<-PManager();
