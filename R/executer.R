@@ -14,6 +14,14 @@
 # obj$plot( modelName = "1" )
 # obj$replay(nomeFile = "../otherFiles/rettoMammella.csv", IDName = "ID",EVENTName = "GROUP2")
 
+
+# obj<-PManager();
+# obj$createModel(modelName = "1",kindOfModel = "alphaAlgorithm")
+# obj$trainModel(nomeFile = "../otherFiles/test_03.csv",IDName = "ID",EVENTName = "DES")
+# obj$plot( modelName = "1" )
+
+
+
 # 
 # 
 # obj<-PManager();

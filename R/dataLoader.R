@@ -11,7 +11,7 @@ dataLoader<-function() {
   #=================================================================================
   # buildFootPrintTable
   #=================================================================================   
-  buildFootPrintTable<-function( MM) {
+  buildFootPrintTable<-function( MM ) {
     actionList<-list();
     FF<-array("#",dim=dim(MM));
     colnames(FF)<-colnames(MM);  rownames(FF)<-rownames(MM)
@@ -26,6 +26,48 @@ dataLoader<-function() {
     for(i in seq(1,nrow(FF))) FF[i,i]<-'#'
     return(FF);
   }
+  #=================================================================================
+  # buildFootPrintTable.plus
+  #=================================================================================   
+  buildFootPrintTable.plus<-function( MM , wordsSeq ) {
+    actionList<-list();
+
+    FF<-array("#",dim=dim(MM));
+    colnames(FF)<-colnames(MM);  rownames(FF)<-rownames(MM)
+    elementi<-expand.grid(rownames(MM),rownames(MM))
+    for( riga in seq(1,nrow(elementi))) {
+      if(elementi[riga,1] == elementi[riga,2]) {FF[ elementi[riga,1] , elementi[riga,2]]<-"#"}
+      if(  MM[elementi[riga,1],elementi[riga,2]] == 0 & MM[elementi[riga,2],elementi[riga,1]]!=0  ) { FF[ elementi[riga,1] , elementi[riga,2]]<-"<-" }
+      if(  MM[elementi[riga,1],elementi[riga,2]] != 0 & MM[elementi[riga,2],elementi[riga,1]]==0  ) { FF[ elementi[riga,1] , elementi[riga,2]]<-"->" }
+      if(  MM[elementi[riga,1],elementi[riga,2]] != 0 & MM[elementi[riga,2],elementi[riga,1]]!=0  ) { FF[ elementi[riga,1] , elementi[riga,2]]<-"||" }
+    }
+    # CHIODO
+    for(i in seq(1,nrow(FF))) FF[i,i]<-'#'
+    
+    # ora scorri la lista delle parole e cerca di infilare diamanti e triangoli
+    # T = TRIANGOLI
+    for(i in names(wordsSeq)) {
+      for( pos in seq(1,length(wordsSeq[[i]])-2 ) ) {
+        # quello in mezzo deve essere per forza diverso?!??!??!?!
+        # aspetta a cancellare l'IF sottostante!
+        #if(  wordsSeq[[i]][pos] == wordsSeq[[i]][pos+2] ) {
+        if(  wordsSeq[[i]][pos] == wordsSeq[[i]][pos+2] & wordsSeq[[i]][pos]!=wordsSeq[[i]][pos+1]) {
+          FF[  wordsSeq[[i]][pos] , wordsSeq[[i]][pos+1]  ] = "T"
+        }
+      }
+    }
+    browser()
+    aa<-as.data.frame(which(FF=="T",arr.ind = T)) # cerca i T e mettili in un dataFrame
+    for(i in seq(1,nrow(aa))) {
+      rigaComplementare<-which(  aa$row == aa$col[i]  & aa$col== aa$row[i])
+      if(length(rigaComplementare)==1) {
+        FF[ aa$row[i], aa$col[i] ]<-"D"
+        FF[ aa$col[i], aa$row[i] ]<-"D"
+      }
+    }
+    browser()
+    return(FF);
+  }  
   #=================================================================================
   # getAttribute
   #=================================================================================  
@@ -103,6 +145,7 @@ dataLoader<-function() {
     }    
     return(list( "arrayAssociativo" = rownames(MM),
                  "footPrint"=buildFootPrintTable(MM),
+                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
                  "MMatrix"=MM,
                  "pat.process"=ID.act.group,
                  "wordSequence.raw"=wordSequence.TMP01) )

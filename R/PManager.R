@@ -2,7 +2,7 @@
 #' 
 #' @description  Is the class for handling with Process Mining issues.
 #'               Many methods has been developed: please see vignette for more details...
-#' @useDynLib processMining               
+#' @useDynLib pMineR    
 #' @export
 #' @import DiagrammeR 
 PManager<-function() {
@@ -42,6 +42,10 @@ PManager<-function() {
       listOfModels[[ modelName ]]<<-alphaAlgorithm(); 
       return();
     }
+    if( kindOfModel == "markovModel") { 
+      listOfModels[[ modelName ]]<<-markovModel(); 
+      return();
+    }    
     stop("Not yet implemented")
   }
   #=================================================================================

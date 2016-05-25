@@ -75,8 +75,6 @@ petriNetworkModel<-function() {
           return( list( "status"="ok","msg"=paste(c('the word \"',arrayStatus,'\" is a word of the grammar'),collapse='')) )
       }
     }
-    cat("\n===============================================================")
-    
     return( list() )
   }  
   new.replay<-function( arrayStatus , breakOn="error") {
@@ -142,9 +140,7 @@ petriNetworkModel<-function() {
         return( list( "status"="ok","msg"=paste(c('the word \"',arrayStatus,'\" is a word of the grammar'),collapse='')) )
       }
     }
-    cat("\n===============================================================")
-    
-    
+
     return( list() )
   }
   #=================================================================================

@@ -1,7 +1,7 @@
 #' alphaAlgorithm
 #' 
 #' @description  implement alphaAlgorithm
-#' @useDynLib processMining    
+#' @useDynLib pMineR    
 #' @import stringr           
 #' @export
 alphaAlgorithm<-function( ) {
@@ -21,7 +21,7 @@ alphaAlgorithm<-function( ) {
     is.dataLoaded<<-TRUE
   }
   #=================================================================================
-  # trainModel
+  # replay
   #=================================================================================   
   replay<-function( wordSequence.raw ) {
     # initialize variables
