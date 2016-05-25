@@ -145,7 +145,7 @@ dataLoader<-function() {
     }    
     return(list( "arrayAssociativo" = rownames(MM),
                  "footPrint"=buildFootPrintTable(MM),
-                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
+#                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
                  "MMatrix"=MM,
                  "pat.process"=ID.act.group,
                  "wordSequence.raw"=wordSequence.TMP01) )
