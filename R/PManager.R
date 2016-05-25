@@ -42,8 +42,8 @@ PManager<-function() {
       listOfModels[[ modelName ]]<<-alphaAlgorithm( parameters.list = parameters.list); 
       return()
     }
-    if( kindOfModel == "markovModel") { 
-      listOfModels[[ modelName ]]<<-markovModel( parameters.list = parameters.list); 
+    if( kindOfModel == "firstOrderMarkovModel") { 
+      listOfModels[[ modelName ]]<<-firstOrderMarkovModel( parameters.list = parameters.list); 
       return()
     }    
     stop("Not yet implemented")
