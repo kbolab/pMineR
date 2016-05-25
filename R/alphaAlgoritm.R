@@ -4,13 +4,14 @@
 #' @useDynLib pMineR    
 #' @import stringr           
 #' @export
-alphaAlgorithm<-function( ) {
+alphaAlgorithm<-function(  parameters.list = NA ) {
 
   MMatrix<-''
   footPrint<-''
   model.grViz<-'';
   model.XML<-'';
   is.dataLoaded<-FALSE
+  parameters<-NA
   
   #=================================================================================
   # loadDataset
@@ -347,15 +348,16 @@ alphaAlgorithm<-function( ) {
   # -----------------------------------------------------------------
   # costructor
   # -----------------------------------------------------------------
-  costructor<-function( ) {
+  costructor<-function( parametersFromInput = NA ) {
     MMatrix<<-''
     footPrint<<-''
     model.grViz<<-'';
     model.XML<<-'';
     is.dataLoaded<<-FALSE
+    parameters<<-parameters
   }
   # -----------------------------------------------------------------
-  costructor();
+  costructor( parametersFromInput = parameters.list);
   # -----------------------------------------------------------------
   return( list(
     "trainModel"=trainModel,

@@ -37,14 +37,14 @@ PManager<-function() {
   #=================================================================================
   # createModel
   #=================================================================================  
-  createModel<-function( modelName , kindOfModel, parameter = list()) {
+  createModel<-function( modelName , kindOfModel, parameters.list = list()) {
     if( kindOfModel == "alphaAlgorithm") { 
-      listOfModels[[ modelName ]]<<-alphaAlgorithm(); 
-      return();
+      listOfModels[[ modelName ]]<<-alphaAlgorithm( parameters.list = parameters.list); 
+      return()
     }
     if( kindOfModel == "markovModel") { 
-      listOfModels[[ modelName ]]<<-markovModel(); 
-      return();
+      listOfModels[[ modelName ]]<<-markovModel( parameters.list = parameters.list); 
+      return()
     }    
     stop("Not yet implemented")
   }

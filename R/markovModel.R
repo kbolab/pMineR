@@ -3,13 +3,15 @@
 #' @description  implement a simple markov Model
 #' @useDynLib pMineR    
 #' @export
-markovModel<-function( ) {
+markovModel<-function( parameters.list = NA ) {
   
   MMatrix<-''
   footPrint<-''
   model.grViz<-'';
   model.XML<-'';
   is.dataLoaded<-FALSE  
+  parameters<-NA
+  
   #=================================================================================
   # loadDataset
   #=================================================================================   
@@ -53,15 +55,16 @@ markovModel<-function( ) {
   # -----------------------------------------------------------------
   # costructor
   # -----------------------------------------------------------------
-  costructor<-function( ) {
+  costructor<-function( parametersFromInput = NA ) {
     MMatrix<<-''
     footPrint<<-''
     model.grViz<<-'';
     model.XML<<-'';
     is.dataLoaded<<-FALSE
+    parameters<<-parameters
   }
   # -----------------------------------------------------------------
-  costructor();
+  costructor( parametersFromInput = parameters.list);
   # -----------------------------------------------------------------
   return( list(
     "trainModel"=trainModel,

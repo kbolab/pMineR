@@ -4,7 +4,7 @@
 \alias{alphaAlgorithm}
 \title{alphaAlgorithm}
 \usage{
-alphaAlgorithm()
+alphaAlgorithm(parameters.list = NA)
 }
 \description{
 implement alphaAlgorithm
