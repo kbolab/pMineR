@@ -62,7 +62,7 @@ PManager<-function() {
     } else listaModelliDaCaricare<-c(modelName)
     # carica il dataset
     if(!is.na(nomeFile)) {
-      obj.dataLoader$load(nomeFile = nomeFile,IDName = IDName,EVENTName = EVENTName);
+      obj.dataLoader$load.csv(nomeFile = nomeFile,IDName = IDName,EVENTName = EVENTName);
       # prendine i valori
       loadedData<-obj.dataLoader$getData();   
     } else {
@@ -76,6 +76,21 @@ PManager<-function() {
     return(single.res)
   }  
   #=================================================================================
+  # play
+  #=================================================================================  
+  play<-function( numberOfPlays = 1, allModels = TRUE, modelName='' ) {
+    
+    # se tutti i modelli sono da addestrare in un colpo solo
+    if(allModels == TRUE ) {
+      listaModelliDaCaricare<-seq(1,length(listOfModels))
+    } else listaModelliDaCaricare<-c(modelName)
+    for(i in listaModelliDaCaricare) {
+      # play di ogni modello
+      res<-listOfModels[[i]]$play( numberOfPlays = numberOfPlays ); 
+    }
+    return(res)
+  }    
+  #=================================================================================
   # trainModel
   #=================================================================================    
   trainModel<-function( allModels = TRUE, modelName='', nomeFile = NA , IDName , EVENTName, 
@@ -86,10 +101,12 @@ PManager<-function() {
     if(allModels == TRUE ) {
       listaModelliDaCaricare<-seq(1,length(listOfModels))
     } else listaModelliDaCaricare<-c(modelName)
-    
+
     if( !is.na(nomeFile)) {
       # carica il dataset
-      obj.dataLoader$load(nomeFile = nomeFile,IDName = IDName,EVENTName = EVENTName);
+
+      obj.dataLoader$load.csv(nomeFile = nomeFile,IDName = IDName,EVENTName = EVENTName);
+
       # prendine i valori
       loadedData<-obj.dataLoader$getData();
     } else {
@@ -98,13 +115,15 @@ PManager<-function() {
       loadedData$MMatrix<-transMatrix
       loadedData$footPrint<-footPrintTable
     }
+    
     # cicla per ogni modelli
     for(i in listaModelliDaCaricare) {
       # carica il dataset in ogni modello
-      listOfModels[[i]]$loadDataset( 
-              transMatrix=loadedData$MMatrix ,
-              footPrintTable = loadedData$footPrint
-              )
+#       listOfModels[[i]]$loadDataset( 
+#               transMatrix=loadedData$MMatrix ,
+#               footPrintTable = loadedData$footPrint
+#               )
+      listOfModels[[i]]$loadDataset( dataList = loadedData )      
       # addestra il modello
       listOfModels[[i]]$trainModel();
     }
@@ -135,6 +154,7 @@ PManager<-function() {
     "trainModel" = trainModel,
     "getModel" = getModel,
     "replay" = replay,
+    "play" = play,
     "plot" = plot
     ))    
 }

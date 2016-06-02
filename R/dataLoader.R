@@ -9,6 +9,12 @@ dataLoader<-function() {
   pat.process<-''   
   wordSequence.raw<-''
   #=================================================================================
+  # clearAttributes
+  #=================================================================================    
+  clearAttributes<-function() {
+    costructor();
+  }
+  #=================================================================================
   # buildFootPrintTable
   #=================================================================================   
   buildFootPrintTable<-function( MM ) {
@@ -93,6 +99,7 @@ dataLoader<-function() {
   # raggruppa i dati, come sono da CSV in una maniera più consona ad essere analizzati
   #=================================================================================   
   groupPatientLogActivity<-function(mydata,ID.list.names) {
+
     # prendi la lista di pazienti e
     # per ogni paziente costruisci i gruppi 
     ID.list<-unique(mydata[[ID.list.names]])
@@ -109,9 +116,10 @@ dataLoader<-function() {
   buildMMMatrices.and.other.structures<-function(mydata, EVENT.list.names, EVENTName, ID.act.group) {
     # costruisci la matrice
     MM<-matrix(0, ncol=length(unique(mydata[[EVENT.list.names]]))+2, nrow=length(unique(mydata[[EVENT.list.names]]))+2 )
-    colnames(MM)<-c("BEGIN","END",unique(mydata[[EVENT.list.names]]))
+    colnames(MM)<-c("BEGIN","END",unique(as.character(mydata[[EVENT.list.names]])))
     rownames(MM)<-colnames(MM)
-    
+   # ID.act.group[[1]][EVENT.list.names]<-as.character(ID.act.group[[1]][EVENT.list.names])
+
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
     # per ogni paziente
     for(patID in seq(1,length(ID.act.group))) {
@@ -178,7 +186,7 @@ dataLoader<-function() {
     for( i in seq(1,length(splitDataSet))) {
       # build a data loader for each slitted dataset
 #      objLoaders[[i]]<-dataLoader()
-      
+      browser()
       # build the MM matrix and other stuff...
       res[[i]]<-buildMMMatrices.and.other.structures(mydata = mydata, 
                                                 EVENT.list.names = EVENT.list.names, 
@@ -199,21 +207,63 @@ dataLoader<-function() {
 
   }
   #=================================================================================
-  # loader
+  # load.csv
   #=================================================================================  
-  load<-function( nomeFile, IDName, EVENTName,quote="\"",sep = ",") {
+  load.csv<-function( nomeFile, IDName, EVENTName,quote="\"",sep = ",") {
+    clearAttributes();
     ID.list.names<-IDName
     EVENT.list.names<-EVENTName
+
     # carica il file
     mydata = read.table(file=nomeFile,sep = sep,header = T,quote=quote)
     mydata[[EVENT.list.names]]<-as.character(mydata[[EVENT.list.names]])
     mydata[[ID.list.names]]<-as.character(mydata[[ID.list.names]])
-    
+
     # group the log of the patient in a structure easier to be handler
     ID.act.group<-groupPatientLogActivity(mydata,ID.list.names) 
-    
+
     # build the MM matrix and other stuff...
     res<-buildMMMatrices.and.other.structures(mydata = mydata, 
+                                              EVENT.list.names = EVENT.list.names, 
+                                              EVENTName = EVENTName, 
+                                              ID.act.group = ID.act.group)
+    #populate the internal attributes
+    arrayAssociativo<<-res$arrayAssociativo
+    footPrint<<-res$footPrint
+    MMatrix<<-res$MMatrix
+    pat.process<<-res$pat.process
+    wordSequence.raw<<-res$wordSequence.raw
+  }
+  #=================================================================================
+  # load.listOfWords
+  #=================================================================================  
+  load.listOfSimpleWords<-function( load.listOfSimpleWords , IDName="ID1", EVENTName="Event") {
+    clearAttributes();
+    ID.list.names<-IDName
+    EVENT.list.names<-EVENTName
+    
+    # carica il file
+#     mydata = read.table(file=nomeFile,sep = sep,header = T,quote=quote)
+#     mydata[[EVENT.list.names]]<-as.character(mydata[[EVENT.list.names]])
+#     mydata[[ID.list.names]]<-as.character(mydata[[ID.list.names]])
+
+    grossaMatrice<-c()
+    for(i in seq(1,length(load.listOfSimpleWords))) {
+      for( singEv in seq(1,length(load.listOfSimpleWords[[i]]))) {
+        grossaMatrice<-rbind( grossaMatrice , c(  as.character(i), load.listOfSimpleWords[[i]][singEv] )  )
+      }
+    }
+    colnames(grossaMatrice)<-c(IDName,EVENTName)
+    
+    aaa<-as.data.frame(grossaMatrice)
+    aaa[[EVENTName]]<-as.character(aaa[[EVENTName]])
+    aaa[[IDName]]<-as.character(aaa[[IDName]])
+    
+    # group the log of the patient in a structure easier to be handler
+    ID.act.group<-groupPatientLogActivity(as.data.frame(aaa),IDName) 
+    
+    # build the MM matrix and other stuff...
+    res<-buildMMMatrices.and.other.structures(mydata = aaa, 
                                               EVENT.list.names = EVENT.list.names, 
                                               EVENTName = EVENTName, 
                                               ID.act.group = ID.act.group)
@@ -224,7 +274,7 @@ dataLoader<-function() {
     MMatrix<<-res$MMatrix
     pat.process<<-res$pat.process
     wordSequence.raw<<-res$wordSequence.raw
-  }
+  }  
   #=================================================================================
   # loader
   #=================================================================================  
@@ -263,7 +313,8 @@ dataLoader<-function() {
   costructor();
   #================================================================================= 
   return(list(
-    "load"=load,
+    "load.csv"=load.csv,
+    "load.listOfSimpleWords"=load.listOfSimpleWords,
     "getData"=getData,
     "setData"=setData,
     "buildSplittedLoaderDataAndTables"=buildSplittedLoaderDataAndTables

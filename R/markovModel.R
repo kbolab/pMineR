@@ -13,16 +13,17 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   parameters<-list()
   MMatrix.perc<-NA
   MMatrix.perc.noLoop<-NA
+  istanceClass<-list()
   
   #=================================================================================
   # loadDataset
   #=================================================================================   
-  loadDataset<-function( transMatrix , footPrintTable ) {
+  loadDataset<-function( dataList ) { 
+    transMatrix<-dataList$MMatrix
+    footPrintTable<-dataList$footPrint
     MMatrix<<-transMatrix
-    footPrint<<-footPrintTable
-    
+
     # calcola la matrice delle percentuali e quella delle percentuali senza i loop
-    
     # MMatrix.perc
     MM<-MMatrix;
     for( i in seq( 1 , nrow(MM)) ) {if(sum(MM[i,])>0)  {MM[i,]<-MM[i,]/sum(MM[i,]);} } 
@@ -38,16 +39,53 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     is.dataLoaded<<-TRUE
   }  
   #=================================================================================
+  # generate
+  #=================================================================================  
+  play<-function(numberOfPlays = 1 ) {
+    res<-list()
+    for(i in seq(1,numberOfPlays)) {
+      res[[i]]<-play.Single()
+    }
+    return(res)
+  }
+  play.Single<-function() {
+    ct<-1;
+    res<-c();
+    if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
+    else considerAutoLoop<-TRUE  
+    
+
+    # copia la tabella delle transizioni in una un po' più facile 
+    # da maneggiare (almeno come nome)
+    if ( considerAutoLoop == TRUE) MM<-MMatrix.perc
+    else MM<-MMatrix.perc.noLoop
+    
+    statoAttuale<-"BEGIN"
+    while( statoAttuale != "END") {
+    	sommaCum<-cumsum(MM[statoAttuale,])
+    	dado<-runif(n = 1,min = 0,max = 0.99999999999999)
+    	posizione<-which( (cumsum(MM[statoAttuale,])-dado)>=0  )[1]
+    	nuovoStato<-colnames(MM)[posizione]
+    	res<-c(res,statoAttuale)
+    	statoAttuale<-nuovoStato
+    }
+    res<-c(res,"END")
+    return(res);
+  }
+  #=================================================================================
   # trainModel
   #=================================================================================   
   trainModel<-function() {
     # setta la soglia a zero, così per sport...
     if(!is.null(parameters$threshold)) threshold<-parameters$threshold
     else threshold<-0
+    if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
+    else considerAutoLoop<-TRUE  
 
     # copia la tabella delle transizioni in una un po' più facile 
     # da maneggiare (almeno come nome)
-    MM<-MMatrix.perc
+    if ( considerAutoLoop == TRUE) MM<-MMatrix.perc
+    else MM<-MMatrix.perc.noLoop
     # prendi la lista dei nomi
     listaNodi<-colnames(MM)
     # la lista dei nodi raggiungibili da BEGIN
@@ -134,6 +172,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   getModel<-function(kindOfOutput) {
     if(kindOfOutput=="XML") return( model.XML )
     if(kindOfOutput=="grViz") return( model.grViz )
+    if(kindOfOutput=="MMatrix") return( MMatrix )
+    if(kindOfOutput=="MMatrix.perc") return( MMatrix.perc )
     stop("The requested model is not available yet")
   }
   #=================================================================================
@@ -141,6 +181,50 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   #=================================================================================   
   plot<-function(){
     grViz( getModel(kindOfOutput = "grViz" ) )
+  }  
+  #=================================================================================
+  # distanceFrom
+  #=================================================================================   
+  distanceFrom<-function( objToCheck, metric="default") {
+
+    ext.MM <- objToCheck$getModel(kindOfOutput = "MMatrix.perc")
+    int.MM <- MMatrix.perc
+    
+    unione.nomi<-unique(c(colnames(ext.MM),colnames(int.MM)))
+    combinazioni<-expand.grid(unione.nomi,unione.nomi)
+    combinazioni<-cbind( combinazioni,  rep(0,nrow(combinazioni)  ) )
+    combinazioni<-cbind( combinazioni,  rep(0,nrow(combinazioni)  ) )
+    colnames(combinazioni)<-c("from","to","int","ext")
+    combinazioni$from<-as.character(combinazioni$from)
+    combinazioni$to<-as.character(combinazioni$to)
+    
+    for(riga in seq(1,nrow(combinazioni))) {
+
+      if(  combinazioni[riga, "from"] %in%  colnames(int.MM)  &
+           combinazioni[riga, "to"] %in%  colnames(int.MM)
+      ) {
+        combinazioni[riga, "int"]<-int.MM[  combinazioni[riga, "from"] , combinazioni[riga, "to"]     ]
+      }
+      if(  combinazioni[riga, "from"] %in%  colnames(ext.MM)  &
+           combinazioni[riga, "to"] %in%  colnames(ext.MM)
+      ) {
+        combinazioni[riga, "ext"]<-ext.MM[  combinazioni[riga, "from"] , combinazioni[riga, "to"]     ]
+      }
+    }    
+    distance<-sum(abs(combinazioni$ext - combinazioni$int))
+    return( list(   "distance" = distance )      )
+  }
+  #=================================================================================
+  # setIstanceClass
+  #=================================================================================     
+  setIstanceClass<-function( className, classType = "default") {
+    istanceClass[[classType]]<-className
+  }
+  #=================================================================================
+  # setIstanceClass
+  #=================================================================================     
+  getInstanceClass<-function( className, classType = "default") {
+    return(istanceClass[[classType]])
   }  
   # -----------------------------------------------------------------
   # costructor
@@ -153,7 +237,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     is.dataLoaded<<-FALSE
     parameters<<-parametersFromInput
     MMatrix.perc<<-NA
-    MMatrix.perc.noLoop<<-NA    
+    MMatrix.perc.noLoop<<-NA   
+    istanceClass<<-list()
   }
   # -----------------------------------------------------------------
   costructor( parametersFromInput = parameters.list);
@@ -164,6 +249,10 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     "loadDataset"=loadDataset,
     "trainModel"=trainModel,
     "replay"=replay,
-    "plot"=plot
+    "play"=play,
+    "plot"=plot,
+    "distanceFrom"=distanceFrom,
+    "setIstanceClass"=setIstanceClass,
+    "getInstanceClass"=getInstanceClass
   ) )  
 }

@@ -16,7 +16,10 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
   #=================================================================================
   # loadDataset
   #=================================================================================   
-  loadDataset<-function( transMatrix , footPrintTable ) {
+  loadDataset<-function( dataList ) {
+    transMatrix<-dataList$MMatrix
+    footPrintTable<-dataList$footPrint
+    
     MMatrix<<-transMatrix
     footPrint<<-footPrintTable
     is.dataLoaded<<-TRUE
