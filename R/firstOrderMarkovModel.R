@@ -1,6 +1,7 @@
 #' firstOrderMarkovModel
 #' 
 #' @description  implement a simple markov Model
+#' @param  parameters.list the list of the parameter used to set the object
 #' @useDynLib pMineR    
 #' @export
 firstOrderMarkovModel<-function( parameters.list = list() ) {

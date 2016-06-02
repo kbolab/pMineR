@@ -22,6 +22,7 @@ textObj<-function() {
 #' dectobin
 #' 
 #' @description  mmmhhhh I should remember its aim but I have a hole...
+#' @param y the decimal value that should be translated in binary
 #' @export
 dectobin <- function(y) {
   # find the binary sequence corresponding to the decimal number 'y'
@@ -40,6 +41,8 @@ dectobin <- function(y) {
 #' is.included. 
 #' 
 #' @description  A very complex function:  is A included in B?
+#' @param a the first set
+#' @param b the second set
 #' @export
 is.included<-function( a , b ) {
   if(sum(is.element(a,b)) == length(a)) return(TRUE)

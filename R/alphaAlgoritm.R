@@ -1,6 +1,7 @@
 #' alphaAlgorithm
 #' 
 #' @description  implement alphaAlgorithm
+#' @param parameters.list The list of the parameters used to set the object
 #' @useDynLib pMineR    
 #' @import stringr           
 #' @export
@@ -346,7 +347,7 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
   # plot
   #=================================================================================   
   plot<-function(){
-    grViz( getModel(kindOfOutput = "grViz" ) )
+    grViz( getModel(kindOfOutput = "grViz" ))
   }
   # -----------------------------------------------------------------
   # costructor

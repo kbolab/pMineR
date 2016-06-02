@@ -10,5 +10,6 @@ License: GPL-2
 Imports:
     DiagrammeR (>= 0.8.2),
     stringr (>= 1.0.0),
-    XML (>= 3.98-1.3)
+    XML (>= 3.98-1.3),
+    shiny (>= 0.12.2)
 NeedsCompilation: yes
