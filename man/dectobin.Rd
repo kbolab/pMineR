@@ -6,6 +6,9 @@
 \usage{
 dectobin(y)
 }
+\arguments{
+\item{y}{the decimal value that should be translated in binary}
+}
 \description{
 mmmhhhh I should remember its aim but I have a hole...
 }

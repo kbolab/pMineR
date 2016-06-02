@@ -6,6 +6,9 @@
 \usage{
 alphaAlgorithm(parameters.list = NA)
 }
+\arguments{
+\item{parameters.list}{The list of the parameters used to set the object}
+}
 \description{
 implement alphaAlgorithm
 }

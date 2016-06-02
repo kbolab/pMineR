@@ -6,6 +6,11 @@
 \usage{
 is.included(a, b)
 }
+\arguments{
+\item{a}{the first set}
+
+\item{b}{the second set}
+}
 \description{
 A very complex function:  is A included in B?
 }
