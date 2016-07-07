@@ -1,33 +1,85 @@
-#' alphaAlgorithm
+#' AlphaAlgoritm class
 #' 
-#' @description  implement alphaAlgorithm
-#' @param parameters.list The list of the parameters used to set the object
+#' @description  an implementation of an AlphaAlgorith (AA) model. Written with closures it provides also a lot of ancillary methods to handle the methods of this class.
+#'              This class provides a minimal set of methods to handle with the AA model:
+#'              \itemize{
+#'              \item \code{alphaAlgorithm} Is the costructor
+#'              \item \code{loadDataset} Load data into an AA object.
+#'              \item \code{trainModel} Is a method to train an AA model
+#'              \item \code{getModel} Returns the model (XML or graphical way, via grViz script)
+#'              \item \code{replay} This method plays a set of given sequences in the model and returns the fitting
+#'              \item \code{play} This method ask to the model to generate a wished number of sequence
+#'              \item \code{plot} Plots the graph
+#'              \item \code{distanceFrom} allows to calculate the distance between two different AA objects
+#'              }
+#'              Please, consider that there are two ways to use this class: directly using the methods previously 
+#'              listed or via wrapping functions (called AA.<method name>). In the examples section you will find an example of both.
+#' @param parameters.list a list containing possible parameters to tune the model. At the moment no parameters are admitted for this model: this is implemented for further improvement.
 #' @useDynLib pMineR    
 #' @import stringr           
 #' @export
+#' @examples \dontrun{
+#' ##  USING THE METHODS of the class
+#' obj.L<-dataLoader();   # create a Loader
+#' 
+#' # Load a .csv using "DES" and "ID" as column names to indeicate events and patiet's ID
+#' obj.L$loader(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",EVENTName = "DES")
+#' 
+#' obj.AA<-alphaAlgorithm();    # now create an object AlphaAlgorithm
+#' obj.AA<-loadDataset( obj.L$getData() );  # load the data into AA model
+#' obj.AA$trainModel();  # train the model
+#' 
+#' obj.AA$plot();  # plot the model 
+#' XMLModel<-obj.AA$getModel(kindOfOutput = "XML"); # and get the XML
+#' 
+#' ##  USING THE WRAPPER Functions
+#' 
+#' 
+#' 
+#' }
 alphaAlgorithm<-function(  parameters.list = NA ) {
 
   MMatrix<-''
+  MMatrix.perc<-NA
+  MMatrix.perc.noLoop<-NA  
   footPrint<-''
   model.grViz<-'';
   model.XML<-'';
   is.dataLoaded<-FALSE
   parameters<-NA
+  obj.log<-NA
+  istanceClass<-list()
   
-  #=================================================================================
+  # ***************************************************************************************************
+  # WRAPPING METHODS
+  # *************************************************************************************************** 
+  #===========================================================  
   # loadDataset
-  #=================================================================================   
+  #===========================================================  
   loadDataset<-function( dataList ) {
     transMatrix<-dataList$MMatrix
     footPrintTable<-dataList$footPrint
     
     MMatrix<<-transMatrix
     footPrint<<-footPrintTable
+    
+    # calcola la matrice delle percentuali e quella delle percentuali senza i loop
+    # MMatrix.perc
+    MM<-MMatrix;
+    for( i in seq( 1 , nrow(MM)) ) {if(sum(MM[i,])>0)  {MM[i,]<-MM[i,]/sum(MM[i,]);} } 
+    MMatrix.perc<<-MM
+    
+    # MMatrix.perc.noLoop
+    MM<-MMatrix;
+    diag(MM)<-0;
+    for( i in seq( 1 , nrow(MM)) ) {if(sum(MM[i,])>0)  {MM[i,]<-MM[i,]/sum(MM[i,]);} } 
+    MMatrix.perc.noLoop<<-MM    
+    
     is.dataLoaded<<-TRUE
   }
-  #=================================================================================
+  #===========================================================  
   # replay
-  #=================================================================================   
+  #===========================================================  
   replay<-function( wordSequence.raw ) {
     # initialize variables
     res<-list(); 
@@ -58,11 +110,30 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
     colnames(res$summaryTable)<-c("ok","warning","error")
     return(res)
   }
-  #=================================================================================
+  #===========================================================
+  # play
+  #===========================================================
+  play<-function(numberOfPlays = 1 ) {
+    res<-list()
+    if(is.dataLoaded == FALSE) obj.log$sendLog(msg= "data is not yet loaded in model!" , type="NMI" )
+        
+    for(i in seq(1,numberOfPlays)) {
+      # build a PETRI NETWORK OBJECT
+      objPN<-petriNetworkModel();
+      # Load a model into the PETRI NETWORK OBJECT
+      objPN$loadModel.xml( xmlModel = model.XML )
+      # play!
+      res[[i]]<-objPN$play();
+    }
+    return(res)
+  }  
+  #===========================================================  
   # trainModel
-  #=================================================================================   
+  #===========================================================  
   trainModel<-function() {
-    if(is.dataLoaded == FALSE) stop("data is not yet loaded in model!");
+    if(is.dataLoaded == FALSE) {
+      obj.log$sendLog(msg= "data is not yet loaded in model!" , type="NMI" )
+    }
     # 1) TL
     TL<-build.TL();  
     # 2) TI
@@ -121,9 +192,99 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
     model.grViz<<-a;
     model.XML<<-strutturaXML
   }
+  #===========================================================  
+  # getModel
+  #===========================================================  
+  getModel<-function(kindOfOutput) {
+    if(kindOfOutput=="XML") return( model.XML )
+    if(kindOfOutput=="grViz") return( model.grViz )
+    obj.log$sendLog(msg= "The requested model is not available yet" , type="NMI" )    
+  }
+  #===========================================================  
+  # plot
+  #===========================================================  
+  plot<-function(){
+    grViz( getModel(kindOfOutput = "grViz" ))
+  }  
   #=================================================================================
-  # build.X series of function
+  # distanceFrom - WRAPPER Function
+  # Funzione WRAPPER per il calcolo delle distanze rispetto ad un oggetto omologo
   #=================================================================================   
+  distanceFrom<-function( objToCheck, metric="default") {
+    if( metric == "default" ) return( distanceFrom.default( objToCheck = objToCheck) )
+    obj.log$sendLog(msg= "The requested metric is not yet available" , type="NMI" )
+  }  
+  #===========================================================  
+  # getLogObj
+  #===========================================================  
+  getLogObj<-function() {
+    return(obj.log)
+  }
+  #===========================================================
+  # setLogObj
+  #===========================================================  
+  setLogObj<-function( objLog ) {
+    obj.log<<-objLog
+  }    
+  
+  
+  # ***************************************************************************************************
+  # MODEL SPECIFIC PUBLIC METHODS
+  # *************************************************************************************************** 
+  
+  
+  # ***************************************************************************************************
+  # PRIVATE METHODS
+  # *************************************************************************************************** 
+  #===========================================================
+  # distanceFrom.default
+  # MEtrica di default. In questo caso la metrica di default fa una 
+  # semplice comparison fra le footprint tables. pesando come 1 ogni 
+  # diversità di simbolo ad eccezione di una inversione di direzion che 
+  # vale 2.
+  #===========================================================
+  distanceFrom.default<-function( objToCheck ) {
+    
+    ext.MM <- objToCheck$getModel(kindOfOutput = "MMatrix.perc")
+    int.MM <- MMatrix.perc
+    
+    combinazioni<-calcolaMatriceCombinazioni( ext.MM = ext.MM, int.MM = int.MM)
+    
+    distance<-sum(abs(combinazioni$ext - combinazioni$int))
+    return( list(   "distance" = distance )      )
+  }   
+  #===========================================================
+  # calcolaMatriceCombinazioni
+  # Funzione di comodo che calcola in una matrice le differenze di probabilità
+  # fra due FSM. Di fatto è un pre-processing per funzioni che calcolano metriche
+  #===========================================================
+  calcolaMatriceCombinazioni<-function( ext.MM, int.MM) {
+    unione.nomi<-unique(c(colnames(ext.MM),colnames(int.MM)))
+    combinazioni<-expand.grid(unione.nomi,unione.nomi)
+    combinazioni<-cbind( combinazioni,  rep(0,nrow(combinazioni)  ) )
+    combinazioni<-cbind( combinazioni,  rep(0,nrow(combinazioni)  ) )
+    colnames(combinazioni)<-c("from","to","int","ext")
+    combinazioni$from<-as.character(combinazioni$from)
+    combinazioni$to<-as.character(combinazioni$to)
+    
+    for(riga in seq(1,nrow(combinazioni))) {
+      
+      if(  combinazioni[riga, "from"] %in%  colnames(int.MM)  &
+           combinazioni[riga, "to"] %in%  colnames(int.MM)
+      ) {
+        combinazioni[riga, "int"]<-int.MM[  combinazioni[riga, "from"] , combinazioni[riga, "to"]     ]
+      }
+      if(  combinazioni[riga, "from"] %in%  colnames(ext.MM)  &
+           combinazioni[riga, "to"] %in%  colnames(ext.MM)
+      ) {
+        combinazioni[riga, "ext"]<-ext.MM[  combinazioni[riga, "from"] , combinazioni[riga, "to"]     ]
+      }
+    }    
+    return(combinazioni)  
+  }  
+  #===========================================================  
+  # build.X series of function
+  #===========================================================  
   build.TL<-function() {
     res<-colnames(MMatrix)[!(colnames(MMatrix) %in% c("BEGIN","END"))]
     return(res);
@@ -296,9 +457,10 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
       "arrayTokenUtili"=arrayTokenUtili
     )  )
   }
-  #=================================================================================
+  #===========================================================  
   # convert2XML - future
-  #=================================================================================   
+  # Converte la struttura interna in formato XML
+  #===========================================================  
   convert2XML<-function( nodeList  ) {
     testo<-textObj();
     linkArr_03<-c();
@@ -317,9 +479,7 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
     nodeArr_02<- nodeList$arrayNodiComplessi
     nodeArr_01<-c(nodeArr_01, "BEGIN")
     nodeArr_01<-c(nodeArr_01, "END")    
-#     nodeArr_02<-c(nodeArr_02, "BEGIN")
-#     nodeArr_02<-c(nodeArr_02, "END")
-    
+
     testo$add("<xml>");
     testo$add("\t<graphStructure>");
     testo$add("\t\t<nodeList>")
@@ -335,40 +495,40 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
     testo$add("</xml>");
     return( testo$get() );
   }  
-  #=================================================================================
-  # getModel
-  #=================================================================================   
-  getModel<-function(kindOfOutput) {
-    if(kindOfOutput=="XML") return( model.XML )
-    if(kindOfOutput=="grViz") return( model.grViz )
-    stop("The requested model is not available yet")
-  }
-  #=================================================================================
-  # plot
-  #=================================================================================   
-  plot<-function(){
-    grViz( getModel(kindOfOutput = "grViz" ))
-  }
-  # -----------------------------------------------------------------
+  #===========================================================
+  # setIstanceClass
+  #===========================================================
+  setInstanceClass<-function( className, classType = "default") {
+    istanceClass[[classType]]<-className
+  }  
+  #===========================================================
   # costructor
-  # -----------------------------------------------------------------
+  # E' il costruttore della classe
+  #===========================================================
   costructor<-function( parametersFromInput = NA ) {
     MMatrix<<-''
+    MMatrix.perc<<-''
+    MMatrix.perc.noLoop<<-''      
     footPrint<<-''
     model.grViz<<-'';
     model.XML<<-'';
     is.dataLoaded<<-FALSE
     parameters<<-parameters
+    obj.log<<-logHandler();    
+    setInstanceClass(className = "alphaAlgorithm")
   }
-  # -----------------------------------------------------------------
+  #===========================================================
   costructor( parametersFromInput = parameters.list);
-  # -----------------------------------------------------------------
+  #===========================================================
   return( list(
     "trainModel"=trainModel,
     "getModel"=getModel,
     "loadDataset"=loadDataset,
-    "trainModel"=trainModel,
     "replay"=replay,
-    "plot"=plot
+    "play"=play,
+    "plot"=plot,
+    "distanceFrom"=distanceFrom,
+    "getLogObj"=getLogObj,
+    "setLogObj"=setLogObj    
   ) )
 }

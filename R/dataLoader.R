@@ -98,7 +98,7 @@ dataLoader<-function() {
   # groupPatientLogActivity
   # raggruppa i dati, come sono da CSV in una maniera più consona ad essere analizzati
   #=================================================================================   
-  groupPatientLogActivity<-function(mydata,ID.list.names) {
+  groupPatientLogActivity<-function(mydata, ID.list.names) {
 
     # prendi la lista di pazienti e
     # per ogni paziente costruisci i gruppi 
@@ -209,7 +209,7 @@ dataLoader<-function() {
   #=================================================================================
   # load.csv
   #=================================================================================  
-  load.csv<-function( nomeFile, IDName, EVENTName,quote="\"",sep = ",") {
+  load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",") {
     clearAttributes();
     ID.list.names<-IDName
     EVENT.list.names<-EVENTName
@@ -220,7 +220,7 @@ dataLoader<-function() {
     mydata[[ID.list.names]]<-as.character(mydata[[ID.list.names]])
 
     # group the log of the patient in a structure easier to be handler
-    ID.act.group<-groupPatientLogActivity(mydata,ID.list.names) 
+    ID.act.group<-groupPatientLogActivity(mydata, ID.list.names) 
 
     # build the MM matrix and other stuff...
     res<-buildMMMatrices.and.other.structures(mydata = mydata, 
@@ -315,8 +315,65 @@ dataLoader<-function() {
   return(list(
     "load.csv"=load.csv,
     "load.listOfSimpleWords"=load.listOfSimpleWords,
-    "getData"=getData,
-    "setData"=setData,
-    "buildSplittedLoaderDataAndTables"=buildSplittedLoaderDataAndTables
+    "getData"=getData
   ))
+}
+
+#' create a dataLoader object
+#' 
+#' @description  this is a wrapping function able to instantiate a \code{dataLoader} object
+#' @return a \code{dataLoader} object
+#' @export
+#' @examples \dontrun{
+#' 
+#' aa<- DL.dataLoader();  # Create a dataLoader Object
+#' }#' 
+DL.dataLoader<-function( ) {
+  obj<-dataLoader()
+  return( obj )
+}
+#' Load a csv file into a dataLoader object
+#' 
+#' @description  this is a wrapping for loading data into a \code{dataLoader} object
+#' @param objDL A dataLoader object, previously instantiated via \code{dataLoader();} class or \code{DL.dataLoader();} wrapper function
+#' @param nomeFile the csv filename
+#' @param IDName the column, in the csv, indicating the Patient's ID
+#' @param EVENTName the column, in the csv, indicating the kind of event
+#' @param quote the quoting for strings, in the csv file. The default value is '"'
+#' @param sep the separator used in the csv file. The default value is ','
+#' @export
+#' @examples \dontrun{
+#' 
+#' aa<- DL.dataLoader();  # Create a dataLoader Object
+#' # and Load a csv
+#' DL.load.csv(objDL = aa,nomeFile = "../otherFiles/test_03.csv",IDName = "ID",EVENTName = "DES")
+#' }
+DL.load.csv<-function( objDL, nomeFile, IDName, EVENTName, quote="\"",sep = ",") {
+  objDL$load.csv( nomeFile = nomeFile, IDName = IDName, EVENTName = EVENTName, quote = quote, sep = sep )
+}
+#' get the data loaded using a dataLoader object
+#' 
+#' @description  returns the data previously loaded into a dataLoader object
+#' @param objDL A dataLoader object, previously instantiated via \code{dataLoader();} class or \code{DL.dataLoader();} wrapper function
+#' @return a list containing many indexes:
+#' \itemize{
+#' \item \code{arrayAssociativo} an array with the list of the character of the word
+#' \item \code{footPrint} the footprint table
+#' \item \code{MMatrix} the transition matrix with the the occurrencies
+#' \item \code{pat.process} a list containing the LOG clustered for patients
+#' \item \code{MMatrix.perc} the transition matrix with the probability of state-transition
+#' \item \code{MMatrix.perc.noLoop}  the transition matrix with the probability of state-transition, but in this case the loops are suppressed and probabilities re-calculated
+#' \item \code{wordSequence.raw} a list of the word loaded into the object
+#' }   
+#' @export
+#' @examples \dontrun{
+#' 
+#' aa<- DL.dataLoader();  # Create a dataLoader Object
+#' # and Load a csv
+#' DL.load.csv(objDL = aa,nomeFile = "../otherFiles/test_03.csv",IDName = "ID",EVENTName = "DES")
+#' # now get the data
+#' DL.getData( aa )
+#' }
+DL.getData<-function( objDL ) {
+  return( objDL$getData() );
 }

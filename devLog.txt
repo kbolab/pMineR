@@ -1,2 +1,0 @@
-23-05-2016: facing a very bad bug on XML parsing (solved using lists instead of serching via XPath)
-25-05-2016: building a shareable package for CRAN

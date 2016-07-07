@@ -3,37 +3,10 @@
 #' @description  Is the class for handling with Process Mining issues.
 #'               Many methods has been developed: please see vignette for more details...
 #' @useDynLib pMineR    
-#' @export
 #' @import DiagrammeR 
 PManager<-function() {
   listOfModels<-list()
 
-  #=================================================================================
-  # getProb - future
-  #=================================================================================  
-  getProb<-function( stepAttuale=0, maxNumStep =1, statoAttuale="BEGIN", statoGoal ="END", debug=0,debugString=NA,killAutoLoop=FALSE) {
-    if(is.na(debugString)) debugString<-statoAttuale;
-    if( killAutoLoop == FALSE ) matriceDaConsiderare <- "MMatrix.perc"
-    if( killAutoLoop == TRUE ) matriceDaConsiderare <- "MMatrix.perc.noLoop"
-    
-    if( statoAttuale==statoGoal ) {
-      cat('\n ',debugString);
-      return( 1 );
-    }  
-    if( stepAttuale == maxNumStep & (statoAttuale!=statoGoal) ) {
-      return( 0 );
-    }  
-    MMPerc<-getAttribute(attributeName = matriceDaConsiderare)
-    prob<-0; 
-    for( possibileNuovoStato in rownames(MMPerc)) {
-      if(getAttribute(attributeName = matriceDaConsiderare)[statoAttuale,possibileNuovoStato]>0) {
-        newdebugString<-paste(c(debugString,'=>',possibileNuovoStato),collapse='');
-        addendo<-getAttribute(attributeName = matriceDaConsiderare)[statoAttuale,possibileNuovoStato] * getProb( stepAttuale+1, maxNumStep,  possibileNuovoStato ,  statoGoal , debug = debug,debugString = newdebugString, killAutoLoop=killAutoLoop);
-        prob<-prob + addendo
-      }
-    }  
-    return(prob);
-  }
   #=================================================================================
   # createModel
   #=================================================================================  
@@ -119,10 +92,6 @@ PManager<-function() {
     # cicla per ogni modelli
     for(i in listaModelliDaCaricare) {
       # carica il dataset in ogni modello
-#       listOfModels[[i]]$loadDataset( 
-#               transMatrix=loadedData$MMatrix ,
-#               footPrintTable = loadedData$footPrint
-#               )
       listOfModels[[i]]$loadDataset( dataList = loadedData )      
       # addestra il modello
       listOfModels[[i]]$trainModel();
@@ -148,13 +117,13 @@ PManager<-function() {
   }
   costructor();
   
-  return(list(
-    "getProb"=getProb,
-    "createModel"=createModel,
-    "trainModel" = trainModel,
-    "getModel" = getModel,
-    "replay" = replay,
-    "play" = play,
-    "plot" = plot
-    ))    
+#   return(list(
+# #    "getProb"=getProb,
+#     "createModel"=createModel,
+#     "trainModel" = trainModel,
+#     "getModel" = getModel,
+#     "replay" = replay,
+#     "play" = play,
+#     "plot" = plot
+#     ))    
 }
