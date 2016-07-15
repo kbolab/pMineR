@@ -1,6 +1,3 @@
-#' A string handling class
-#' 
-#' @description  class to face with text printing issues
 textObj<-function() {
   testo<-'';
   add<-function( stringa, carriage=TRUE) {
@@ -18,10 +15,6 @@ textObj<-function() {
   }
   return(list("add"=add,"get"=get))
 }
-#' Decode deicimal to binary
-#' 
-#' @description  mmmhhhh I should remember its aim but I have a hole...
-#' @param y the decimal value that should be translated in binary
 dectobin <- function(y) {
   # find the binary sequence corresponding to the decimal number 'y'
   stopifnot(length(y) == 1, mode(y) == 'numeric')
@@ -36,12 +29,6 @@ dectobin <- function(y) {
   }
   return(res)
 } 
-#' Set theory, basics operation of inclusion
-#' 
-#' @description  A very complex function:  is A included in B?
-#' @param a the first set
-#' @param b the second set
-#' @return boolean TRUE/FALSE depending of inclusion yes or not
 is.included<-function( a , b ) {
   if(sum(is.element(a,b)) == length(a)) return(TRUE)
   else return(FALSE)

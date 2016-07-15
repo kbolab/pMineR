@@ -1,8 +1,3 @@
-#' class for parsing, checking and executing Petri Network
-#' 
-#' @description  bla bla bla bla
-#'               ri bla bir bla bir bal
-#' @import XML 
 petriNetworkModel<-function() {
   XML.model<-''
   obj.log<-''

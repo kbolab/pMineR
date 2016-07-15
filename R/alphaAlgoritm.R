@@ -1,41 +1,48 @@
 #' AlphaAlgoritm class
 #' 
-#' @description  an implementation of an AlphaAlgorith (AA) model. Written with closures it provides also a lot of ancillary methods to handle the methods of this class.
-#'              This class provides a minimal set of methods to handle with the AA model:
+#' @description  An implementation of an AlphaAlgorith (AA) model. Written with closures it provides also a set of
+#'               ancillary methods for building/handling models. The methods are:
 #'              \itemize{
-#'              \item \code{alphaAlgorithm} Is the costructor
-#'              \item \code{loadDataset} Load data into an AA object.
-#'              \item \code{trainModel} Is a method to train an AA model
-#'              \item \code{getModel} Returns the model (XML or graphical way, via grViz script)
-#'              \item \code{replay} This method plays a set of given sequences in the model and returns the fitting
-#'              \item \code{play} This method ask to the model to generate a wished number of sequence
-#'              \item \code{plot} Plots the graph
-#'              \item \code{distanceFrom} allows to calculate the distance between two different AA objects
+#'              \item \code{alphaAlgorithm( ... ) } is the costructor
+#'              \item \code{loadDataset( ... ) } loads data into an AA object.
+#'              \item \code{trainModel( ... ) } trains an AA model
+#'              \item \code{getModel() } returns the AA model (XML or graphical way, via grViz script)
+#'              \item \code{replay( ... ) } submits to the model a set of given sequences and returns the fitting
+#'              \item \code{play( ... ) } generates a wished number of sequences
+#'              \item \code{plot() } plots the graph
+#'              \item \code{distanceFrom( ... ) } calculates the distance between two different AA model objects
 #'              }
-#'              Please, consider that there are two ways to use this class: directly using the methods previously 
-#'              listed or via wrapping functions (called AA.<method name>). In the examples section you will find an example of both.
-#' @param parameters.list a list containing possible parameters to tune the model. At the moment no parameters are admitted for this model: this is implemented for further improvement.
+#'              There are two ways to use this class: directly using the methods previously 
+#'              listed or via wrapping functions (called PM.<method name>). In the examples section you will find an example of both.
+#' @param parameters.list a list containing possible parameters to tune the model. At the moment no parameters are admitted for this model: this is implemented for further improvements.
 #' @useDynLib pMineR    
-#' @import stringr           
+#' @import stringr XML graphics          
 #' @export
 #' @examples \dontrun{
 #' # -----------------------------------------------
-#' ##  USING THE METHODS of the class
+#' #  USING THE METHODS of the class
 #' # -----------------------------------------------
 #' obj.L<-dataLoader();   # create a Loader
 #' 
-#' # Load a .csv using "DES" and "ID" as column names to indeicate events and patiet's ID
-#' obj.L$loader(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",EVENTName = "DES")
+#' # Load a .csv using "DES" and "ID" as column names to indeicate events 
+#' # and Patient's ID
+#' obj.L$loader(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",
+#' EVENTName = "DES")
 #' 
-#' obj.AA<-alphaAlgorithm();    # now create an object AlphaAlgorithm
-#' obj.AA<-loadDataset( obj.L$getData() );  # load the data into AA model
-#' obj.AA$trainModel();  # train the model
+#' # now create an object AlphaAlgorithm
+#' obj.AA<-alphaAlgorithm();    
 #' 
-#' obj.AA$plot();  # plot the model 
-#' XMLModel<-obj.AA$getModel(kindOfOutput = "XML"); # and get the XML
+#' # load the data into AA model
+#' obj.AA$loadDataset( obj.L$getData() );  
+#' 
+#' # train the model
+#' obj.AA$trainModel();  
+#' 
+#' # plot the model 
+#' obj.AA$plot();  
 #' 
 #' # -----------------------------------------------
-#' ##  USING THE WRAPPER Functions
+#' #  USING THE WRAPPER Functions
 #' # -----------------------------------------------
 #' # Instantiate a loader
 #' obj.LD<-LD.builder()
@@ -51,7 +58,7 @@
 #' PM.loadDataset(PM.obj = obj.PM,dataList = LD.getData(loader.obj = obj.LD))
 #'
 #' # train it
-#' PM.trainModel(PM.obj = obj.PM)#' 
+#' PM.trainModel(PM.obj = obj.PM)
 #' 
 #' # plot the model 
 #' PM.plot(PM.obj = obj.PM)

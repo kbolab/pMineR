@@ -1,31 +1,34 @@
-#' load csv log files
+#' load csv based log files
 #' 
-#' @description  a loader for csv-based log files. It also performs some computationes (in example footprint table)
+#' @description  A loader for csv based log files. It also calculates the footprint table, transition matrix probabilities, and presents data in different shapes. The public methods are:
 #'              \itemize{
-#'              \item \code{dataLoader} Is the costructor
-#'              \item \code{load.csv} Load the indicated csv file into the \code{dataLoader} object
-#'              \item \code{getData} returns the loaded data
+#'              \item \code{dataLoader() } the costructor
+#'              \item \code{load.csv( ... ) } loads the a csv file into the \code{dataLoader} object
+#'              \item \code{getData() } returns the loaded data
 #'              }
-#'              Please, consider that there are two ways to use this class: directly using the methods previously 
+#'              There are two ways to use this class: directly using the methods previously 
 #'              listed or via wrapping functions (called LD.<method name>). In the examples section you will find an example of both.
 #' @useDynLib pMineR    
 #' @import stringr utils stats           
 #' @export
 #' @examples \dontrun{
 #' # -----------------------------------------------
-#' ##  USING THE METHODS of the class
+#' #  USING THE METHODS of the class
 #' # -----------------------------------------------
 #' obj.L<-dataLoader();   # create a Loader
 #' 
-#' # Load a .csv using "DES" and "ID" as column names to indeicate events and patiet's ID
+#' # Load a .csv using "DES" and "ID" as column names to indeicate events 
+#' # and Patient's ID
 #' obj.L$loader(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",
 #' EVENTName = "DES")
 #' 
 #' # print the footprint table 
 #' res<- obj.L$getData()
 #' print(res$footprint)
+#' 
+#' 
 #' # -----------------------------------------------
-#' ##  USING THE WRAPPER Functions
+#' #  USING THE WRAPPER Functions
 #' # -----------------------------------------------
 #' # Instantiate a loader
 #' obj.LD<-LD.builder()

@@ -1,44 +1,54 @@
 #' firstOrderMarkovModel class
 #' 
-#' @description  This is an implementation of the First Order Markov Model (MM) for Process Mining issues.
-#'                This class provides a minimal set of methods to handle with the MM model:
+#' @description  This is an implementation of the First Order Markov Model (FOMM) for Process Mining issues.
+#'                This class provides a minimal set of methods to handle with the FOMM model:
 #'                \itemize{
-#'                \item
-#'                \item \code{firstOrderMarkovModel} Is the costructor
-#'                \item \code{loadDataset} Load data into an MM object.
-#'                \item \code{trainModel} Is a method to train an MM model
-#'                \item \code{getModel} Returns the model (XML or graphical way, via grViz script)
-#'                \item \code{replay} This method plays a set of given sequences in the model and returns the fitting
-#'                \item \code{play} This method ask to the model to generate a wished number of sequence
-#'                \item \code{plot} Plots the graph
-#'                \item \code{distanceFrom} allows to calculate the distance between two different MM objects
-#'                \item \code{plot.delta.graph} plot a distance graph between two given \code{firstOrderMarkovModel} objects
+#'                \item \code{firstOrderMarkovModel( ...) } is the costructor
+#'                \item \code{loadDataset( ...) } loads data into a FOMM object
+#'                \item \code{trainModel() } trains a FOMM model
+#'                \item \code{getModel() } returns the model (XML or graphical way, via grViz script)
+#'                \item \code{replay( ... )} submits a set of given sequences and returns the fitting (not yet implemented for this algorithm)
+#'                \item \code{play( ... )} generates a wished number of sequences
+#'                \item \code{plot() } plots the graph
+#'                \item \code{distanceFrom( ... )} allows to calculate the distance between two different FOMM objects
+#'                \item \code{plot.delta.graph( ... ) } plots a distance graph between two given FOMM objects
 #'                }
-#'              Please, consider that there are two ways to use this class: directly using the methods previously 
-#'              listed or via wrapping functions (called AA.<method name>). In the examples section you will find an example of both.
-#' @param parameters.list a list containing possible parameters to tune the model. At the moment no parameters are admitted for this model: this is implemented for further improvement.
+#'              There are two ways to use this class: directly using the methods previously 
+#'              listed or via wrapping functions (called PM.<method name>). In the examples section you will find an example of both.
+#' @param parameters.list a list containing possible parameters to tune the model. The admitted element of the input list are:
+#'   \itemize{
+#'    \item \code{threshold } a number between 0 and 1 (default is 0). In the graph, arcs with a probability under the threshold will be removed;
+#'    \item \code{considerAutoLoop } a boolean parameter (default is \code{TRUE}). If \code{FALSE} the arcs outcoming and incoming in the same node will be removed.
+#'   }
 #' @useDynLib pMineR    
 #' @export
 #' @examples \dontrun{
 #' # ----------------------------------------------- 
-#' ##  USING THE METHODS of the class
+#' #  USING THE METHODS of the class
 #' # ----------------------------------------------- 
 #' obj.L<-dataLoader();   # create a Loader
 #' 
-#' # Load a .csv using "DES" and "ID" as column names to indeicate events and patiet's ID
+#' # Load a .csv using "DES" and "ID" as column names to indicate events 
+#' # and Patient's ID
 #' obj.L$loader(nomeFile = "./otherFiles/test_02.csv",
 #' IDName = "ID",EVENTName = "DES")
 #' 
-#' obj.MM<-firstOrderMarkovModel();    # now create an object firstOrderMarkovModel
-#' obj.MM<-loadDataset( obj.L$getData() );  # load the data into MM model
-#' obj.MM$trainModel();  # train the model
+#' # now create an object firstOrderMarkovModel
+#' obj.MM<-firstOrderMarkovModel();    
 #' 
-#' obj.MM$plot();  # plot the model 
+#' # load the data into MM model
+#' obj.MM$loadDataset( obj.L$getData() );  
+#' 
+#' # train the model
+#' obj.MM$trainModel();  
+#' 
+#' # plot the model 
+#' obj.MM$plot();  
 #' 
 #' # -----------------------------------------------
 #' ##  USING THE WRAPPER Functions
 #' # -----------------------------------------------
-#' # Instantiate a'firstOrderMarkovModel' model
+#' # Instantiate a 'firstOrderMarkovModel' model
 #' obj.LD<-LD.builder()
 #' 
 #' # Load a CSV into the loader
@@ -52,7 +62,7 @@
 #' PM.loadDataset(PM.obj = obj.PM,dataList = LD.getData(loader.obj = obj.LD))
 #'
 #' # train it
-#' PM.trainModel(PM.obj = obj.PM)#' 
+#' PM.trainModel(PM.obj = obj.PM)
 #' 
 #' # plot the model 
 #' PM.plot(PM.obj = obj.PM)
@@ -140,6 +150,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # replay
   #===========================================================
   replay<-function( wordSequence.raw ) {
+    cat("\n Not yet implemented for MM models")
   }
   #===========================================================
   # convert2XML - future

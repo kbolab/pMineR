@@ -1,11 +1,11 @@
-#' A builder for a Process Mining model (wrapping function)
+#' Create an object from the classes \code{alphaAlgorithm} or \code{firstOrderMarkovModel}
 #' 
-#' @description  this is a wrapping function to instantiate a Process Mining model. Models can also be instantiated directly using the appropriate classes (in esample \code{alphaAlgorithm} or \code{firstOrderMarkovModel} ), if preferred.
+#' @description  This wrapping function instantiates a Process Mining model (\code{alphaAlgorithm} or \code{firstOrderMarkovModel} ) and provides an unique interface for both of them.
 #' @param kindOfObject can be 'alphaAlgorithm' or 'firstOrderMarkovModel', according with the kind of object you want back
 #' @param parameters.list some models allow to define some details (i.e.: thresholds for probabilities, etc.). In the current implementation 'alphaAlgorithm' does not allow to specify any parameters, while 'firstOrderMarkovModel' has two optional parameters:
 #'        \itemize{
-#'          \item \code{parameters.list$threshold} if specified, all the arcs with a probability less than the threshold will be suppressed
-#'          \item \code{parameters.list$considerAutoLoop} if specified, all the arcs representing a loop of a node with itself will be suppressed
+#'        \item \code{threshold } a number between 0 and 1 (default is 0). In the graph, arcs with a probability under the threshold will be removed
+#'        \item \code{considerAutoLoop } a boolean parameter (default is \code{TRUE}). If \code{FALSE} the arcs outcoming and incoming in the same node will be removed
 #'        } 
 #' @return the wished object
 #' @export
@@ -25,10 +25,11 @@ PM.builder<-function( kindOfObject , parameters.list = list() ) {
   }
   return(NA)
 }
-#' A trainer for an Process Mining model (wrapping function)
+#' A trainer for a Process Mining model (wrapping function)
 #' 
-#' @description  this is a wrapping function able to forse the train for a Process Mining model. The model has to be previously loaded with a loader, as shown in the examples below
-#' @param PM.obj An Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
+#' @description  This function wraps the \code{<object>::train() } method and trains the Process Mining model. The model has to be previously loaded with a loader, as shown in the examples below
+#' 
+#' @param PM.obj a Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder() } wrapper function
 #' @export
 #' @examples \dontrun{
 #' # Instantiate a'firstOrderMarkovModel' model
@@ -52,9 +53,10 @@ PM.trainModel<-function( PM.obj ) {
 }
 #' Returns a model (XML or else)
 #' 
-#' @description  this is a wrapping function able to returns a Process Mining model, for example in XML format
-#' @param PM.obj An Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
-#' @param kindOfOutput A string indicating the kind of desired output. Can be "\code{XML}" or "\code{grViz}" depending of the kind of output the user is interested in
+#' @description  This function wraps the \code{<object>::getModel() } method and returns a Process Mining model, for example in XML or grViz format
+#' 
+#' @param PM.obj a Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder()} wrapper function
+#' @param kindOfOutput a string indicating the kind of desired output. Can be "\code{XML}" or "\code{grViz}"
 #' @return the desided output, according with indicated by \code{kindOfOutput} input parameter
 #' @export
 #' @examples \dontrun{
@@ -79,9 +81,9 @@ PM.getModel<-function( PM.obj , kindOfOutput="XML" ) {
 }
 #' Load a dataset into a Process Mining model
 #' 
-#' @description  this is a wrapping function able to load a dataset into a Process Mining model
-#' @param PM.obj An Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
-#' @param dataList a \code{dataList} structure as returned by the \code{getData} method of a \code{dataLoader} object
+#' @description  This function wraps the \code{<object>::loadDataset( ... ) } method and loads a dataset into a Process Mining model
+#' @param PM.obj an Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
+#' @param dataList a \code{dataList} structure, returned by a \code{dataLoader::getData()} method
 #' @export
 #' @examples \dontrun{
 #' # Instantiate a'firstOrderMarkovModel' model
@@ -102,10 +104,11 @@ PM.loadDataset<-function( PM.obj , dataList ) {
 }
 #' Play a Process Mining model
 #' 
-#' @description  this is a wrapping function able to play (run may times) a Process Mining model.
-#' @param PM.obj An Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
-#' @param numberOfPlays the desired number of sequences
-#' @return a \code{list} containing the generated words
+#' @description  This function wraps the \code{<object>::play( ... ) } method and runs many times a Process Mining model and returns the generates processes.
+#' 
+#' @param PM.obj a Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
+#' @param numberOfPlays the number of sequences you want to obtain
+#' @return a list containing the generated words
 #' @export
 #' @examples \dontrun{
 #' # Instantiate a'firstOrderMarkovModel' model
@@ -132,8 +135,8 @@ PM.play<-function( PM.obj, numberOfPlays ) {
 }
 #' Plot a Process Mining model graph
 #' 
-#' @description  this is a wrapping function able to plot the graph of a Process Mining model.
-#' @param PM.obj An Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
+#' @description  This function wraps the \code{<object>::plot( ... )} method and plots the graph of a Process Mining model.
+#' @param PM.obj a Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
 #' @export
 #' @import DiagrammeR
 #' @examples \dontrun{
@@ -161,10 +164,10 @@ PM.plot<-function( PM.obj ) {
 }
 #' Calculate the distance between two Process Mining models
 #' 
-#' @description  this is a wrapping function able to plot the graph of a Process Mining model. It calculates the 'distance' between an first AA model (passed with the parameter \code{aaObj}) and a second AA model (passed with the parameter \code{objToCheck}). This method allows to compute the distance according to many metrics. If not specified it uses the default metric.
-#' @param PM.obj An Process Mining model previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
-#' @param objToCheck Another Process Mining model, OF THE SAME CLASS, previously instantiated via the appropriate class (in example \code{alphaAlgorithm()}  or \code{firstOrderMarkovModel()}) or \code{AA.builder();} wrapper function
-#' @param metric a string indicatind the desired metric to calculate the distance. The default metric is '\code{default}' but other metrics can be available, in the future.
+#' @description  this function wraps the \code{<object>::distanceFrom() } method and calculates the 'distance' between an first Process Mining model object (passed with the parameter \code{aaObj}) and a second Process Mining model object (passed with the parameter \code{objToCheck}). This method allows to compute the distance according to many metrics. If not specified it uses the default metric.
+#' @param PM.obj the first Process Mining object
+#' @param objToCheck the second Process Mining object
+#' @param metric a string indicating the desired metric. At the moment only the default metric (is '\code{default}') is available
 #' @return a \code{list} containing the results of the distance and some ancillary information (some metrics could return a non-scalar value)
 #' @export
 #' @examples \dontrun{
@@ -196,22 +199,23 @@ PM.plot<-function( PM.obj ) {
 PM.distanceFrom<-function( PM.obj , objToCheck , metric="default") {
   return(PM.obj$distanceFrom( objToCheck = objToCheck , metric = metric))
 }
-#' Create a loader object
+#' Create a \code{dataLoader} object
 #' 
-#' @description  this is a wrapping function to instantiate a Loader for .csv log-files.
+#' @description  This function allows to instantiate a \code{dataLoader} object.
 #' @return a \code{dataLoader} empty object
 #' @export
 #' @examples \dontrun{
-#' # Instantiate a'dataLoader' object
+#' 
+#' # Instantiate a 'dataLoader' object
 #' obj<- LD.builder()
 #' }
 LD.builder<-function( ) {
   res<-dataLoader()
   return(res)
 }
-#' Load a .csv log-file into a dataLoader object
+#' Load a .csv based log file into a \code{dataLoader} object
 #' 
-#' @description  This wrapping methods (it wraps the \code{load.csv} ). It returns nothing, but the object passed as \code{loader.obj} will be loaded with the given .csv file
+#' @description  This function wraps the \code{dataLoader::load.csv( ... ) } method and returns nothing but the object passed as \code{loader.obj} is loaded with the given .csv file content
 #' @param loader.obj a \code{dataLoader} object to load the data in
 #' @param nomeFile the path of the .csv file
 #' @param IDName the name of the column which contains the PATIENT ID
@@ -230,21 +234,22 @@ LD.builder<-function( ) {
 LD.load.csv<-function( loader.obj, nomeFile, IDName, EVENTName,  quote="\"",sep = ",") {
   loader.obj$load.csv(nomeFile = nomeFile,IDName=IDName, EVENTName = EVENTName, quote = quote, sep = sep)
 }
-#' Give back the loaded data into a dataLoader object
+#' Give back the data loaded into a dataLoader object
 #' 
-#' @description  It returns the data previously loaded into a dataLoader object. Because during the loadind, the dataLoader methods also performs some computations, this function can return the footprint table, the words in the files, the transition matrix, and other stuff.
-#' @param loader.obj a \code{dataLoader} object to load the data in
+#' @description  This function wraps \code{dataLoader::getData() } method and returns the data previously loaded into a \code{dataLoader} object. 
+#' @param loader.obj a \code{dataLoader} object
 #' @export 
 #' @return it returns a list contaning: \itemize{
-#' \item{ \code{arrayAssociativo} the list of the possible states}
-#' \item{ \code{footprint} the footprint table (with the \code{BEGIN} and \code{END} dummy states )}
-#' \item{ \code{MMatrix} the transition matrix, filled with the transition absolute frequencies}
-#' \item{ \code{MMatrix.perc} the transition matrix, filled with the transition relative frequencies (the rows are normalized to 1)'}
-#' \item{ \code{MMatrix.perc.noLoop} the transition matrix, without auto-loop on the states, filled with the transition relative frequencies (the rows are normalized to 1)'}
-#' \item{ \code{pat.processes} a list contaning the processes, ordered for each patient}
-#' \item{ \code{wordSequence.raw} a list contaning the processes, rawly listed for each patient}
+#' \item{ \code{arrayAssociativo} the list of the possible EVENTS}
+#' \item{ \code{footprint} the footprint table (with the BEGIN and END dummy states )}
+#' \item{ \code{MMatrix} the transition matrix, filled with the absolute frequencies}
+#' \item{ \code{MMatrix.perc} the transition matrix, filled with the relative frequencies (the rows are normalized to 1)'}
+#' \item{ \code{MMatrix.perc.noLoop} the transition matrix, without auto-loop on the states, filled with the relative frequencies (the rows are normalized to 1)'}
+#' \item{ \code{pat.processes} a list contaning the PROCESSES with all the other found in the csv}
+#' \item{ \code{wordSequence.raw} a list contaning the just the PROCESSES}
 #' }
 #' @examples \dontrun{ 
+#' 
 #' # Instantiate a'dataLoader' object
 #' obj<- LD.builder()
 #' 

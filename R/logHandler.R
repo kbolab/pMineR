@@ -1,6 +1,3 @@
-#' class for handling logs/warnings/errorss
-#' 
-#' @description  It handles messages from script to a chosen output (screen, file, etc.)
 logHandler<-function() {
   behaviourTable<-c()
   #=================================================================================
