@@ -19,7 +19,9 @@
 #' @import stringr           
 #' @export
 #' @examples \dontrun{
+#' # -----------------------------------------------
 #' ##  USING THE METHODS of the class
+#' # -----------------------------------------------
 #' obj.L<-dataLoader();   # create a Loader
 #' 
 #' # Load a .csv using "DES" and "ID" as column names to indeicate events and patiet's ID
@@ -32,10 +34,27 @@
 #' obj.AA$plot();  # plot the model 
 #' XMLModel<-obj.AA$getModel(kindOfOutput = "XML"); # and get the XML
 #' 
+#' # -----------------------------------------------
 #' ##  USING THE WRAPPER Functions
+#' # -----------------------------------------------
+#' # Instantiate a loader
+#' obj.LD<-LD.builder()
 #' 
+#' # Load a CSV into the loader
+#' LD.load.csv(loader.obj = obj.LD ,nomeFile = "./otherFiles/test_02.csv",
+#'      IDName = "ID",EVENTName = "DES")
 #' 
+#' # Instantiate a PM model
+#' obj.PM <-PM.builder(kindOfObject = "alphaAlgorithm")
 #' 
+#' # Load the PM model
+#' PM.loadDataset(PM.obj = obj.PM,dataList = LD.getData(loader.obj = obj.LD))
+#'
+#' # train it
+#' PM.trainModel(PM.obj = obj.PM)#' 
+#' 
+#' # plot the model 
+#' PM.plot(PM.obj = obj.PM)
 #' }
 alphaAlgorithm<-function(  parameters.list = NA ) {
 
@@ -240,7 +259,7 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
   # distanceFrom.default
   # MEtrica di default. In questo caso la metrica di default fa una 
   # semplice comparison fra le footprint tables. pesando come 1 ogni 
-  # diversità di simbolo ad eccezione di una inversione di direzion che 
+  # diversita' di simbolo ad eccezione di una inversione di direzion che 
   # vale 2.
   #===========================================================
   distanceFrom.default<-function( objToCheck ) {
@@ -255,8 +274,8 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
   }   
   #===========================================================
   # calcolaMatriceCombinazioni
-  # Funzione di comodo che calcola in una matrice le differenze di probabilità
-  # fra due FSM. Di fatto è un pre-processing per funzioni che calcolano metriche
+  # Funzione di comodo che calcola in una matrice le differenze di probabilita'
+  # fra due FSM. Di fatto e' un pre-processing per funzioni che calcolano metriche
   #===========================================================
   calcolaMatriceCombinazioni<-function( ext.MM, int.MM) {
     unione.nomi<-unique(c(colnames(ext.MM),colnames(int.MM)))

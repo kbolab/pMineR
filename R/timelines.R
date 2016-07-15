@@ -1,4 +1,11 @@
-
+#' Plot a timeline directly from a CSV
+#' 
+#' @description  Function to plot a timeline without using a dataLoader obj, using a csv
+#' @param nomeFile the name of the csv to load
+#' @param IDToPlot The patient ID to plot the event timeline
+#' @param IDName The column Name of the PATIENT ID, in the .csv
+#' @param EVENTName The column name of the EVENTS, in the .csv
+#' @param DATAName The column name of the DATE, in the .csv
 plotTimeline.ID.From.CSV<-function( nomeFile,  IDToPlot, IDName, EVENTName, DATAName = NA ) {
   # crea un oggetto 'loader'
   obj.L<-dataLoader()
@@ -12,9 +19,14 @@ plotTimeline.ID.From.CSV<-function( nomeFile,  IDToPlot, IDName, EVENTName, DATA
   matrice<-cbind( matrice,  as.character(patientSubList[[DATAName]]), as.character(patientSubList[[EVENTName]])   )
 
   plotTimeline( eventTable = matrice )
-
 }
 
+#' Plot a timeline by an eventTable
+#' 
+#' @description  Function to plot a timeline without using a dataLoader obj, using an eventTable
+#' @param eventTable the event Table to be plotted
+#' @param dataSep the separator for date field. Default is: '/'.
+#' @import graphics 
 plotTimeline<-function( eventTable , dataSep='/' ) {
   
   #   eventTable<-c("2001-01-10","RX torace")

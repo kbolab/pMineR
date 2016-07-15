@@ -20,22 +20,42 @@
 #' @useDynLib pMineR    
 #' @export
 #' @examples \dontrun{
+#' # ----------------------------------------------- 
 #' ##  USING THE METHODS of the class
+#' # ----------------------------------------------- 
 #' obj.L<-dataLoader();   # create a Loader
 #' 
 #' # Load a .csv using "DES" and "ID" as column names to indeicate events and patiet's ID
-#' obj.L$loader(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",EVENTName = "DES")
+#' obj.L$loader(nomeFile = "./otherFiles/test_02.csv",
+#' IDName = "ID",EVENTName = "DES")
 #' 
 #' obj.MM<-firstOrderMarkovModel();    # now create an object firstOrderMarkovModel
 #' obj.MM<-loadDataset( obj.L$getData() );  # load the data into MM model
 #' obj.MM$trainModel();  # train the model
 #' 
 #' obj.MM$plot();  # plot the model 
-#' XMLModel<-obj.MM$getModel(kindOfOutput = "XML"); # and get the XML
 #' 
+#' # -----------------------------------------------
 #' ##  USING THE WRAPPER Functions
+#' # -----------------------------------------------
+#' # Instantiate a'firstOrderMarkovModel' model
+#' obj.LD<-LD.builder()
 #' 
+#' # Load a CSV into the loader
+#' LD.load.csv(loader.obj = obj.LD ,nomeFile = "./otherFiles/test_02.csv",
+#'    IDName = "ID",EVENTName = "DES")
 #' 
+#' # Instantiate a PM model
+#' obj.PM <-PM.builder(kindOfObject = "firstOrderMarkovModel")
+#' 
+#' # Load the PM model
+#' PM.loadDataset(PM.obj = obj.PM,dataList = LD.getData(loader.obj = obj.LD))
+#'
+#' # train it
+#' PM.trainModel(PM.obj = obj.PM)#' 
+#' 
+#' # plot the model 
+#' PM.plot(PM.obj = obj.PM)
 #' 
 #' }
 firstOrderMarkovModel<-function( parameters.list = list() ) {
@@ -101,13 +121,13 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # trainModel
   #===========================================================
   trainModel<-function() {
-    # setta la soglia a zero, così per sport...
+    # setta la soglia a zero, cosi' per sport...
     if(!is.null(parameters$threshold)) threshold<-parameters$threshold
     else threshold<-0
     if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
     else considerAutoLoop<-TRUE  
     
-    # copia la tabella delle transizioni in una un po' più facile 
+    # copia la tabella delle transizioni in una un po' piu' facile 
     # da maneggiare (almeno come nome)
     if ( considerAutoLoop == TRUE) MM<-MMatrix.perc
     else MM<-MMatrix.perc.noLoop
@@ -213,7 +233,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
     else considerAutoLoop<-TRUE  
     
-    # copia la tabella delle transizioni in una un po' più facile 
+    # copia la tabella delle transizioni in una un po' piu' facile 
     # da maneggiare (almeno come nome)
     if ( considerAutoLoop == TRUE) MM<-MMatrix.perc
     else MM<-MMatrix.perc.noLoop
@@ -306,8 +326,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   }   
   #===========================================================
   # distanceFrom.default
-  # MEtrica di default. In questo caso la metrica di default è semplicemente la somma
-  # dei valori assoluti delle differenze di probabilità fra le matrici di transizione 
+  # Metrica di default. In questo caso la metrica di default e' semplicemente la somma
+  # dei valori assoluti delle differenze di probabilita' fra le matrici di transizione 
   # di stato. 
   #===========================================================
   distanceFrom.default<-function( objToCheck) {
@@ -324,7 +344,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # distanceFrom.binaryCount
   # Una banale metrica: costruisce una maschera binaria degli stati a transizione
   # con p()>0 e li setta a uno: a seguire fa la somma degli XOR fra le colonne
-  # (conta '1' ogni volta che una è '0' mentre l'altra è '1')
+  # (conta '1' ogni volta che una e' '0' mentre l'altra e' '1')
   #===========================================================
   distanceFrom.binaryCount<-function( objToCheck) {
     
@@ -341,8 +361,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   }  
   #===========================================================
   # calcolaMatriceCombinazioni
-  # Funzione di comodo che calcola in una matrice le differenze di probabilità
-  # fra due FSM. Di fatto è un pre-processing per funzioni che calcolano metriche
+  # Funzione di comodo che calcola in una matrice le differenze di probabilita'
+  # fra due FSM. Di fatto e' un pre-processing per funzioni che calcolano metriche
   #===========================================================
   calcolaMatriceCombinazioni<-function( ext.MM, int.MM) {
     unione.nomi<-unique(c(colnames(ext.MM),colnames(int.MM)))
@@ -373,7 +393,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # costructor
   # E' il costruttore della classe
   #===========================================================
-  costructor<-function( parametersFromInput = NA ) {
+  costructor<-function( parametersFromInput = list() ) {
     MMatrix<<-''
     footPrint<<-''
     model.grViz<<-'';

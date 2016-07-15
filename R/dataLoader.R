@@ -1,7 +1,48 @@
-#' dataLoader
+#' load csv log files
 #' 
-#' @description  It is a general loader for log files
+#' @description  a loader for csv-based log files. It also performs some computationes (in example footprint table)
+#'              \itemize{
+#'              \item \code{dataLoader} Is the costructor
+#'              \item \code{load.csv} Load the indicated csv file into the \code{dataLoader} object
+#'              \item \code{getData} returns the loaded data
+#'              }
+#'              Please, consider that there are two ways to use this class: directly using the methods previously 
+#'              listed or via wrapping functions (called LD.<method name>). In the examples section you will find an example of both.
+#' @useDynLib pMineR    
+#' @import stringr utils stats           
 #' @export
+#' @examples \dontrun{
+#' # -----------------------------------------------
+#' ##  USING THE METHODS of the class
+#' # -----------------------------------------------
+#' obj.L<-dataLoader();   # create a Loader
+#' 
+#' # Load a .csv using "DES" and "ID" as column names to indeicate events and patiet's ID
+#' obj.L$loader(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",
+#' EVENTName = "DES")
+#' 
+#' # print the footprint table 
+#' res<- obj.L$getData()
+#' print(res$footprint)
+#' # -----------------------------------------------
+#' ##  USING THE WRAPPER Functions
+#' # -----------------------------------------------
+#' # Instantiate a loader
+#' obj.LD<-LD.builder()
+#' 
+#' # Load a CSV into the loader
+#' LD.load.csv(loader.obj = obj.LD ,nomeFile = "./otherFiles/test_02.csv",
+#' IDName = "ID",EVENTName = "DES")
+#' 
+#' # Instantiate a PM model
+#' obj.PM <-PM.builder(kindOfObject = "alphaAlgorithm")
+#' 
+#' # get the data
+#' res = LD.getData(loader.obj = obj.LD)
+#'
+#' # print the footprint table
+#' print(res$footprint)
+#' }
 dataLoader<-function() {
   arrayAssociativo<-''
   footPrint<-''
@@ -96,7 +137,7 @@ dataLoader<-function() {
   }  
   #=================================================================================
   # groupPatientLogActivity
-  # raggruppa i dati, come sono da CSV in una maniera più consona ad essere analizzati
+  # raggruppa i dati, come sono da CSV in una maniera piu' consona ad essere analizzati
   #=================================================================================   
   groupPatientLogActivity<-function(mydata, ID.list.names) {
 
@@ -124,7 +165,7 @@ dataLoader<-function() {
     # per ogni paziente
     for(patID in seq(1,length(ID.act.group))) {
       # su ogni elemento del percorso clinico
-      # t è il "tempo" in senso di "step"
+      # t e' il "tempo" in senso di "step"
       for(t in seq(1,nrow(ID.act.group[[patID]]))) {
         # vedi se devi legare il BEGIN
         if( t == 1) {
@@ -317,63 +358,4 @@ dataLoader<-function() {
     "load.listOfSimpleWords"=load.listOfSimpleWords,
     "getData"=getData
   ))
-}
-
-#' create a dataLoader object
-#' 
-#' @description  this is a wrapping function able to instantiate a \code{dataLoader} object
-#' @return a \code{dataLoader} object
-#' @export
-#' @examples \dontrun{
-#' 
-#' aa<- DL.dataLoader();  # Create a dataLoader Object
-#' }#' 
-DL.dataLoader<-function( ) {
-  obj<-dataLoader()
-  return( obj )
-}
-#' Load a csv file into a dataLoader object
-#' 
-#' @description  this is a wrapping for loading data into a \code{dataLoader} object
-#' @param objDL A dataLoader object, previously instantiated via \code{dataLoader();} class or \code{DL.dataLoader();} wrapper function
-#' @param nomeFile the csv filename
-#' @param IDName the column, in the csv, indicating the Patient's ID
-#' @param EVENTName the column, in the csv, indicating the kind of event
-#' @param quote the quoting for strings, in the csv file. The default value is '"'
-#' @param sep the separator used in the csv file. The default value is ','
-#' @export
-#' @examples \dontrun{
-#' 
-#' aa<- DL.dataLoader();  # Create a dataLoader Object
-#' # and Load a csv
-#' DL.load.csv(objDL = aa,nomeFile = "../otherFiles/test_03.csv",IDName = "ID",EVENTName = "DES")
-#' }
-DL.load.csv<-function( objDL, nomeFile, IDName, EVENTName, quote="\"",sep = ",") {
-  objDL$load.csv( nomeFile = nomeFile, IDName = IDName, EVENTName = EVENTName, quote = quote, sep = sep )
-}
-#' get the data loaded using a dataLoader object
-#' 
-#' @description  returns the data previously loaded into a dataLoader object
-#' @param objDL A dataLoader object, previously instantiated via \code{dataLoader();} class or \code{DL.dataLoader();} wrapper function
-#' @return a list containing many indexes:
-#' \itemize{
-#' \item \code{arrayAssociativo} an array with the list of the character of the word
-#' \item \code{footPrint} the footprint table
-#' \item \code{MMatrix} the transition matrix with the the occurrencies
-#' \item \code{pat.process} a list containing the LOG clustered for patients
-#' \item \code{MMatrix.perc} the transition matrix with the probability of state-transition
-#' \item \code{MMatrix.perc.noLoop}  the transition matrix with the probability of state-transition, but in this case the loops are suppressed and probabilities re-calculated
-#' \item \code{wordSequence.raw} a list of the word loaded into the object
-#' }   
-#' @export
-#' @examples \dontrun{
-#' 
-#' aa<- DL.dataLoader();  # Create a dataLoader Object
-#' # and Load a csv
-#' DL.load.csv(objDL = aa,nomeFile = "../otherFiles/test_03.csv",IDName = "ID",EVENTName = "DES")
-#' # now get the data
-#' DL.getData( aa )
-#' }
-DL.getData<-function( objDL ) {
-  return( objDL$getData() );
 }
