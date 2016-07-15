@@ -1,9 +1,3 @@
-#' logInspector
-#' 
-#' @description  Some descriptive analyisis of the log
-#' @export
-
-
 logInspector <- function() {
   eventType <-'' 
   processInstances <-''
@@ -41,7 +35,7 @@ logInspector <- function() {
    # build output structures and fill them
    distribution.abs <- sort(countEventOccurrence, decreasing=TRUE)
    distribution.perc <- distribution.abs/numberOfTotalEvents
-   eventStats <<- list("Number of different event types" = numberOfDifferentEvents,
+   eventStats <- list("Number of different event types" = numberOfDifferentEvents,
                       "Total number of events" = numberOfTotalEvents,
                       "Absolute event occurrence" = distribution.abs,
                       "Percentual event occurrence" = distribution.perc
@@ -91,7 +85,7 @@ logInspector <- function() {
     symbolToEventConversion[,1] <- eventType
     symbolToEventConversion[,2] <- eventType.toSymbol
     
-    processStats <<- list("Absolute frequency dataframe" = processDistribution.abs[,c(1,2,3)],
+    processStats <- list("Absolute frequency dataframe" = processDistribution.abs[,c(1,2,3)],
                          "Relative frequency dataframe" = processDistribution.abs[,c(1,2,4)],
                          "Event to symbol conversion" = symbolToEventConversion
     )
@@ -103,7 +97,7 @@ logInspector <- function() {
   # plotEventStats
   #===========================================================  
   plotEventStats<-function(howManyMostFrequentEvents) {
-    
+    eventStats<-getEventStats()
     eventsToPlot <- eventStats$`Absolute event occurrence`[1:howManyMostFrequentEvents]
     barplot(eventsToPlot, horiz=TRUE , main = sprintf("First %g event absolute occurrence", howManyMostFrequentEvents), xlim =c(0,max(eventsToPlot)) , ylab = "Name of event type", xlab = "Number of occurrences" )
     axis(2, at=1:length(eventsToPlot), labels=names(eventsToPlot))
@@ -115,7 +109,7 @@ logInspector <- function() {
   # plotProcessStats
   #===========================================================  
   plotProcessStats<-function(howManyMostFrequentProcesses) {
-    
+    processStats<-getProcessStats()
     processesToPlot <- processStats$`Absolute frequency dataframe`[1:howManyMostFrequentProcesses,3]
     processesToPlotSignatures <-  processStats$`Absolute frequency dataframe`$`Process signature`[1:howManyMostFrequentProcesses]
     barplot(processesToPlot, horiz=TRUE , main = sprintf("First %g processes absolute occurrence", howManyMostFrequentProcesses), xlim =c(0,max(processesToPlot)) , ylab = "Process index", xlab = "Number of occurrences" )
