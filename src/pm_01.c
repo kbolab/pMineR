@@ -32,7 +32,7 @@ void printBagList() {
   int numOfElement = fp->numOfElement;
   
   for( struct bagListStruct *nn = bagListFather; nn != NULL; nn = nn->next ) {
-    if(bagListFather!=nn) printf("\n-%s-",nn->strPunt);
+//    if(bagListFather!=nn) printf("\n-%s-",nn->strPunt);
   }
 }
 
