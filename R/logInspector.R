@@ -1,3 +1,52 @@
+#' firstOrderMarkovModel class
+#' 
+#' @description   This class provides some descriptive statistics about the log:
+#'                \itemize{
+#'                \item \code{costructor( ...) } is the costructor of the class
+#'                \item \code{loadDataset( ...) } loads data into a logInspector object. It takes as input the output of the method getData from an instance of the classe dataLoader. It stores the logs and built,internally to the logInspector object, all the structures needed for the next computations.
+#'                \item \code{getEventStats() } returns a list containing event-related stats
+#'                \item \code{getProcessStats() } returns a list containing process-related stats
+#'                \item \code{plotEventStats( ... )} plots event-related stats (takes a custom number of most frequent events it has to plot)
+#'                \item \code{plotProcessStats( ... )} plots process-related stats (takes a custom number of most frequent processes it has to plot)
+#'
+#'                }
+#' @param Parameters for plot methods is: 
+#'   \itemize{
+#'    \item \code{num } the number of most frequent events/processes to plot
+#'   }
+#' @useDynLib pMineR    
+#' @export
+#' @examples \dontrun{
+#' # ----------------------------------------------- 
+#' #  USING THE METHODS of the class
+#' # ----------------------------------------------- 
+#' obj.L<-dataLoader();   # create a Loader
+#' 
+#' # Load a .csv using "DES" and "ID" as column names to indicate events 
+#' # and Patient's ID
+#' obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",
+#' IDName = "ID",EVENTName = "DES")
+#' 
+#' # now create an object logInspector
+#' obj.logI<-logInspector();    
+#' 
+#' # load the data into logInspector object
+#' obj.logI$loadDataset( obj.L$getData() );  
+#' 
+#' # get event-related descriptive statistics
+#' logI$getEventStats();  
+#' 
+#' # get process-related descriptive statistics 
+#' logI$getProcessStats(); 
+#' 
+#' # plot event-related descriptive statistics
+#' logI$plotEventStats();  
+#' 
+#' # plot process-related descriptive statistics 
+#' logI$getProcessStats(); 
+#' }
+
+
 logInspector <- function() {
   eventType <-'' 
   processInstances <-''
@@ -105,7 +154,7 @@ logInspector <- function() {
   }
   
   
-  #===========================================================
+  #=================================logI$plotProcessStats(howManyMostFrequentProcesses = )==========================
   # plotProcessStats
   #===========================================================  
   plotProcessStats<-function(howManyMostFrequentProcesses) {
