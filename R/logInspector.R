@@ -1,4 +1,4 @@
-#' firstOrderMarkovModel class
+#' logInspector class
 #' 
 #' @description   This class provides some descriptive statistics about the log:
 #'                \itemize{
