@@ -88,7 +88,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================  
   loadDataset<-function( dataList ) { 
     transMatrix<-dataList$MMatrix
-    footPrintTable<-dataList$footPrint
+#     footPrintTable<-dataList$footPrint
     MMatrix<<-transMatrix
 
     # calcola la matrice delle percentuali e quella delle percentuali senza i loop
