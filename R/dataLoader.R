@@ -67,7 +67,7 @@ dataLoader<-function() {
     colnames(FF)<-colnames(MM);  rownames(FF)<-rownames(MM)
     elementi<-expand.grid(rownames(MM),rownames(MM))
     for( riga in seq(1,nrow(elementi))) {
-      if(elementi[riga,1] == elementi[riga,2]) {FF[ elementi[riga,1] , elementi[riga,2]]<-"#"}
+      if(elementi[riga,1] == elementi[riga,2]) { FF[ elementi[riga,1] , elementi[riga,2]]<-"#" }
       if(  MM[elementi[riga,1],elementi[riga,2]] == 0 & MM[elementi[riga,2],elementi[riga,1]]!=0  ) { FF[ elementi[riga,1] , elementi[riga,2]]<-"<-" }
       if(  MM[elementi[riga,1],elementi[riga,2]] != 0 & MM[elementi[riga,2],elementi[riga,1]]==0  ) { FF[ elementi[riga,1] , elementi[riga,2]]<-"->" }
       if(  MM[elementi[riga,1],elementi[riga,2]] != 0 & MM[elementi[riga,2],elementi[riga,1]]!=0  ) { FF[ elementi[riga,1] , elementi[riga,2]]<-"||" }
@@ -250,22 +250,19 @@ dataLoader<-function() {
     if( "wordSequence.raw" %in%  nomiAttributi  ) wordSequence.raw<<-dataToSet$wordSequence.raw
 
   }
-  #=================================================================================
-  # load.csv
-  #=================================================================================  
-  load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",") {
+  load.data.frame<-function( mydata, IDName, EVENTName) {
+    # clear all the attributes
     clearAttributes();
+    
     ID.list.names<-IDName
-    EVENT.list.names<-EVENTName
+    EVENT.list.names<-EVENTName    
 
-    # carica il file
-    mydata = read.table(file=nomeFile,sep = sep,header = T,quote=quote)
     mydata[[EVENT.list.names]]<-as.character(mydata[[EVENT.list.names]])
     mydata[[ID.list.names]]<-as.character(mydata[[ID.list.names]])
-
-    # group the log of the patient in a structure easier to be handler
+    
+    # group the log of the patient in a structure easier to handle
     ID.act.group<-groupPatientLogActivity(mydata, ID.list.names) 
-
+    
     # build the MM matrix and other stuff...
     res<-buildMMMatrices.and.other.structures(mydata = mydata, 
                                               EVENT.list.names = EVENT.list.names, 
@@ -276,7 +273,16 @@ dataLoader<-function() {
     footPrint<<-res$footPrint
     MMatrix<<-res$MMatrix
     pat.process<<-res$pat.process
-    wordSequence.raw<<-res$wordSequence.raw
+    wordSequence.raw<<-res$wordSequence.raw    
+  }
+  #=================================================================================
+  # load.csv
+  #=================================================================================  
+  load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",") {
+    # load the file
+    mydata = read.table(file=nomeFile,sep = sep,header = T,quote=quote)
+    # Now "load" the data.frame
+    load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName )
   }
   #=================================================================================
   # load.listOfWords
@@ -286,11 +292,6 @@ dataLoader<-function() {
     ID.list.names<-IDName
     EVENT.list.names<-EVENTName
     
-    # carica il file
-#     mydata = read.table(file=nomeFile,sep = sep,header = T,quote=quote)
-#     mydata[[EVENT.list.names]]<-as.character(mydata[[EVENT.list.names]])
-#     mydata[[ID.list.names]]<-as.character(mydata[[ID.list.names]])
-
     grossaMatrice<-c()
     for(i in seq(1,length(load.listOfSimpleWords))) {
       for( singEv in seq(1,length(load.listOfSimpleWords[[i]]))) {
@@ -325,13 +326,13 @@ dataLoader<-function() {
   getData<-function() {
     # MMatrix.perc
     MM<-MMatrix;
-    for( i in seq( 1 , nrow(MM)) ) {if(sum(MM[i,])>0)  {MM[i,]<-MM[i,]/sum(MM[i,]);} } 
+    for( i in seq( 1 , nrow(MM)) ) {  if(sum(MM[i,])>0)  {MM[i,]<-MM[i,]/sum(MM[i,]);}  } 
     MMatrix.perc<-MM
     
     # MMatrix.perc.noLoop
     MM<-MMatrix;
     diag(MM)<-0;
-    for( i in seq( 1 , nrow(MM)) ) {if(sum(MM[i,])>0)  {MM[i,]<-MM[i,]/sum(MM[i,]);} } 
+    for( i in seq( 1 , nrow(MM)) ) {  if(sum(MM[i,])>0)  {MM[i,]<-MM[i,]/sum(MM[i,]);}  } 
     MMatrix.perc.noLoop<-MM     
 
     return(list(
@@ -358,6 +359,7 @@ dataLoader<-function() {
   #================================================================================= 
   return(list(
     "load.csv"=load.csv,
+    "load.data.frame"=load.data.frame,
     "load.listOfSimpleWords"=load.listOfSimpleWords,
     "getData"=getData
   ))
