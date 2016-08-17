@@ -12,6 +12,8 @@
 #'                \item \code{plot() } plots the graph
 #'                \item \code{distanceFrom( ... )} allows to calculate the distance between two different FOMM objects
 #'                \item \code{plot.delta.graph( ... ) } plots a distance graph between two given FOMM objects
+#'                \item \code{get.transition.Prob( ... ) } calculate the probability to reach a state in K transitions at least
+#'                \item \code{getTimeProb( ... ) } calculate the probability to reach a state in K days
 #'                }
 #'              There are two ways to use this class: directly using the methods previously 
 #'              listed or via wrapping functions (called PM.<method name>). In the examples section you will find an example of both.
@@ -28,10 +30,10 @@
 #' # ----------------------------------------------- 
 #' obj.L<-dataLoader();   # create a Loader
 #' 
-#' # Load a .csv using "DES" and "ID" as column names to indicate events 
+#' # Load a .csv using "DES" and "ID" as column names to indeicate events 
 #' # and Patient's ID
-#' obj.L$loader(nomeFile = "./otherFiles/test_02.csv",
-#' IDName = "ID",EVENTName = "DES")
+#' obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",
+#' EVENTName = "DES")
 #' 
 #' # now create an object firstOrderMarkovModel
 #' obj.MM<-firstOrderMarkovModel();    
@@ -77,6 +79,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   parameters<-list()
   MMatrix.perc<-NA
   MMatrix.perc.noLoop<-NA
+  MMatrix.mean.time<-NA
+  MMatrix.density.list<-NA  
   istanceClass<-list()
   obj.log<-NA
   
@@ -102,6 +106,10 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     diag(MM)<-0;
     for( i in seq( 1 , nrow(MM)) ) {if(sum(MM[i,])>0)  {MM[i,]<-MM[i,]/sum(MM[i,]);} } 
     MMatrix.perc.noLoop<<-MM     
+    
+    # MM.mean.time and MM.density.list
+    MMatrix.mean.time<<-dataList$MM.mean.time
+    MMatrix.density.list<<-dataList$MM.density.list
     
     # dichiara che i dati sono stati caricati
     is.dataLoaded<<-TRUE
@@ -206,35 +214,118 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # plot.delta.graph
   # Funzione per il plotting delle distanze rispetto ad una data metrica
   #===========================================================
-  plot.delta.graph<-function( objToCheck, threshold=0 ) {
+  plot.delta.graph<-function( objToCheck, threshold=0, type.of.graph="delta", threshold.4.overlapped=.3 ) {
     
+    if( type.of.graph != "overlapped" & type.of.graph !="delta") stop("\n Not yet implemented: err.cod. %43547g8fd")
     ext.MM <- objToCheck$getModel(kindOfOutput = "MMatrix.perc")
     int.MM <- MMatrix.perc    
     
     combinazioni<-calcolaMatriceCombinazioni( ext.MM = ext.MM, int.MM = int.MM)
     listaStati<-unique(combinazioni[,1])
     matrice<-array(0,dim=c(length(listaStati),length(listaStati)))
-    colnames(matrice)<-listaStati
-    rownames(matrice)<-listaStati    
+    m.int<-matrice; m.ext<-matrice;  
+    colnames(matrice)<-listaStati;     rownames(matrice)<-listaStati
+    colnames(m.int)<-listaStati;     rownames(m.int)<-listaStati
+    colnames(m.ext)<-listaStati;     rownames(m.ext)<-listaStati    
     
     for(riga in seq(1,nrow(combinazioni))) {
       matrice[  combinazioni[riga,"from"] , combinazioni[riga,"to"]   ]<- abs(combinazioni[riga,"int"] - combinazioni[riga,"ext"])
+      m.int[  combinazioni[riga,"from"] , combinazioni[riga,"to"]   ]<- combinazioni[riga,"int"]
+      m.ext[  combinazioni[riga,"from"] , combinazioni[riga,"to"]   ]<- combinazioni[riga,"ext"]
 #      if( matrice[  combinazioni[riga,"from"] , combinazioni[riga,"to"]   ] <threshold) matrice[  combinazioni[riga,"from"] , combinazioni[riga,"to"]   ]<-0
     }
     
-#     righe.valide<-c()
-#     for(riga in listaStati) {
-#       if(  sum(matrice[riga,]) > 0   ) righe.valide<-c(righe.valide,riga)
-#     }
-#     if(!("END" %in% righe.valide)) righe.valide<-c(righe.valide,"END")
-#     if(!("BEGIN" %in% righe.valide)) righe.valide<-c(righe.valide,"BEGIN")
-# 
-#     matrice<-matrice[righe.valide,righe.valide]
-
-
-    grafo<-build.graph.from.table(MM = matrice, threshold = threshold) 
+    if(type.of.graph=="delta")
+      grafo<-build.graph.from.table(MM = matrice, threshold = threshold) 
+    if(type.of.graph=="overlapped")
+      grafo<-build.graph.from.table(MM = m.int, threshold = threshold, 
+                                    second.MM = m.ext, 
+                                    threshold.second.MM = threshold.4.overlapped, type.of.graph = type.of.graph) 
+    
     grViz(grafo);
   }   
+  #=================================================================================
+  # get.time.transition.Prob
+  # It tries to predict the probability to reach a final state (starting from a known starting state)
+  # in "at least" K days
+  #   initialState : the initial state
+  #   finalState : the final state
+  #   num.of.transitions : the max number of allowed days for reaching the final state
+  #   debugString : (TRUE/FALSE) is a debug string print for debuggin issues
+  #   killAutoLoop : (TRUE/FALSE) suppress autoloop during computation?
+  #=================================================================================    
+  get.time.transition.Prob<-function( initialState, finalState, maxTime,debugString=NA,killAutoLoop=FALSE){
+    a<-getTimeProb( timeAttuale=0, maxTime =maxTime, 
+                statoAttuale=initialState, statoGoal =finalState, 
+                debugString=debugString,killAutoLoop=killAutoLoop, comsumedTime=0)
+    return(a)
+  }   
+  getTimeProb<-function( timeAttuale=0, maxTime =1, statoAttuale="BEGIN", statoGoal ="END", debugString=NA,killAutoLoop=FALSE,comsumedTime=0) {
+    if(is.na(debugString)) debugString<-statoAttuale;
+    
+    if( statoAttuale==statoGoal ) {
+      cat('\n ',debugString);
+      return( 1 );
+    }  
+    
+    if( timeAttuale > maxTime & (statoAttuale!=statoGoal) ) {
+      return( 1 );
+    }  
+    # MMPerc<-getAttribute(attributeName = matriceDaConsiderare)
+    if( killAutoLoop == FALSE ) { MMPerc<-MMatrix.mean.time; MMProb<-MMatrix.perc }
+    if( killAutoLoop == TRUE ) { stop("Not yet implemented err.cod -hg85h78g4578") }
+    prob<-0; 
+    
+    for( possibileNuovoStato in rownames(MMPerc)) {
+      giorni.stimati.per.transizione<-MMPerc[statoAttuale,possibileNuovoStato]
+      if(giorni.stimati.per.transizione<1) giorni.stimati.per.transizione=1
+      if(MMPerc[statoAttuale,possibileNuovoStato]!=Inf & (timeAttuale+giorni.stimati.per.transizione) <= maxTime ) {
+        newdebugString<-paste(c(debugString,'==(',as.character(giorni.stimati.per.transizione),',',(timeAttuale+giorni.stimati.per.transizione),',',MMProb[statoAttuale,possibileNuovoStato],')==>',possibileNuovoStato),collapse='');
+        addendo<-MMProb[statoAttuale,possibileNuovoStato] * getTimeProb( timeAttuale+giorni.stimati.per.transizione, maxTime,  possibileNuovoStato ,  statoGoal , debugString = newdebugString, killAutoLoop=killAutoLoop);
+        prob<-prob + addendo
+      }
+    }  
+    return(prob);
+  }    
+  #=================================================================================
+  # get.transition.Prob
+  # It tries to predict the probability to reach a final state (starting from a known starting state)
+  # in "at least" K transitions
+  #   initialState : the initial state
+  #   finalState : the final state
+  #   num.of.transitions : the max number of allowed transitions for reaching the final state
+  #   debugString : (TRUE/FALSE) is a debug string print for debuggin issues
+  #   killAutoLoop : (TRUE/FALSE) suppress autoloop during computation?
+  #=================================================================================  
+  get.transition.Prob<-function( initialState, finalState, num.of.transitions,debugString=NA,killAutoLoop=FALSE){
+    a<-getProb( stepAttuale=0, maxNumStep =num.of.transitions, 
+                          statoAttuale=initialState, statoGoal =finalState, 
+                          debugString=debugString,killAutoLoop=killAutoLoop)
+      return(a)
+  } 
+  getProb<-function( stepAttuale=0, maxNumStep =1, statoAttuale="BEGIN", statoGoal ="END", debugString=NA,killAutoLoop=FALSE) {
+    if(is.na(debugString)) debugString<-statoAttuale;
+
+    if( statoAttuale==statoGoal ) {
+      cat('\n ',debugString);
+      return( 1 );
+    }  
+    if( stepAttuale == maxNumStep & (statoAttuale!=statoGoal) ) {
+      return( 0 );
+    }  
+    # MMPerc<-getAttribute(attributeName = matriceDaConsiderare)
+    if( killAutoLoop == FALSE ) MMPerc<-MMatrix.perc
+    if( killAutoLoop == TRUE ) MMPerc<-MMatrix.perc.noLoop
+    prob<-0; 
+    for( possibileNuovoStato in rownames(MMPerc)) {
+      if(MMPerc[statoAttuale,possibileNuovoStato]>0) {
+        newdebugString<-paste(c(debugString,'=>',possibileNuovoStato),collapse='');
+        addendo<-MMPerc[statoAttuale,possibileNuovoStato] * getProb( stepAttuale+1, maxNumStep,  possibileNuovoStato ,  statoGoal , debugString = newdebugString, killAutoLoop=killAutoLoop);
+        prob<-prob + addendo
+      }
+    }  
+    return(prob);
+  }  
   #===========================================================
   # play.Single
   #===========================================================  
@@ -264,7 +355,99 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================
   # build.graph.from.table
   #===========================================================
-  build.graph.from.table<-function(MM, threshold) {
+  build.graph.from.table<-function(MM, threshold, second.MM = NA, threshold.second.MM=.2 , type.of.graph= "delta") {
+    
+    if( type.of.graph != "overlapped" & type.of.graph !="delta") stop("\n Not yet implemented: err.cod. %43547g8fd")
+    
+    # prendi la lista dei nomi
+    listaNodi<-colnames(MM)
+    # la lista dei nodi raggiungibili da BEGIN
+    #listaNodiFromBegin<-listaNodi[which(MM["BEGIN",]!=threshold)]
+    listaNodiFromBegin<-listaNodi[which(MM["BEGIN",]>threshold)]
+    # la lista dei nodi che vanno a END
+    #listaNodiToEnd<-listaNodi[which(MM[,"END"]!=threshold)]
+    listaNodiToEnd<-listaNodi[which(MM[,"END"]>threshold)]
+    
+    rigaBEGIN<-''
+    
+    for( i in listaNodiFromBegin) {
+      rigaBEGIN<-paste(   c(rigaBEGIN, "'BEGIN'->'",i,"' "), collapse = '') 
+    }    
+    rigaEND<-''
+    for( i in listaNodiToEnd) {
+      rigaEND<-paste(   c(rigaEND, "'",i,"'->'END' "), collapse = '') 
+    }        
+    
+    stringaNodiComplessi<-''
+    for(i in seq(1,nrow(MM))) {
+      #listaNodiRiga<-listaNodi[which(MM[i,]!=threshold)]
+      listaNodiRiga<-listaNodi[which(MM[i,]>=threshold)]
+      if(length(listaNodiRiga)>0) {
+        for( ct in seq(1,length(listaNodiRiga))) {
+
+          peso<-round(as.numeric(MM[i, listaNodiRiga[ct]]),digits = 2)
+          # if(peso==0) peso = 0.01
+          penwidth<- peso*3 + 0.01
+          if(penwidth<0.4) penwidth=0.4
+          fontSize = 5+peso*9
+          colore = as.integer(100-(30+peso*70))
+          if( type.of.graph == "overlapped") {
+            second.peso<-round(as.numeric(second.MM[i, listaNodiRiga[ct]]),digits = 2)
+            # if(second.peso==0) second.peso = 0.01
+            if( abs(peso - second.peso) >= threshold.second.MM ) {
+              delta.peso<-round(as.numeric((peso - second.peso)),digits = 2)
+              penwidth<- max(peso,abs(delta.peso))*3 + 0.01
+              fontSize = 5+max(peso,abs(delta.peso))*9
+              if(delta.peso>0) colore.delta.peso<-"Red"
+              else colore.delta.peso<-"Green"
+               if(peso > threshold | second.peso > threshold)
+                stringaNodiComplessi<-paste(   c(stringaNodiComplessi, "'",listaNodi[i],"'->'",listaNodiRiga[ct],"' [ label='",peso,"/",second.peso,"', style='dashed', fontcolor='",colore.delta.peso,"', penwidth='",penwidth,"' ,fontsize = '",fontSize,"', color = ",colore.delta.peso,"]\n"), collapse = '')   
+            } else{
+               if(peso > threshold)
+                stringaNodiComplessi<-paste(   c(stringaNodiComplessi, "'",listaNodi[i],"'->'",listaNodiRiga[ct],"' [ label='",peso,"', penwidth='",penwidth,"' ,fontsize = '",fontSize,"', color = Gray",colore,"]\n"), collapse = '')   
+            }
+          } else {
+             if(peso > threshold)
+              stringaNodiComplessi<-paste(   c(stringaNodiComplessi, "'",listaNodi[i],"'->'",listaNodiRiga[ct],"' [ label='",peso,"', penwidth='",penwidth,"' ,fontsize = '",fontSize,"', color = Gray",colore,"]\n"), collapse = '')   
+          }
+        }
+      }
+    }
+    listaNodiToPrint<-''
+    for(i in seq(1,length(listaNodi))) {
+      if(i<length(listaNodi)) listaNodiToPrint <- paste( c(listaNodiToPrint," '",listaNodi[i],"';"), collapse=''    )
+      else listaNodiToPrint <- paste( c(listaNodiToPrint," '",listaNodi[i],"'"), collapse=''    )
+    }
+    
+    # now plot it
+    a<-paste(c("digraph boxes_and_circles {
+             
+             # a 'graph' statement
+             graph [overlap = true, fontsize = 10]
+             
+             # several 'node' statements
+             node [shape = oval,
+             fontname = Helvetica,
+             style = filled]
+
+             node [fillcolor = green] 
+             'BEGIN'; 
+
+             node [fillcolor = red] 
+             'END'; 
+             
+             node [fillcolor = orange]
+             ",listaNodiToPrint,"
+             
+             edge [arrowsize = 1 ]
+             # several edge
+             ",stringaNodiComplessi,"
+    }"), collapse='')       
+    return(a)
+    #model.grViz<<-a;
+    #    model.XML<<-strutturaXML    
+  }   
+  old.build.graph.from.table<-function(MM, threshold, second.MM = NA, threshold.second.MM=.3) {
     # prendi la lista dei nomi
     listaNodi<-colnames(MM)
     # la lista dei nodi raggiungibili da BEGIN
@@ -297,6 +480,9 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
           fontSize = 5+peso*9
           colore = as.integer(100-(30+peso*70))
           stringaNodiComplessi<-paste(   c(stringaNodiComplessi, "'",listaNodi[i],"'->'",listaNodiRiga[ct],"' [ label='",peso,"', penwidth='",penwidth,"' ,fontsize = '",fontSize,"', color = Gray",colore,"]\n"), collapse = '') 
+          if( !is.na(second.MM)) {
+            browser()
+          }
         }
       }
       #      stringaNodiComplessi<-paste( c(stringaNodiComplessi, "\n"), collapse='') 
@@ -412,7 +598,9 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     is.dataLoaded<<-FALSE
     parameters<<-parametersFromInput
     MMatrix.perc<<-NA
-    MMatrix.perc.noLoop<<-NA   
+    MMatrix.perc.noLoop<<-NA  
+    MMatrix.mean.time<<-NA
+    MMatrix.density.list<<-NA
     istanceClass<<-list()
     obj.log<<-logHandler();
     setInstanceClass(className = "firstOrderMarkovModel")
@@ -431,6 +619,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     "getLogObj"=getLogObj,
     "setLogObj"=setLogObj,
     "getInstanceClass"=getInstanceClass,
-    "plot.delta.graph"=plot.delta.graph
+    "plot.delta.graph"=plot.delta.graph,
+    "get.transition.Prob"=get.transition.Prob,
+    "get.time.transition.Prob"=get.time.transition.Prob
   ) )  
 }

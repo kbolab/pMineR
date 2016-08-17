@@ -53,15 +53,24 @@ logInspector <- function() {
   numberOfDifferentEvents <- ''
   numberOfTotalEvents <- ''
   processInstances.toSymbol <- ''
-  
+  loaded.data<-c();
+  #=================================================================================
+  # clearAttributes
+  #=================================================================================    
+  clearAttributes<-function() {
+    costructor();
+  }
   #===========================================================
   # loadDataset
   #===========================================================  
   loadDataset<-function( dataList ) { 
+    # Clear some possible previously inserted attribute
+    clearAttributes()
+    # set the new attributes
     eventType <<- dataList$arrayAssociativo
     processInstances <<- dataList$wordSequence.raw
+    loaded.data<<-dataList
   }  
-  
   #===========================================================
   # getEventStats
   #===========================================================  
@@ -74,11 +83,25 @@ logInspector <- function() {
    numberOfTotalEvents <- length(allEvents)
    countEventOccurrence <- numeric()
    
+   # calculate how frequent an event occour in patient's log (1 patient counts 1)
+   
+   bigList<-loaded.data$pat.process
+   nome.colonna.eventi<-loaded.data$csv.EVENTName
+
+   eventi<-c()
+   for( IdPat in names(bigList)){
+     eventi<-c(eventi,as.character(unique(bigList[[IdPat]][,nome.colonna.eventi])))
+   }
+   coverage.tmp<-table(eventi)
+   coverage<-as.vector(coverage.tmp)
+   names(coverage)<-names(coverage.tmp)
+   
+
   # check each event name against all log events and count occurrences  
    
-     for(i in 1:length(eventType)){
-     countEventOccurrence[i] <- length(grep(eventType[i], allEvents))
-     }
+   for(i in 1:length(eventType)){
+    countEventOccurrence[i] <- length(grep(eventType[i], allEvents))
+   }
    names(countEventOccurrence) <- eventType
    
    # build output structures and fill them
@@ -87,7 +110,8 @@ logInspector <- function() {
    eventStats <- list("Number of different event types" = numberOfDifferentEvents,
                       "Total number of events" = numberOfTotalEvents,
                       "Absolute event occurrence" = distribution.abs,
-                      "Percentual event occurrence" = distribution.perc
+                      "Percentual event occurrence" = distribution.perc,
+                      "Absolute Coverage" = coverage
                       )
    return(eventStats)
   }
@@ -154,7 +178,7 @@ logInspector <- function() {
   }
   
   
-  #=================================logI$plotProcessStats(howManyMostFrequentProcesses = )==========================
+  #===========================================================
   # plotProcessStats
   #===========================================================  
   plotProcessStats<-function(howManyMostFrequentProcesses) {
@@ -164,7 +188,67 @@ logInspector <- function() {
     barplot(processesToPlot, horiz=TRUE , main = sprintf("First %g processes absolute occurrence", howManyMostFrequentProcesses), xlim =c(0,max(processesToPlot)) , ylab = "Process index", xlab = "Number of occurrences" )
     axis(2, at=1:length(processesToPlot), labels=processesToPlotSignatures)
   }
-
+  #===========================================================
+  # timeDistribution.stats.plot
+  #===========================================================  
+  timeDistribution.stats.plot<-function(
+                                        lst.select.attr.Name=NA, lst.select.attr.value=NA, 
+                                        lst.pnt.attr.name=NA, lst.pnt.attr.value=NA, 
+                                        color='red', plotIt=TRUE, plotGraph=TRUE, deltaDate.column.name='pMineR.deltaDate') { 
+    
+    res.dataLoader<-loaded.data
+    # Ordina per data diangosi
+    max.Delta<-c()
+    arr.occorrenze<-c(); occorrenza.cum<-c(); occorrenza.diff<-c();
+    aaa<-res.dataLoader$pat.process
+    
+    if(!(deltaDate.column.name %in% colnames(aaa[[1]])   )) stop(" please check the delta.date column name! ErrCode: #rh4389hcv ");
+    
+    for(i in seq(1,length(aaa) )) {
+      # aaa[[i]][order(aaa[[i]]$delta.dataDiagnosi),]
+      max.Delta<- c(max.Delta, max(aaa[[i]][[deltaDate.column.name]]))
+    } 
+    
+    # plotta gli assi e definisci i gap per le timeline
+    y.gap<-1;  x.gap<-20
+    if(plotIt==T) plot(0,0,xlim=c(0,max(max.Delta)+x.gap),ylim=c(0,length(aaa)*y.gap   ), ylab='Patients', xlab='Time',main='Patient\'s Timeline'  )
+    
+    # Cicla per ogni paziente
+    for(i in seq(1,length(aaa) )) {
+      # Array con i delta giorni di tutti gli eventi
+      arr.tak<-aaa[[i]]$delta.dataDiagnosi
+      # la riga orizzontale
+      if(plotIt==T) points(  x=c(0, max(arr.tak) ), y=c(i * y.gap,i *y.gap),  type='l' , col='grey' ) 
+      # le righette verticali
+      if(plotIt==T) points(  x=arr.tak, y=rep(c(i * y.gap),length(arr.tak) ) ,pch=3 , col='grey'  ) 
+      # passiamo ai colori
+      
+      for( indice in seq(1,length(lst.pnt.attr.name))) {
+        sottoMatrice<-aaa[[i]][ which(aaa[[i]][[ lst.pnt.attr.name[indice] ]] %in% lst.pnt.attr.value[[ lst.pnt.attr.name[indice] ]]  ) , ]
+        arr.tak.sottoMatrice<-sottoMatrice$delta.dataDiagnosi
+        if(plotIt==T) points(  x=arr.tak.sottoMatrice, y=rep(c(i * y.gap),length(arr.tak.sottoMatrice) ) ,pch=20, col=color  ) 
+        arr.occorrenze<-c(arr.occorrenze,arr.tak.sottoMatrice)
+      }
+    }
+    # Calcola l'occorrenza in cumulativo
+    arr.occorrenze<-unlist(arr.occorrenze)
+    for(i in seq(1,max(arr.occorrenze)) ) {
+      occorrenza.cum<-c(occorrenza.cum,length(arr.occorrenze[ which(arr.occorrenze<=i) ])	)
+      if(i>1) occorrenza.diff<-c(occorrenza.diff,occorrenza.cum[i]-occorrenza.cum[i-1])
+      else occorrenza.diff<-c(occorrenza.diff,occorrenza.cum)
+    } 
+    
+    if(plotGraph==TRUE){
+      plot(x = seq(1,length(occorrenza.diff)),y = occorrenza.diff ,type='l',col='red',lty=4, xlab='Time', ylab='Absolute Frequencies',main='Frequencies vs Time')
+      par(new=TRUE)
+      plot(x = seq(1,length(occorrenza.cum)),y = occorrenza.cum ,type='l',yaxt="n", col ='blue',lwd=2, xlab='', ylab='')
+      axis(4)
+      mtext("Cumulative Frequencies",side=4)
+    }
+    
+    return(list("arr.occorrenze"=arr.occorrenze,"occorrenza.cum"=occorrenza.cum,"occorrenza.diff"=occorrenza.diff))
+  }  
+  
   #===========================================================
   # costructor
   # E' il costruttore della classe
@@ -175,6 +259,7 @@ logInspector <- function() {
     numberOfDifferentEvents <<- ''
     numberOfTotalEvents <<- ''
     processInstances.toSymbol <<- ''
+    loaded.data<<-''
   } 
   #===========================================================
   costructor();
@@ -184,7 +269,8 @@ logInspector <- function() {
     "getEventStats"=getEventStats,
     "getProcessStats"=getProcessStats,
     "plotEventStats"=plotEventStats,
-    "plotProcessStats"=plotProcessStats 
+    "plotProcessStats"=plotProcessStats ,
+    "timeDistribution.stats.plot"=timeDistribution.stats.plot
   ) )
   
 }

@@ -73,7 +73,6 @@ cluster_expectationMaximization <- function() {
     if(typeOfModel == "firstOrderMarkovModel"){
       
       #initialize k = num random matrices
-      
       clusterM <- list()
       logNotes <<- list()
       nRows <- length(eventType)
@@ -92,6 +91,12 @@ cluster_expectationMaximization <- function() {
       clusterM <- list()
       clusterM <- setMaximization(aa[[iter]])
       clusterM <- clusterM[ ! sapply(clusterM, is.null) ]
+#     RG -im
+#       Riga aggiunta per ovviare al caso in cui END abbia degli NaN sulla riga
+#       (non ho capito perchè ma a volte capita... è normale? Andrebbe capito e sistemata questa 
+#       'pezza' al meglio)
+      clusterM[  which(is.na(clusterM), arr.ind = TRUE) ]<-0
+#     RG -fm
       iter <- iter + 1
       M <- list()
       comp <- numeric()
