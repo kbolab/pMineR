@@ -54,8 +54,8 @@ dataLoader<-function() {
   MMatrix<-''
   pat.process<-''   
   wordSequence.raw<-''
-  MM.mean.time<<-''  
-  MM.density.list<<-''    
+  MM.mean.time<-''  
+  MM.density.list<-''    
   
   param.IDName<-''
   param.EVENTName<-''
@@ -201,7 +201,7 @@ dataLoader<-function() {
     rownames(MM)<-colnames(MM)
     # Creiamo anche la matrice con le density dei tempi di transizione
     # (ma solo se c'è un campo DATA TIME)
-    MM.density.list<-list()
+    MM.den.list<-list()
     # ID.act.group[[1]][EVENT.list.names]<-as.character(ID.act.group[[1]][EVENT.list.names])
 
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
@@ -229,9 +229,9 @@ dataLoader<-function() {
           MM[ nomeCampo.pre, nomeCampo.post ]<-MM[ nomeCampo.pre, nomeCampo.post ]+1
           if(param.dateColumnName!='' & ! is.na(param.dateColumnName)){
             delta.date<-as.numeric(difftime(as.POSIXct(ID.act.group[[patID]][t+1,param.dateColumnName], format = "%d/%m/%Y"),as.POSIXct(ID.act.group[[patID]][t,param.dateColumnName], format = "%d/%m/%Y"),units = 'days'))
-            if(length(MM.density.list[[ nomeCampo.pre]])==0) MM.density.list[[ nomeCampo.pre]]<-list()
-            if(length(MM.density.list[[ nomeCampo.pre]][[ nomeCampo.post ]])==0) MM.density.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c()
-            MM.density.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c(MM.density.list[[ nomeCampo.pre]][[ nomeCampo.post ]],delta.date)
+            if(length(MM.den.list[[ nomeCampo.pre]])==0) MM.den.list[[ nomeCampo.pre]]<-list()
+            if(length(MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]])==0) MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c()
+            MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c(MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]],delta.date)
           }
         }    
       }
@@ -242,16 +242,15 @@ dataLoader<-function() {
     if(param.dateColumnName!='' & !is.na(param.dateColumnName)){
       MM.mean.time<-MM
       MM.mean.time[ 1:nrow(MM.mean.time) , 1:ncol(MM.mean.time)   ]<-Inf
-      for(state.from in names(MM.density.list))  {
-        for(state.to in names(MM.density.list[[state.from]]))  {
-          # if(length(MM.density.list[[ state.from]][[ state.from ]])!=0)
-          MM.mean.time[state.from,state.to ]<-mean(MM.density.list[[ state.from]][[ state.to ]])
+      for(state.from in names(MM.den.list))  {
+        for(state.to in names(MM.den.list[[state.from]]))  {
+          # if(length(MM.den.list[[ state.from]][[ state.from ]])!=0)
+          MM.mean.time[state.from,state.to ]<-mean(MM.den.list[[ state.from]][[ state.to ]])
 #           else 
 #             MM.density[state.from,state.from ]<-Inf
         }        
       }
     }
-
     # costruisci una semplice versione, con le parole (come piace tanto a Van der Aalst)
     wordSequence.TMP01<-list();
     for(i in seq(1,length(ID.act.group))) {
@@ -263,7 +262,7 @@ dataLoader<-function() {
 #                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
                  "MMatrix"=MM,
                  "MM.mean.time"=MM.mean.time,
-                 "MM.density.list"=MM.density.list,
+                 "MM.density.list"=MM.den.list,
                  "pat.process"=ID.act.group,
                  "wordSequence.raw"=wordSequence.TMP01) )
   }
@@ -370,7 +369,7 @@ dataLoader<-function() {
     MMatrix<<-res$MMatrix
     pat.process<<-res$pat.process
     wordSequence.raw<<-res$wordSequence.raw    
-    MM.mean.time<<-res$MM.mean.time   
+    MM.mean.time<<-res$MM.mean.time  
     MM.density.list<<-res$MM.density.list   
   }
   #=================================================================================
