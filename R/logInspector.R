@@ -8,6 +8,7 @@
 #'                \item \code{getProcessStats() } returns a list containing process-related stats
 #'                \item \code{plotEventStats( ... )} plots event-related stats (takes a custom number of most frequent events it has to plot)
 #'                \item \code{plotProcessStats( ... )} plots process-related stats (takes a custom number of most frequent processes it has to plot)
+#'                \item \code{timeDistribution.stats.plot( ... )} <not yet commented>
 #'
 #'                }
 #' @param Parameters for plot methods is: 
@@ -82,6 +83,7 @@ logInspector <- function() {
    allEvents <- unlist(processInstances)
    numberOfTotalEvents <- length(allEvents)
    countEventOccurrence <- numeric()
+   arr.max.relative.observation.time<-numeric()
    
    # calculate how frequent an event occour in patient's log (1 patient counts 1)
    
@@ -91,7 +93,9 @@ logInspector <- function() {
    eventi<-c()
    for( IdPat in names(bigList)){
      eventi<-c(eventi,as.character(unique(bigList[[IdPat]][,nome.colonna.eventi])))
+     arr.max.relative.observation.time<-c(arr.max.relative.observation.time,bigList[[IdPat]]$pMineR.deltaDate[nrow(bigList[[IdPat]])])
    }
+   names(arr.max.relative.observation.time)<-as.character(names(bigList))
    coverage.tmp<-table(eventi)
    coverage<-as.vector(coverage.tmp)
    names(coverage)<-names(coverage.tmp)
@@ -111,7 +115,8 @@ logInspector <- function() {
                       "Total number of events" = numberOfTotalEvents,
                       "Absolute event occurrence" = distribution.abs,
                       "Percentual event occurrence" = distribution.perc,
-                      "Absolute Coverage" = coverage
+                      "Absolute Coverage" = coverage,
+                      "arr.max.relative.observation.time"= arr.max.relative.observation.time
                       )
    return(eventStats)
   }
@@ -194,7 +199,9 @@ logInspector <- function() {
   timeDistribution.stats.plot<-function(
                                         lst.select.attr.Name=NA, lst.select.attr.value=NA, 
                                         lst.pnt.attr.name=NA, lst.pnt.attr.value=NA, 
-                                        color='red', plotIt=TRUE, plotGraph=TRUE, deltaDate.column.name='pMineR.deltaDate') { 
+                                        color='red',  plotGraph.01=TRUE,
+                                        plotGraph.02=TRUE, deltaDate.column.name='pMineR.deltaDate',
+                                        xlim=c()) { 
     
     res.dataLoader<-loaded.data
     # Ordina per data diangosi
@@ -205,43 +212,67 @@ logInspector <- function() {
     if(!(deltaDate.column.name %in% colnames(aaa[[1]])   )) stop(" please check the delta.date column name! ErrCode: #rh4389hcv ");
     
     for(i in seq(1,length(aaa) )) {
-      # aaa[[i]][order(aaa[[i]]$delta.dataDiagnosi),]
       max.Delta<- c(max.Delta, max(aaa[[i]][[deltaDate.column.name]]))
     } 
-    
+
     # plotta gli assi e definisci i gap per le timeline
     y.gap<-1;  x.gap<-20
-    if(plotIt==T) plot(0,0,xlim=c(0,max(max.Delta)+x.gap),ylim=c(0,length(aaa)*y.gap   ), ylab='Patients', xlab='Time',main='Patient\'s Timeline'  )
+    # Se non e' stato passato xlim, calcolalo, senno' usa quello passato
+    # (prevedi comunque un gap finale di 20)
+    if(length(xlim)==0) { xlim2pass <- c(0,max(max.Delta)+x.gap)}
+    else { xlim2pass <- c( xlim[1] , xlim[2]+x.gap) }
+    
+    if(plotGraph.01==T) {
+      # plot(0,0,xlim=c(0,max(max.Delta)+x.gap),ylim=c(0,length(aaa)*y.gap   ), ylab='Patients', xlab='Time',main='Patient\'s Timeline'  )
+      plot(0,0,xlim=xlim2pass,ylim=c(0,length(aaa)*y.gap   ), ylab='Patients', xlab='Time',main='Patient\'s Timeline'  )
+    }  
+    
+    # array che conterranno i punti da plottare in "differita"
+    arr.punti.da.plottare.x <- c(); arr.punti.da.plottare.y<-c()
     
     # Cicla per ogni paziente
     for(i in seq(1,length(aaa) )) {
       # Array con i delta giorni di tutti gli eventi
       arr.tak<-aaa[[i]]$delta.dataDiagnosi
       # la riga orizzontale
-      if(plotIt==T) points(  x=c(0, max(arr.tak) ), y=c(i * y.gap,i *y.gap),  type='l' , col='grey' ) 
+      if(plotGraph.01==T) points(  x=c(0, max(arr.tak) ), y=c(i * y.gap,i *y.gap),  type='l' , col='grey' ) 
       # le righette verticali
-      if(plotIt==T) points(  x=arr.tak, y=rep(c(i * y.gap),length(arr.tak) ) ,pch=3 , col='grey'  ) 
+      if(plotGraph.01==T) points(  x=arr.tak, y=rep(c(i * y.gap),length(arr.tak) ) ,pch=3 , col='grey'  ) 
       # passiamo ai colori
-      
       for( indice in seq(1,length(lst.pnt.attr.name))) {
         sottoMatrice<-aaa[[i]][ which(aaa[[i]][[ lst.pnt.attr.name[indice] ]] %in% lst.pnt.attr.value[[ lst.pnt.attr.name[indice] ]]  ) , ]
-        arr.tak.sottoMatrice<-sottoMatrice$delta.dataDiagnosi
-        if(plotIt==T) points(  x=arr.tak.sottoMatrice, y=rep(c(i * y.gap),length(arr.tak.sottoMatrice) ) ,pch=20, col=color  ) 
-        arr.occorrenze<-c(arr.occorrenze,arr.tak.sottoMatrice)
+         if(dim(sottoMatrice)[1]!=0 ) {
+          arr.tak.sottoMatrice<-sottoMatrice$delta.dataDiagnosi
+          # if(plotGraph.01==T) points(  x=arr.tak.sottoMatrice, y=rep(c(i * y.gap),length(arr.tak.sottoMatrice) ) ,pch=20, col=color  ) 
+          if(plotGraph.01==T) {
+            # points(  x=arr.tak.sottoMatrice, y=rep(c(i * y.gap),length(arr.tak.sottoMatrice) ) ,pch=20, col=color  ) 
+            arr.punti.da.plottare.x <- c( arr.punti.da.plottare.x , arr.tak.sottoMatrice)
+            arr.punti.da.plottare.y <- c( arr.punti.da.plottare.y , y=rep(c(i * y.gap),length(arr.tak.sottoMatrice) )   )
+          }
+          arr.occorrenze<-c(arr.occorrenze,arr.tak.sottoMatrice)
+         } 
       }
     }
+    # mo' plotta i punti (in differita)'
+    if(plotGraph.01==T) points(  x=arr.punti.da.plottare.x, y=arr.punti.da.plottare.y ,pch=20, col=color  ) 
     # Calcola l'occorrenza in cumulativo
     arr.occorrenze<-unlist(arr.occorrenze)
-    for(i in seq(1,max(arr.occorrenze)) ) {
-      occorrenza.cum<-c(occorrenza.cum,length(arr.occorrenze[ which(arr.occorrenze<=i) ])	)
-      if(i>1) occorrenza.diff<-c(occorrenza.diff,occorrenza.cum[i]-occorrenza.cum[i-1])
-      else occorrenza.diff<-c(occorrenza.diff,occorrenza.cum)
-    } 
+    if(length(arr.occorrenze)>0) {
+      for(i in seq(1,max(arr.occorrenze)) ) {
+        occorrenza.cum<-c(occorrenza.cum,length(arr.occorrenze[ which(arr.occorrenze<=i) ])	)
+        if(i>1) occorrenza.diff<-c(occorrenza.diff,occorrenza.cum[i]-occorrenza.cum[i-1])
+        else occorrenza.diff<-c(occorrenza.diff,occorrenza.cum)
+      } 
+    }
     
-    if(plotGraph==TRUE){
-      plot(x = seq(1,length(occorrenza.diff)),y = occorrenza.diff ,type='l',col='red',lty=4, xlab='Time', ylab='Absolute Frequencies',main='Frequencies vs Time')
+    if(plotGraph.02==TRUE){
+      if( length(occorrenza.diff) < xlim2pass[2] ) { 
+        occorrenza.diff<-c(occorrenza.diff,rep(0,xlim2pass[2]-length(occorrenza.diff) ))
+        occorrenza.cum<-c(occorrenza.cum,rep(occorrenza.cum[length(occorrenza.cum)],xlim2pass[2]-length(occorrenza.cum) )); 
+      }
+      plot(x = seq(1,length(occorrenza.diff)),y = occorrenza.diff ,type='l',col='red',lty=4, xlab='Time', ylab='Absolute Frequencies',main='Frequencies vs Time',xlim = xlim2pass)
       par(new=TRUE)
-      plot(x = seq(1,length(occorrenza.cum)),y = occorrenza.cum ,type='l',yaxt="n", col ='blue',lwd=2, xlab='', ylab='')
+      plot(x = seq(1,length(occorrenza.cum)),y = occorrenza.cum ,type='l',yaxt="n", col ='blue',lwd=2, xlab='', ylab='', xlim = xlim2pass)
       axis(4)
       mtext("Cumulative Frequencies",side=4)
     }
