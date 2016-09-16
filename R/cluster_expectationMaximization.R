@@ -72,6 +72,7 @@ cluster_expectationMaximization <- function() {
     
     if(typeOfModel == "firstOrderMarkovModel"){
       
+      
       #initialize k = num random matrices
       clusterM <- list()
       logNotes <<- list()
@@ -263,16 +264,18 @@ cluster_expectationMaximization <- function() {
       }
     
     DistWithin <- list()
-    tmp <- numeric()
     for (i in 1:length(table(lastIterPtoC))){
-      for (k in 1:length(processInstances)){
-        if (k %in% which(lastIterPtoC==i)){
-          tmp[k]  <- as.numeric(processFOMM[[k]]$distanceFrom(objToCheck = FOMM[[i]]))
+      tmp <- numeric()
+      for (kk in 1:length(processInstances)){
+        if (kk %in% which(lastIterPtoC==i)){
+          tmp[kk]  <- as.numeric(processFOMM[[kk]]$distanceFrom(objToCheck = FOMM[[i]]))
         }
       }
       meanDistWithin = mean(tmp,na.rm = TRUE)
+      minDistWithin = min(tmp,na.rm = TRUE)
+      maxDistWithin = max(tmp,na.rm = TRUE)
       sdDistWithin = sd(tmp,na.rm = TRUE)
-      DistWithin[[i]] = list("mean distance"=meanDistWithin, "standard deviation"=sdDistWithin)
+      DistWithin[[i]] = list("mean distance"=meanDistWithin, "min distance"=minDistWithin,"max distance"=maxDistWithin,"standard deviation"=sdDistWithin, "allDistances"=tmp)
     }
     
     stats <- list("support"=supportC, "between-cluster distance"=Dist, "within-cluster distance"=DistWithin)
