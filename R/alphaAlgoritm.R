@@ -26,7 +26,7 @@
 #' 
 #' # Load a .csv using "DES" and "ID" as column names to indeicate events 
 #' # and Patient's ID
-# obj.L$loader(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",
+# obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",
 # EVENTName = "DES")
 #' 
 #' # now create an object AlphaAlgorithm
