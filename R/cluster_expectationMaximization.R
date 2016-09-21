@@ -85,7 +85,6 @@ cluster_expectationMaximization <- function() {
         }
       
       # make first iteration
-      
       iter <- 1
       aa <- list()
       aa[[iter]] <- getExpectation(num,clusterM)
@@ -130,7 +129,8 @@ cluster_expectationMaximization <- function() {
           }
       }
     }
-    clusters <<- list("iterations"=iter, "clusters"=clusterM,"PtoC"=aa)
+    
+    clusters <<- list("iterations"=iter, "clusters"=clusterM,"PtoClust"=aa[[iter]],"PtoC"=aa)
   }
     
     ##########################################################################################################
@@ -150,7 +150,10 @@ cluster_expectationMaximization <- function() {
             evt <- vector()
             tmp <- vector()
             tmp2 <- vector()
+            if(processInstances[[p]][1]!="BEGIN" && processInstances[[p]][length(processInstances[[p]])]!="END"){
             BprocessInstancesE <- c("BEGIN",processInstances[[p]],"END")
+            }
+            else{BprocessInstancesE <- processInstances[[p]]}
             transitionCountMatrix <- createSequenceMatrix(BprocessInstancesE, toRowProbs = FALSE)
             rowNames <- row.names(transitionCountMatrix)
               for(i in 1:length(rowNames)){
