@@ -17,6 +17,7 @@
 #'   }
 #' @useDynLib pMineR    
 #' @export
+#' @import markovchain arules
 #' @examples \dontrun{
 #' # ----------------------------------------------- 
 #' #  USING THE METHODS of the class
