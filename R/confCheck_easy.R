@@ -28,6 +28,7 @@ confCheck_easy<-function() {
   dataLog <- c()                # The data structure with the LOGs
   WF.struct <- list()           # the WF structure
   notebook <- list()            # internal notebook for events-log
+  tmpAttr <- list()
 
   #=================================================================================
   # clearAttributes
@@ -122,80 +123,83 @@ confCheck_easy<-function() {
     st.DONE<-c("")
     st.ACTIVE<-c("'BEGIN'")
     ct <- 0
+    error<-""
 
     # Analizza TUTTI gli eventi della sequenza
     for( ev.NOW in sequenza ) {
       ct <- ct + 1
-      addNote(msg = str_c("\n\t\t<step n='",ct,"'>"))
-      addNote(msg = str_c("\n\t\t\t<event type='",ev.NOW,"'></event>"))
-      for(i in st.ACTIVE) addNote(msg = str_c("\n\t\t\t<st.ACTIVE.PRE name=",i,"></st.ACTIVE.PRE>"))
+      if(ev.NOW=="BIOPSIA") browser()
+      # gestisci il log
+      newNote();
+      note.setStep(number = ct)
+      note.setEvent(eventType = ev.NOW)
+      note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
       
       # Cerca chi ha soddisfatto le precondizioni
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, st.ACTIVE = st.ACTIVE  )
       
       # Se c'e' un errore, ferma tutto
       if(newHop$error==TRUE) {
-        addNote(msg = str_c("\n\t\t\t<error>",newHop$error,"</error>"))
-        addNote(msg = "\n\t\t</step>")
-        return;
+        note.set.error(error = newHop$error)
+        note.flush()
+        return( list( "st.ACTIVE"=st.ACTIVE,"error"=error ) );
       }
       
       # Se hai rilevato dei trigger attivi
       if(length(newHop$active.trigger)!=0) {
-        for(i in newHop$active.trigger) addNote(msg = str_c("\n\t\t\t<fired.trigger name='",i,"'></fired.trigger>"))
-        for(i in newHop$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<st.ACTIVE.POST name=",i,"></st.ACTIVE.POST>"))
+        note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
+        note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
         st.ACTIVE <- newHop$st.ACTIVE
       } else { 
         # altrimenti segnala che NON ci sono trigger attivi
-        addNote(msg = str_c("\n\t\t\t<fired.trigger name=''></fired.trigger>"))
+        note.set.fired.trigger(array.fired.trigger = '')
+        # E i nuovi stati validi sono esattamente i vecchi
+        note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = st.ACTIVE)
       }
+      # Fai il flush 
+      note.flush()
       
       # Ora ripeti la ricerca dei trigger senza passare alcun evento, giusto per 
       # vedere i trigger che si possono eventualmente attivare a seguito di 
       # pregressi triggers.
-      trigger.trovato<-TRUE
+      devo.restare.in.trigger.loop<-TRUE
       # Continua a loopare fino a che e' vero che qualche trigger e' scattato
-      while(  trigger.trovato == TRUE  ) {
+      while(  devo.restare.in.trigger.loop == TRUE  ) {
+ 
         newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = "", st.DONE = st.DONE, st.ACTIVE = st.ACTIVE  )
+
+        # inzializza il log in caso di errore o in caso di trigger
+        if(newHop$error==TRUE | length(newHop$active.trigger)!=0) {
+          ct <- ct + 1
+          newNote();
+          note.setStep(number = ct)
+          note.setEvent(eventType = '')
+          note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
+        }
         
         # Se c'e' un errore, ferma tutto
         if(newHop$error==TRUE) {
-          ddNote(msg = str_c("\n\t\t\t<error>",newHop$error,"</error>"))
-          addNote(msg = "\n\t\t</step>")
-          return;
+          note.set.error(error = newHop$error)
+          note.flush()
+          return( list( "st.ACTIVE"=st.ACTIVE,"error"=error ) )
         }
         
         # Se hai rilevato qualche trigger attivo
         if(length(newHop$active.trigger)!=0)  {
-          addNote(msg = "\n\t\t\t<event type=''></event>")
-          for(i in st.ACTIVE) addNote(msg = str_c("\n\t\t\t<st.ACTIVE.PRE name=",i,"></st.ACTIVE.PRE>"))
-          for(i in newHop$active.trigger) addNote(msg = str_c("\n\t\t\t<fired.trigger name='",i,"'></fired.trigger>"))
-          for(i in newHop$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<st.ACTIVE.POST name=",i,"></st.ACTIVE.POST>"))
+          note.setEvent(eventType = '')
+          note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
+          note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
+          note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
           st.ACTIVE <- newHop$st.ACTIVE
+          # e fai il flush
+          note.flush()          
         }
         # altrimenti (se non ci sono stati trigger, vedi di uscire dal loop)
-        else trigger.trovato<-FALSE;
+        else devo.restare.in.trigger.loop<-FALSE
       }
-      addNote(msg = "\n\t\t</step>")
     }
-    return;
-  }      
-  #===========================================================  
-  # addNote
-  # it helps to note every noteable result
-  #===========================================================    
-  addNote<-function( msg, level='1', notebook.name='computationLog' ) { 
-    
-    # Crea la posizione, se ancora non c'è
-    if(length(notebook)==0) notebook[[notebook.name]]<<-c()
-    else {  if( !(notebook.name %in% names(notebook))) notebook[[notebook.name]]<<-c()  }
-    # Accoda la nota
-    notebook[[notebook.name]]<<-str_c(notebook[[notebook.name]],msg)
-    return;
-  }
-  getNotebook<-function(notebook.name='computationLog'){
-    return(notebook[[notebook.name]])
-  }
+    return( list( "st.ACTIVE"=st.ACTIVE,"error"=error ) );
+  }  
   #===========================================================  
   # attiva.trigger
   # is the "core": it finds out the trigger that should be fired
@@ -215,11 +219,11 @@ confCheck_easy<-function() {
       # Prendi la condizione
       precondizione <- WF.struct[["info"]][["trigger"]][[trigger.name]]$condition
       stringa.to.eval<-precondizione
-
+      
       # Inizia a costruire la stringa da parsare, rimpiazzando gli array
       rimpiazzo.ev.NOW<-paste( c("'",ev.NOW,"'") ,collapse='');
       rimpiazzo.st.ACTIVE<- paste(c("c(",paste(c(st.ACTIVE),collapse=","),")" ),collapse='')
-
+      
       stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$ev.NOW\\$",replacement = rimpiazzo.ev.NOW)
       stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$st.ACTIVE\\$",replacement = rimpiazzo.st.ACTIVE)
       
@@ -229,7 +233,7 @@ confCheck_easy<-function() {
       # Parsa la stringa
       if(stringa.to.eval=="") risultato <- TRUE
       else risultato <- eval(expr = parse(text = stringa.to.eval))
-
+      
       # Se la condizione e' soddisfatta, aggiorna le variabili
       if( risultato == TRUE ) {
         array.to.set<-unlist((WF.struct[["info"]][["trigger"]][[trigger.name]]$set))
@@ -266,8 +270,19 @@ confCheck_easy<-function() {
       "active.trigger"=active.trigger,# lista dei trigger attivati per il LOG passato
       "error" = errore,
       "errorMsg" = errMsg
-      ))
+    ))
+  }  
+  #===========================================================  
+  # getXML
+  # it returns the XML file
+  #===========================================================  
+  getXML<-function(notebook.name='computationLog'){
+    return(notebook[[notebook.name]])
   }
+  #===========================================================  
+  # plotGraph
+  # plot the Graph
+  #===========================================================   
   plotGraph<-function() {
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
@@ -355,39 +370,59 @@ confCheck_easy<-function() {
     grViz(a);
   }
   #===========================================================  
-  # getXML
-  #===========================================================  
-  getXML<-function( dataList ) {
-    matrice <- obj.cc$getNotebood()
-    testoXML <- "<WF.Analysis.results>"
-    step.number <- 0
-    for(riga in seq(1,nrow(matrice))) {
-      stringa <- unlist(aa[riga,1])
-      # BEGIN
-      if(substr(x = stringa,start = 1,stop = str_length("BEGIN:"))=="BEGIN:") {
-        computation <- numeric(str_replace_all(string = stringa,pattern = "BEGIN:",replacement = ""))
-        testoXML<-str_c(testoXML,"\n\t<computation n='",computation,"'>")  
-        step.number<-1
-      }
-      # END:
-      if(substr(x = stringa,start = 1,stop = str_length("END:"))=="END:") {
-        testoXML<-str_c(testoXML,"\n\t</computation>")  
-      }    
-      # END:
-      if(substr(x = stringa,start = 1,stop = str_length("EVENT:"))=="EVENT:") {
-        computation <- numeric(str_replace_all(string = stringa,pattern = "EVENT:",replacement = ""))
-        testoXML<-str_c(testoXML,"\n\t</computation>")  
-      }        
-      
-    }
-    
-    
-  }    
-  #===========================================================  
   # loadDataset
   #===========================================================  
   loadDataset<-function( dataList ) {
     dataLog <<- dataList
+  }  
+  #===========================================================  
+  # NOTEs
+  # this is a BORING serie of functions used to build the XML
+  # they are a lot, so I will not comment all of them.
+  #=========================================================== 
+  newNote<-function( number ){
+    tmpAttr<<-list()
+    tmpAttr$stepNumber<<-''
+    tmpAttr$boolean.fired.trigger<<-FALSE
+    tmpAttr$event<<-""
+  }
+  note.setStep<-function( number ){
+    tmpAttr$stepNumber <<- number
+  }  
+  note.setEvent<-function( eventType ){
+    tmpAttr$event <<- eventType
+  }
+  note.set.st.ACTIVE.PRE<-function( array.st.ACTIVE.PRE ){
+    tmpAttr$st.ACTIVE.PRE <<- array.st.ACTIVE.PRE   
+  } 
+  note.set.st.ACTIVE.POST<-function( array.st.ACTIVE.POST ){
+    tmpAttr$st.ACTIVE.POST <<- array.st.ACTIVE.POST   
+  }   
+  note.set.fired.trigger<-function( array.fired.trigger ){
+    if(array.fired.trigger=="''" || array.fired.trigger=="") return()
+    tmpAttr$boolean.fired.trigger <<- TRUE
+    tmpAttr$fired.trigger <<- array.fired.trigger   
+  }   
+  note.set.error<-function( error ){
+    tmpAttr$error <<- error   
+  }   
+  note.flush<-function( ){
+    testo<-str_c("\n\t\t<step n='",tmpAttr$stepNumber,"' trg='",tmpAttr$boolean.fired.trigger,"' evt='",tmpAttr$event,"'>")
+    if(tmpAttr$boolean.fired.trigger==TRUE)  {
+      for(i in tmpAttr$st.ACTIVE.PRE) testo<-str_c(testo,"\n\t\t\t<st.ACTIVE.PRE name=",i,"></st.ACTIVE.PRE>")
+      for(i in tmpAttr$fired.trigger) testo<-str_c(testo,"\n\t\t\t<fired.trigger name='",i,"'></fired.trigger>")
+      for(i in tmpAttr$st.ACTIVE.POST) testo<-str_c(testo,"\n\t\t\t<st.ACTIVE.POST name=",i,"></st.ACTIVE.POST>")
+    }
+    testo<-str_c(testo,"\n\t\t</step>")
+    addNote(msg = testo)
+  }   
+  addNote<-function( msg, level='1', notebook.name='computationLog' ) { 
+    # Crea la posizione, se ancora non c'è
+    if(length(notebook)==0) notebook[[notebook.name]]<<-c()
+    else {  if( !(notebook.name %in% names(notebook))) notebook[[notebook.name]]<<-c()  }
+    # Accoda la nota
+    notebook[[notebook.name]]<<-str_c(notebook[[notebook.name]],msg)
+    return;
   }  
   #=================================================================================
   # costructor
@@ -397,7 +432,8 @@ confCheck_easy<-function() {
     WF.xml.fileName <<- c()
     dataLog <<- c()
     WF.struct <<- list()
-    notebook <<- list();
+    notebook <<- list()
+    tmpAttr <<- list()
   }
   costructor();
   #================================================================================= 
@@ -405,7 +441,6 @@ confCheck_easy<-function() {
     "loadWorkFlow"=loadWorkFlow,
     "loadDataset"=loadDataset,
     "playLoadedData"=playLoadedData,
-    "getNotebook"=getNotebook,
     "getXML"=getXML,
     "plotGraph"=plotGraph
   ))
