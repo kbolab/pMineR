@@ -104,12 +104,17 @@ confCheck_easy<-function() {
   #===========================================================    
   playLoadedData<-function() {
     ct<-1
+    addNote(msg = "\n<xml>")
     for( indice in names(dataLog$wordSequence.raw)) {
       addNote(msg = str_c("\n\t<computation n='",ct,"'>"))
-      playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
+      res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
+      addNote(msg = "\n\t\t<atTheEnd>")
+      for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
+      addNote(msg = "\n\t\t</atTheEnd>")
       addNote(msg = "\n\t</computation>")
       ct <- ct + 1
     }
+    addNote(msg = "\n</xml>")
   }     
   #===========================================================  
   # playSingleSequence
@@ -128,7 +133,6 @@ confCheck_easy<-function() {
     # Analizza TUTTI gli eventi della sequenza
     for( ev.NOW in sequenza ) {
       ct <- ct + 1
-      if(ev.NOW=="BIOPSIA") browser()
       # gestisci il log
       newNote();
       note.setStep(number = ct)
