@@ -106,7 +106,7 @@ confCheck_easy<-function() {
     ct<-1
     addNote(msg = "\n<xml>")
     for( indice in names(dataLog$wordSequence.raw)) {
-      addNote(msg = str_c("\n\t<computation n='",ct,"'>"))
+      addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
       res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
       addNote(msg = "\n\t\t<atTheEnd>")
       for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
@@ -315,15 +315,33 @@ confCheck_easy<-function() {
     return(notebook[[notebook.name]])
   }
   #===========================================================  
+  # getPatientLog
+  # it returns the LOG of a single patient
+  #===========================================================  
+  getPatientLog<-function( patientID ){
+    return(dataLog$wordSequence.raw[[patientID]] )
+  }  
+  #===========================================================  
+  # getPatientXML
+  # it returns the XML of a single patient
+  #===========================================================  
+  getPatientXML<-function( patientID ){
+    doc <- xmlInternalTreeParse(file = notebook$computationLog,asText = TRUE)
+    valore<- xpathApply(doc,paste(c('//xml/computation[@IDPaz="',patientID,'"]'),collapse = ""))[[1]]
+    return(valore)
+  }    
+  #===========================================================  
   # plotGraph
   # plot the Graph
+  # 'clear' is the graph as passed
+  # 'computed' is the graph weighted by real computation flows
   #===========================================================   
-  plotGraph<-function() {
+  plotGraph<-function(  ) {
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
     arr.trigger.rappresentabili<-c();
     stringa.nodo.from<-c()
-    stringa.nodo.to<-c()    
+    stringa.nodo.to<-c()   
     # Costruisci subito la lista dei nodi plottabili (cosi' non ci penso piu')
     # Faccio anche la lista dei nodi END
     for(nomeStato in names(WF.struct$info$stati)) {
@@ -339,8 +357,6 @@ confCheck_easy<-function() {
       # Se il trigger e' plottabile
      if(WF.struct$info$trigger[[trigger.name]]$plotIt == TRUE) {
 
-     # if(trigger.name=="attiva Imaging di Rivalutazione") browser()
-       
        stringa.nodo.from<-str_c( stringa.nodo.from,"\n" )
        stringa.nodo.to<-str_c( stringa.nodo.to,"\n" )
        # Prendi i nodi 'unset' (from)
@@ -351,8 +367,6 @@ confCheck_easy<-function() {
        arr.nodi.from <- arr.nodi.from [arr.nodi.from %in% arr.st.plotIt]
        arr.nodi.to <- arr.nodi.to [arr.nodi.to %in% arr.st.plotIt]
 
-       
-       # if(length(arr.nodi.from)>0 & length(arr.nodi.to)>0) {
        if(length(arr.nodi.to)>0) {
          # Aggiorna l'array degli stati raggiungibili (in generale)
          # e l'array con i nomi dei trigger rappresentabili
@@ -373,6 +387,7 @@ confCheck_easy<-function() {
     # Distingui fra nodi end e nodi nnormali (questione di colore)
     arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
     arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
+    
     # browser()
     a<-paste(c("digraph boxes_and_circles {
              
@@ -390,6 +405,7 @@ confCheck_easy<-function() {
              node [fillcolor = red] 
              ",paste(arr.terminazioni.raggiungibili,collapse=" "),"
              
+             
              node [fillcolor = orange]
              ",paste(arr.stati.raggiungibili,collapse=" "),"
 
@@ -404,6 +420,174 @@ confCheck_easy<-function() {
     # browser()
     grViz(a);
   }
+  #===========================================================  
+  # plotComputationResult
+  # plot the Graph
+  # 'clear' is the graph as passed
+  # 'computed' is the graph weighted by real computation flows
+  #===========================================================   
+  plotComputationResult<-function( ) {
+    arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
+    arr.stati.raggiungibili<-c();
+    arr.trigger.rappresentabili<-c();
+    stringa.nodo.from<-c()
+    stringa.nodo.to<-c()   
+    howMany<-list()
+    matrice.nodi.from<-c();    matrice.nodi.to<-c()
+    # Costruisci subito la lista dei nodi plottabili (cosi' non ci penso piu')
+    # Faccio anche la lista dei nodi END
+    for(nomeStato in names(WF.struct$info$stati)) {
+      if( WF.struct$info$stati[[nomeStato]]$plotIt == TRUE) {
+        arr.st.plotIt<-c(arr.st.plotIt,str_c("'",nomeStato,"'"))
+      }
+      if( WF.struct$info$stati[[nomeStato]]$type == 'END') {
+        arr.nodi.end<-c(arr.nodi.end,str_c("'",nomeStato,"'"))
+      }      
+    }
+    # Frulla per ogni possibile trigger, verificando se si puo' attivare
+    for( trigger.name in names(WF.struct$info$trigger) ) {
+      # Se il trigger e' plottabile
+      if(WF.struct$info$trigger[[trigger.name]]$plotIt == TRUE) {
+        
+        stringa.nodo.from<-str_c( stringa.nodo.from,"\n" )
+        stringa.nodo.to<-str_c( stringa.nodo.to,"\n" )
+        # Prendi i nodi 'unset' (from)
+        arr.nodi.from<-unlist(WF.struct$info$trigger[[trigger.name]]$unset)
+        # Prendi i nodi 'set' (to)
+        arr.nodi.to<-unlist(WF.struct$info$trigger[[trigger.name]]$set)
+        # Considera solo i nodi plottabili (from e to)
+        arr.nodi.from <- arr.nodi.from [arr.nodi.from %in% arr.st.plotIt]
+        arr.nodi.to <- arr.nodi.to [arr.nodi.to %in% arr.st.plotIt]
+        
+        if(length(arr.nodi.to)>0) {
+          # Aggiorna l'array degli stati raggiungibili (in generale)
+          # e l'array con i nomi dei trigger rappresentabili
+          arr.stati.raggiungibili <- unique(c( arr.stati.raggiungibili, arr.nodi.to, arr.nodi.from ))
+          arr.trigger.rappresentabili <- c( arr.trigger.rappresentabili, str_c("'",trigger.name,"'") )
+          
+          # Costruisci le stringhe dei nomi degli archi (from e to) con in mezzo il trigger
+          for( st.nome in arr.nodi.from ) {
+            stringa.nodo.from<-str_c( stringa.nodo.from," ",st.nome,"->'",trigger.name,"'" )
+            matrice.nodi.from <- rbind(matrice.nodi.from,c(st.nome,trigger.name))
+          }
+          for( st.nome in arr.nodi.to ) {
+            stringa.nodo.to<-str_c( stringa.nodo.to," ","'",trigger.name,"'->",st.nome )
+            matrice.nodi.to <- rbind(matrice.nodi.to,c(trigger.name,st.nome))
+          }
+#           matrice.nodi.from <- rbind(matrice.nodi.from,c(st.nome,trigger.name))
+#           matrice.nodi.to <- rbind(matrice.nodi.to,c(trigger.name,st.nome))
+        }
+      }
+    }
+    
+    # Distingui fra nodi end e nodi nnormali (questione di colore)
+    arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
+    arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
+    
+    # Ora sistema le froceries grafiche
+    # PER I NODI
+    stringa.stati<-"node [fillcolor = Orange]"
+    for(nome.stato in arr.stati.raggiungibili)  {
+      nome.stato.pulito <- str_replace_all(string = nome.stato,pattern = "'",replacement = "")
+      aa = giveBackComputationCounts(nomeElemento = nome.stato.pulito, tipo='stato' )
+      howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
+      penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
+      penwidth<- 1
+      colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
+      stringa.stati <- str_c(stringa.stati,"\n\t ",nome.stato," [label = '",nome.stato.pulito,"\n",howMany," %', penwidth='",penwidth,"',  pencolor='Gray",colore,"']") 
+    }
+    # PER I TRIGGER
+    lista.freq.trigger<-list()
+    stringa.trigger<-"node [fillcolor = white, shape = box ]"
+    for(nome.trigger in arr.trigger.rappresentabili)  {
+      nome.trigger.pulito <- str_replace_all(string = nome.trigger,pattern = "'",replacement = "")
+      aa = giveBackComputationCounts(nomeElemento = nome.trigger.pulito,tipo='trigger' )
+      howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
+      lista.freq.trigger[[nome.trigger]]<-(aa$howMany  / aa$totalNumber)
+      penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
+      penwidth<- 1
+      colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
+      stringa.trigger <- str_c(stringa.trigger,"\n\t ",nome.trigger," [label = '",nome.trigger.pulito,"\n",howMany," %', penwidth='",penwidth,"', fontcolor='Gray",colore,"']") 
+    }    
+    # STRINGA NODO FROM (ARCO)
+    stringa.nodo.from<-"\nedge [arrowsize = 1 ]"
+    for(i in seq(1,nrow(matrice.nodi.from))) {
+      val.perc<-lista.freq.trigger[[ str_c("'",matrice.nodi.from[i,2],"'") ]]
+      arrowsize<- .5 + 7 * val.perc 
+      colore <- as.integer(100-(30+val.perc*70))
+      nuovaRiga<-str_c("\n\t",matrice.nodi.from[i,1],"->'",matrice.nodi.from[i,2],"' [label = '",val.perc*100,"%', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"'  ]")
+      stringa.nodo.from<-c(stringa.nodo.from,nuovaRiga)
+    }
+      
+    # STRINGA NODO TO (ARCO)
+    stringa.nodo.to<-"\nedge [arrowsize = 1 ]"
+    for(i in seq(1,nrow(matrice.nodi.to))) {
+      val.perc<-lista.freq.trigger[[ str_c("'",matrice.nodi.to[i,1],"'") ]]
+      arrowsize<- .5 + 7 * val.perc      
+      colore <- as.integer(100-(30+val.perc*70))
+      nuovaRiga<-str_c("\n\t'",matrice.nodi.to[i,1],"'->",matrice.nodi.to[i,2]," [label = '",val.perc*100,"%', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"' ]")
+      stringa.nodo.to<-c(stringa.nodo.to,nuovaRiga)
+    }    
+      
+    
+    # browser()
+    a<-paste(c("digraph boxes_and_circles {
+             
+             # a 'graph' statement
+             graph [overlap = true, fontsize = 10]
+             
+             # several 'node' statements
+             node [shape = oval,
+             fontname = Helvetica,
+             style = filled]
+
+             node [fillcolor = green] 
+             'BEGIN'; 
+
+             node [fillcolor = red] 
+             ",paste(arr.terminazioni.raggiungibili,collapse=" "),"
+             
+             ",stringa.stati,"
+
+             ",stringa.trigger,"
+             
+             edge [arrowsize = 1 ]
+             # several edge
+             ",stringa.nodo.from,"
+             ",stringa.nodo.to,"
+    }"), collapse='') 
+    grViz(a);
+  }  
+  #===========================================================  
+  # giveBackComputationCounts
+  # fa la conta di quanto quello 'stato' o 'trigger' e' stato
+  # toccato nella computazione.
+  # perOgni indica se la conta deve avvenire per ogni istanza 
+  # o per al massimo una per ogni paziente
+  #===========================================================  
+  giveBackComputationCounts<-function( nomeElemento, tipo='stato', perOgni='paziente' ) {
+    # Carica l'XML
+    doc <- xmlInternalTreeParse(file = notebook$computationLog,asText = TRUE)
+    arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
+    totalAmount<- 0 
+   
+    # Loopa per ogni computazione
+    for(i in seq(1,length(arr.Computazioni))) {
+      # Differenzia il caso in cui si vogliano contare gli stati da quello in cui si vogliano 
+      # contare i trigger
+      if(tipo=="stato")
+        howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/st.ACTIVE.POST[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
+      if(tipo=="trigger")
+        howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/fired.trigger[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
+      
+      # Se e' null, metti a zero
+      if(length(howMany)==0) howMany<-0
+      else howMany<-1;
+      
+      totalAmount <- totalAmount + howMany
+    }
+    return( list( "howMany"=totalAmount,  "totalNumber"=length(arr.Computazioni))  ) 
+  }  
   #===========================================================  
   # loadDataset
   #===========================================================  
@@ -478,7 +662,10 @@ confCheck_easy<-function() {
     "playLoadedData"=playLoadedData,
     "getXML"=getXML,
     "plotGraph"=plotGraph,
-    "getPlayedSequencesStat.00"=getPlayedSequencesStat.00
+    "plotComputationResult"=plotComputationResult,
+    "getPlayedSequencesStat.00"=getPlayedSequencesStat.00,
+    "getPatientLog"=getPatientLog,
+    "getPatientXML"=getPatientXML
   ))
 }
 
