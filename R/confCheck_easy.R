@@ -106,6 +106,7 @@ confCheck_easy<-function() {
     ct<-1
     addNote(msg = "\n<xml>")
     for( indice in names(dataLog$wordSequence.raw)) {
+      cat("\n Doing:",indice)
       addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
       res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
       addNote(msg = "\n\t\t<atTheEnd>")
@@ -494,7 +495,7 @@ confCheck_easy<-function() {
       penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
       penwidth<- 1
       colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
-      stringa.stati <- str_c(stringa.stati,"\n\t ",nome.stato," [label = '",nome.stato.pulito,"\n",howMany," %', penwidth='",penwidth,"',  pencolor='Gray",colore,"']") 
+      stringa.stati <- str_c(stringa.stati,"\n\t ",nome.stato," [label = '",nome.stato.pulito,"\n",round(as.numeric(howMany),2)," %', penwidth='",penwidth,"',  pencolor='Gray",colore,"']") 
     }
     # PER I TRIGGER
     lista.freq.trigger<-list()
@@ -507,7 +508,7 @@ confCheck_easy<-function() {
       penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
       penwidth<- 1
       colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
-      stringa.trigger <- str_c(stringa.trigger,"\n\t ",nome.trigger," [label = '",nome.trigger.pulito,"\n",howMany," %', penwidth='",penwidth,"', fontcolor='Gray",colore,"']") 
+      stringa.trigger <- str_c(stringa.trigger,"\n\t ",nome.trigger," [label = '",nome.trigger.pulito,"\n",round(as.numeric(howMany),2)," %', penwidth='",penwidth,"', fontcolor='Gray",colore,"']") 
     }    
     # STRINGA NODO FROM (ARCO)
     stringa.nodo.from<-"\nedge [arrowsize = 1 ]"
@@ -515,7 +516,7 @@ confCheck_easy<-function() {
       val.perc<-lista.freq.trigger[[ str_c("'",matrice.nodi.from[i,2],"'") ]]
       arrowsize<- .5 + 7 * val.perc 
       colore <- as.integer(100-(30+val.perc*70))
-      nuovaRiga<-str_c("\n\t",matrice.nodi.from[i,1],"->'",matrice.nodi.from[i,2],"' [label = '",val.perc*100,"%', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"'  ]")
+      nuovaRiga<-str_c("\n\t",matrice.nodi.from[i,1],"->'",matrice.nodi.from[i,2],"' [label = '",round(val.perc*100,2),"%', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"'  ]")
       stringa.nodo.from<-c(stringa.nodo.from,nuovaRiga)
     }
       
@@ -525,7 +526,7 @@ confCheck_easy<-function() {
       val.perc<-lista.freq.trigger[[ str_c("'",matrice.nodi.to[i,1],"'") ]]
       arrowsize<- .5 + 7 * val.perc      
       colore <- as.integer(100-(30+val.perc*70))
-      nuovaRiga<-str_c("\n\t'",matrice.nodi.to[i,1],"'->",matrice.nodi.to[i,2]," [label = '",val.perc*100,"%', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"' ]")
+      nuovaRiga<-str_c("\n\t'",matrice.nodi.to[i,1],"'->",matrice.nodi.to[i,2]," [label = '",round(val.perc*100, 2),"%', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"' ]")
       stringa.nodo.to<-c(stringa.nodo.to,nuovaRiga)
     }    
       
