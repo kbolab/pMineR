@@ -102,7 +102,7 @@ confCheck_easy<-function() {
   # playLoadedData
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================    
-  playLoadedData<-function() {
+  playLoadedData<-function( number.perc = 1) {
     ct<-1
     addNote(msg = "\n<xml>")
     for( indice in names(dataLog$wordSequence.raw)) {
@@ -113,9 +113,40 @@ confCheck_easy<-function() {
       addNote(msg = "\n\t\t</atTheEnd>")
       addNote(msg = "\n\t</computation>")
       ct <- ct + 1
+      if(   (ct/length(dataLog$wordSequence.raw)) > number.perc  ) break;
     }
     addNote(msg = "\n</xml>")
-  }     
+  }   
+  getPlayedSequencesStat.00<-function( ) {
+    list.fired.trigger<-list()
+    list.final.states<-list()    
+    doc <- xmlInternalTreeParse(file = getXML(),asText = TRUE)
+    arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
+
+    for( i in arr.Computazioni) {
+      arr.step<-unlist(xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step'),collapse = ""),xmlGetAttr,"n"))
+      array.fired.trigger<-c()
+      # Scorri tutti gli step di quella computazione
+      for( s  in arr.step) {
+        trg<-xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step[@n="',s,'"]'),collapse = ""),xmlGetAttr,"trg")[[1]]
+        if(trg == "TRUE") {
+          # Prendi i trigger attivati
+          fired.trigger<-unlist(xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step[@n="',s,'"]/fired.trigger'),collapse = ""),xmlGetAttr,"name"))
+          array.fired.trigger<-c( array.fired.trigger , fired.trigger )
+
+          final.states<-unlist(xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step[@n="',s,'"]/st.ACTIVE.POST'),collapse = ""),xmlGetAttr,"name"))
+        }
+      }
+      list.fired.trigger[[i]] <-array.fired.trigger
+      list.final.states[[i]] <- final.states
+
+    }
+
+    return(list(
+      "list.fired.trigger"=list.fired.trigger,
+      "list.final.states"=list.final.states
+    ))
+  }
   #===========================================================  
   # playSingleSequence
   # esegue il conformanche checking con una specifica sequenza 
@@ -446,7 +477,8 @@ confCheck_easy<-function() {
     "loadDataset"=loadDataset,
     "playLoadedData"=playLoadedData,
     "getXML"=getXML,
-    "plotGraph"=plotGraph
+    "plotGraph"=plotGraph,
+    "getPlayedSequencesStat.00"=getPlayedSequencesStat.00
   ))
 }
 
