@@ -60,7 +60,7 @@ confCheck_easy<-function() {
     array.stati<-unlist(xpathApply(WF.xml,'//xml/workflow/node',xmlGetAttr, "name"))
     array.trigger<-unlist(xpathApply(WF.xml,'//xml/workflow/trigger',xmlGetAttr, "name"))
 
-    # Per ogni stato carica gli attributi (ad es. se plottabile)
+    # Per ogni stato carica gli attributi (ad es. 'plotIt')
     for(state.name in array.stati) {
       plotIt<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"plotIt")[[1]]
       st.type<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"type")[[1]]
@@ -71,12 +71,15 @@ confCheck_easy<-function() {
       if(length(st.type)==0) st.type="normal"
       else st.type = str_replace_all(string = st.type,pattern = "'",replacement = "") 
       
+      # Carica quanto indicato nell'XML nella variabile che poi andrà copiata 
+      # negli attributi globali
       lista.stati[[ state.name ]]<-list()
       lista.stati[[ state.name ]][["plotIt"]]<-plotIt
       lista.stati[[ state.name ]][["type"]]<-st.type
     }    
     
-    # Per ogni trigger, carica la condizione, i set e gli unset  
+    # Per ogni trigger, carica la 'condition', i 'set' e gli 'unset'  
+    # (e domani, pure altro)
     for(trigger.name in array.trigger) {
       condizione<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/condition'),collapse = ""),xmlValue)[[1]]
       plotIt<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]'),collapse = ""),xmlGetAttr,"plotIt")[[1]]
@@ -86,6 +89,8 @@ confCheck_easy<-function() {
       if(length(plotIt)==0) plotIt=TRUE
       else plotIt = str_replace_all(string = plotIt,pattern = "'",replacement = "")
 
+      # Carica quanto indicato nell'XML nella variabile che poi andrà copiata 
+      # negli attributi globali      
       lista.trigger[[ trigger.name ]]<-list()
       lista.trigger[[ trigger.name ]][["condition"]]<-condizione
       lista.trigger[[ trigger.name ]][["set"]]<-arr.set
@@ -103,8 +108,13 @@ confCheck_easy<-function() {
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================    
   playLoadedData<-function( number.perc = 1) {
+
+    # Chiama addNote, che via via popola una stringa 
+    # che alla fine conterrà l'intero XML
     ct<-1
     addNote(msg = "\n<xml>")
+    
+    # Per ogni paziente
     for( indice in names(dataLog$wordSequence.raw)) {
       cat("\n Doing:",indice)
       addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
@@ -116,8 +126,13 @@ confCheck_easy<-function() {
       ct <- ct + 1
       if(   (ct/length(dataLog$wordSequence.raw)) > number.perc  ) break;
     }
+    # Chiudi l'XML
     addNote(msg = "\n</xml>")
   }   
+  #===========================================================  
+  # playLoadedData
+  # Cazzo! Non ricordo più nemmeno io cosa fa questa funzione.....
+  #===========================================================      
   getPlayedSequencesStat.00<-function( ) {
     list.fired.trigger<-list()
     list.final.states<-list()    
