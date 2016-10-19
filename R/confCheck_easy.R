@@ -108,7 +108,8 @@ confCheck_easy<-function() {
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================    
   playLoadedData<-function( number.perc = 1) {
-
+    
+    
     # Chiama addNote, che via via popola una stringa 
     # che alla fine conterrà l'intero XML
     ct<-1
@@ -119,8 +120,10 @@ confCheck_easy<-function() {
       cat("\n Doing:",indice)
       addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
       res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
+
       addNote(msg = "\n\t\t<atTheEnd>")
       for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
+      for(i in res$last.fired.trigger) addNote(msg = str_c("\n\t\t\t<last.fired.trigger name='",i,"'></last.fired.trigger>"))
       addNote(msg = "\n\t\t</atTheEnd>")
       addNote(msg = "\n\t</computation>")
       ct <- ct + 1
@@ -174,6 +177,7 @@ confCheck_easy<-function() {
     st.LAST<-""
     st.DONE<-c("")
     st.ACTIVE<-c("'BEGIN'")
+    last.fired.trigger<-c()
     ct <- 0
     error<-""
 
@@ -187,13 +191,13 @@ confCheck_easy<-function() {
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
       
       # Cerca chi ha soddisfatto le precondizioni
-      newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, st.ACTIVE = st.ACTIVE  )
+      newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = FALSE   )
       
       # Se c'e' un errore, ferma tutto
       if(newHop$error==TRUE) {
         note.set.error(error = newHop$error)
         note.flush()
-        return( list( "st.ACTIVE"=st.ACTIVE,"error"=error ) );
+        return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger ) );
       }
       
       # Se hai rilevato dei trigger attivi
@@ -201,6 +205,7 @@ confCheck_easy<-function() {
         note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
         note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
         st.ACTIVE <- newHop$st.ACTIVE
+        last.fired.trigger<-newHop$active.trigger
       } else { 
         # altrimenti segnala che NON ci sono trigger attivi
         note.set.fired.trigger(array.fired.trigger = '')
@@ -217,7 +222,7 @@ confCheck_easy<-function() {
       # Continua a loopare fino a che e' vero che qualche trigger e' scattato
       while(  devo.restare.in.trigger.loop == TRUE  ) {
  
-        newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = "", st.DONE = st.DONE, st.ACTIVE = st.ACTIVE  )
+        newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = "", st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = FALSE   )
 
         # inzializza il log in caso di errore o in caso di trigger
         if(newHop$error==TRUE | length(newHop$active.trigger)!=0) {
@@ -232,7 +237,7 @@ confCheck_easy<-function() {
         if(newHop$error==TRUE) {
           note.set.error(error = newHop$error)
           note.flush()
-          return( list( "st.ACTIVE"=st.ACTIVE,"error"=error ) )
+          return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger"=last.fired.trigger ) )
         }
         
         # Se hai rilevato qualche trigger attivo
@@ -242,6 +247,7 @@ confCheck_easy<-function() {
           note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
           note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
           st.ACTIVE <- newHop$st.ACTIVE
+          last.fired.trigger<-newHop$active.trigger
           # e fai il flush
           note.flush()          
         }
@@ -249,13 +255,48 @@ confCheck_easy<-function() {
         else devo.restare.in.trigger.loop<-FALSE
       }
     }
-    return( list( "st.ACTIVE"=st.ACTIVE,"error"=error ) );
+    
+    # Now process the EOF !!
+    ct <- ct + 1
+    # gestisci il log
+    newNote();
+    note.setStep(number = ct)
+    note.setEvent(eventType = ev.NOW)
+    note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
+    
+    # Cerca chi ha soddisfatto le precondizioni
+    newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = TRUE  )
+    
+    # Se c'e' un errore, ferma tutto
+    if(newHop$error==TRUE) {
+      note.set.error(error = newHop$error)
+      note.flush()
+      return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger ) );
+    }
+    
+    # Se hai rilevato dei trigger attivi
+    if(length(newHop$active.trigger)!=0) {
+      note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
+      note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
+      st.ACTIVE <- newHop$st.ACTIVE
+      last.fired.trigger<-newHop$active.trigger
+    } else { 
+      # altrimenti segnala che NON ci sono trigger attivi
+      note.set.fired.trigger(array.fired.trigger = '')
+      # E i nuovi stati validi sono esattamente i vecchi
+      note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = st.ACTIVE)
+    }
+    # Fai il flush 
+    note.flush()    
+    
+    # Ritorna
+    return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger ) );
   }  
   #===========================================================  
   # attiva.trigger
   # is the "core": it finds out the trigger that should be fired
   #===========================================================    
-  attiva.trigger<-function( st.LAST, ev.NOW, st.DONE, st.ACTIVE  ) {
+  attiva.trigger<-function( st.LAST, ev.NOW, st.DONE, st.ACTIVE, EOF  ) {
     # inizializza
     new.st.DONE<-st.DONE;
     new.st.LAST<-c()
@@ -277,6 +318,7 @@ confCheck_easy<-function() {
       
       stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$ev.NOW\\$",replacement = rimpiazzo.ev.NOW)
       stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$st.ACTIVE\\$",replacement = rimpiazzo.st.ACTIVE)
+      stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$EOF\\$",replacement = str_c("'",EOF,"'") )
       
       stringa.to.eval<- str_replace_all(string = stringa.to.eval,pattern = " OR ",replacement = " | ")
       stringa.to.eval<- str_replace_all(string = stringa.to.eval,pattern = " AND ",replacement = " & ")
@@ -421,7 +463,6 @@ confCheck_easy<-function() {
              node [fillcolor = red] 
              ",paste(arr.terminazioni.raggiungibili,collapse=" "),"
              
-             
              node [fillcolor = orange]
              ",paste(arr.stati.raggiungibili,collapse=" "),"
 
@@ -441,8 +482,11 @@ confCheck_easy<-function() {
   # plot the Graph
   # 'clear' is the graph as passed
   # 'computed' is the graph weighted by real computation flows
+  # 'avoidFinalStates' is an array containing the final states 
+  #                to filter the computation
+  # kindOfNumber : i numeri: 'relative' o 'absolute'
   #===========================================================   
-  plotComputationResult<-function( ) {
+  plotComputationResult<-function( whatToCount='activations' , kindOfNumber='relative', avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c() ) {
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
     arr.trigger.rappresentabili<-c();
@@ -490,40 +534,42 @@ confCheck_easy<-function() {
             stringa.nodo.to<-str_c( stringa.nodo.to," ","'",trigger.name,"'->",st.nome )
             matrice.nodi.to <- rbind(matrice.nodi.to,c(trigger.name,st.nome))
           }
-#           matrice.nodi.from <- rbind(matrice.nodi.from,c(st.nome,trigger.name))
-#           matrice.nodi.to <- rbind(matrice.nodi.to,c(trigger.name,st.nome))
         }
       }
     }
-    
-    # Distingui fra nodi end e nodi nnormali (questione di colore)
+
+    # Distingui fra nodi end e nodi normali (questione di colore)
     arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
     arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
-    
+
     # Ora sistema le froceries grafiche
     # PER I NODI
     stringa.stati<-"node [fillcolor = Orange]"
     for(nome.stato in arr.stati.raggiungibili)  {
       nome.stato.pulito <- str_replace_all(string = nome.stato,pattern = "'",replacement = "")
-      aa = giveBackComputationCounts(nomeElemento = nome.stato.pulito, tipo='stato' )
+      aa = giveBackComputationCounts(nomeElemento = nome.stato.pulito, tipo='stato', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger)
       howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
       penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
       penwidth<- 1
       colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
-      stringa.stati <- str_c(stringa.stati,"\n\t ",nome.stato," [label = '",nome.stato.pulito,"\n",round(as.numeric(howMany),2)," %', penwidth='",penwidth,"',  pencolor='Gray",colore,"']") 
+      if(kindOfNumber=='relative') numberToPrint<-str_c(round(as.numeric(howMany),2)," %")
+      else numberToPrint<-str_c("# ",aa$howMany)
+      stringa.stati <- str_c(stringa.stati,"\n\t ",nome.stato," [label = '",nome.stato.pulito,"\n",numberToPrint,"', penwidth='",penwidth,"',  pencolor='Gray",colore,"']") 
     }
     # PER I TRIGGER
     lista.freq.trigger<-list()
     stringa.trigger<-"node [fillcolor = white, shape = box ]"
     for(nome.trigger in arr.trigger.rappresentabili)  {
       nome.trigger.pulito <- str_replace_all(string = nome.trigger,pattern = "'",replacement = "")
-      aa = giveBackComputationCounts(nomeElemento = nome.trigger.pulito,tipo='trigger' )
+      aa = giveBackComputationCounts(nomeElemento = nome.trigger.pulito, tipo='trigger', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger )
       howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
       lista.freq.trigger[[nome.trigger]]<-(aa$howMany  / aa$totalNumber)
       penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
       penwidth<- 1
       colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
-      stringa.trigger <- str_c(stringa.trigger,"\n\t ",nome.trigger," [label = '",nome.trigger.pulito,"\n",round(as.numeric(howMany),2)," %', penwidth='",penwidth,"', fontcolor='Gray",colore,"']") 
+      if(kindOfNumber=='relative') numberToPrint<-str_c(round(as.numeric(howMany),2)," %")
+      else numberToPrint<-str_c("# ",aa$howMany)
+      stringa.trigger <- str_c(stringa.trigger,"\n\t ",nome.trigger," [label = '",nome.trigger.pulito,"\n",numberToPrint,"', penwidth='",penwidth,"', fontcolor='Gray",colore,"']") 
     }    
     # STRINGA NODO FROM (ARCO)
     stringa.nodo.from<-"\nedge [arrowsize = 1 ]"
@@ -531,7 +577,9 @@ confCheck_easy<-function() {
       val.perc<-lista.freq.trigger[[ str_c("'",matrice.nodi.from[i,2],"'") ]]
       arrowsize<- .5 + 7 * val.perc 
       colore <- as.integer(100-(30+val.perc*70))
-      nuovaRiga<-str_c("\n\t",matrice.nodi.from[i,1],"->'",matrice.nodi.from[i,2],"' [label = '",round(val.perc*100,2),"%', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"'  ]")
+      labelArco <- str_c(round(val.perc*100,2),"%")
+      labelArco<-''
+      nuovaRiga<-str_c("\n\t",matrice.nodi.from[i,1],"->'",matrice.nodi.from[i,2],"' [label = '",labelArco,"', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"'  ]")
       stringa.nodo.from<-c(stringa.nodo.from,nuovaRiga)
     }
       
@@ -541,10 +589,11 @@ confCheck_easy<-function() {
       val.perc<-lista.freq.trigger[[ str_c("'",matrice.nodi.to[i,1],"'") ]]
       arrowsize<- .5 + 7 * val.perc      
       colore <- as.integer(100-(30+val.perc*70))
-      nuovaRiga<-str_c("\n\t'",matrice.nodi.to[i,1],"'->",matrice.nodi.to[i,2]," [label = '",round(val.perc*100, 2),"%', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"' ]")
+      labelArco <- str_c(round(val.perc*100,2),"%")
+      labelArco<-''
+      nuovaRiga<-str_c("\n\t'",matrice.nodi.to[i,1],"'->",matrice.nodi.to[i,2]," [label = '",labelArco,"', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"' ]")
       stringa.nodo.to<-c(stringa.nodo.to,nuovaRiga)
     }    
-      
     
     # browser()
     a<-paste(c("digraph boxes_and_circles {
@@ -580,29 +629,60 @@ confCheck_easy<-function() {
   # toccato nella computazione.
   # perOgni indica se la conta deve avvenire per ogni istanza 
   # o per al massimo una per ogni paziente
+  # INPUT
+  # tipo = 'stato' o 'trigger' in funzione di cosa sia
+  # whatToCount = 'activations'  se si vogliono contare le attivazioni,
+  #               'terminations' se si vogliono contare quante volte vi è terminato
+  # avoidFinalStates = un array che contiene gli stati che non devono essere 
+  #                    finali per i pazienti da considerare (serve per fare un filtro)
+  # avoidTransitionOnStates = un array che indica gli stati che non devono essre
+  #                           transitati dai pazienti da considerare (è un filtro)
+  # avoidToFireTrigger = badalì, indovina un po'?
   #===========================================================  
-  giveBackComputationCounts<-function( nomeElemento, tipo='stato', perOgni='paziente' ) {
+  giveBackComputationCounts<-function( nomeElemento, tipo, whatToCount, avoidFinalStates, avoidTransitionOnStates, avoidToFireTrigger) {
     # Carica l'XML
     doc <- xmlInternalTreeParse(file = notebook$computationLog,asText = TRUE)
     arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
-    totalAmount<- 0 
-   
+    totalAmount <- 0 
+    totalNumber <- 0
+
     # Loopa per ogni computazione
     for(i in seq(1,length(arr.Computazioni))) {
+      skipComputation <- FALSE
+      
       # Differenzia il caso in cui si vogliano contare gli stati da quello in cui si vogliano 
       # contare i trigger
-      if(tipo=="stato")
-        howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/st.ACTIVE.POST[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
-      if(tipo=="trigger")
-        howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/fired.trigger[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
+      st.FINAL.arr <- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/atTheEnd/finalState'),xmlGetAttr,"name"))
+      st.TRANSITION.ON.arr <- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/st.ACTIVE.POST'),xmlGetAttr,"name"))      
+      tr.fired.arr <- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/fired.trigger'),xmlGetAttr,"name"))
+      
+      if(tipo=="stato") {
+        if(whatToCount=='activations') howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/st.ACTIVE.POST[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
+        if(whatToCount=='terminations') howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/atTheEnd/finalState[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
+      }
+      if(tipo=="trigger") {
+        if(whatToCount=='activations') howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/fired.trigger[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
+        if(whatToCount=='terminations')  howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/atTheEnd/last.fired.trigger[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
+      }
+      
+      # Verifica se il finale è incluso in quelli da scartare: se sì, skippa tutto il paziente 
+      # (la computazione corrente)
+      if(sum(st.FINAL.arr %in% avoidFinalStates) >=1 | 
+         sum(st.TRANSITION.ON.arr %in% avoidTransitionOnStates) >=1 |
+         sum(tr.fired.arr %in% avoidToFireTrigger) >=1 )  {
+        skipComputation<-TRUE;
+      }
+      
+      if(skipComputation == TRUE) next;
       
       # Se e' null, metti a zero
       if(length(howMany)==0) howMany<-0
       else howMany<-1;
       
       totalAmount <- totalAmount + howMany
+      totalNumber <- totalNumber + 1
     }
-    return( list( "howMany"=totalAmount,  "totalNumber"=length(arr.Computazioni))  ) 
+    return( list( "howMany"=totalAmount,  "totalNumber"=totalNumber)  ) 
   }  
   #===========================================================  
   # loadDataset
