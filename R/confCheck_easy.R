@@ -22,13 +22,15 @@
 #' obj.cc$loadDataset( obj.L$getData() );
 #' 
 #' }
-confCheck_easy<-function() {
+confCheck_easy<-function( verbose.mode = FALSE ) {
   WF.xml <- c()                 # The XML with the WF
   WF.xml.fileName <- c()        # Just the XML filename
   dataLog <- c()                # The data structure with the LOGs
   WF.struct <- list()           # the WF structure
   notebook <- list()            # internal notebook for events-log
   tmpAttr <- list()
+  
+  param.verbose <- c()
 
   #=================================================================================
   # clearAttributes
@@ -109,7 +111,6 @@ confCheck_easy<-function() {
   #===========================================================    
   playLoadedData<-function( number.perc = 1) {
     
-    
     # Chiama addNote, che via via popola una stringa 
     # che alla fine conterrà l'intero XML
     ct<-1
@@ -117,9 +118,11 @@ confCheck_easy<-function() {
     
     # Per ogni paziente
     for( indice in names(dataLog$wordSequence.raw)) {
-      cat("\n Doing:",indice)
+      if(param.verbose == TRUE) cat("\n Doing:",indice)
+
       addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
-      res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
+      # res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
+      res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], col.eventName = dataLog$csv.EVENTName, col.dateName = dataLog$csv.dateColumnName  )
 
       addNote(msg = "\n\t\t<atTheEnd>")
       for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
@@ -171,33 +174,38 @@ confCheck_easy<-function() {
   # esegue il conformanche checking con una specifica sequenza 
   # di LOG (di un paziente)
   #===========================================================     
-  playSingleSequence<-function( sequenza ) {
-    
+  playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName) {
+
     # Cerca lo stato che viene triggerato dal BEGIN
     st.LAST<-""
     st.DONE<-c("")
     st.ACTIVE<-c("'BEGIN'")
     last.fired.trigger<-c()
-    ct <- 0
+    ct <- 0; riga <- 0
     error<-""
 
+    sequenza <- as.array(matriceSequenza[ ,col.eventName ])
+    
     # Analizza TUTTI gli eventi della sequenza
     for( ev.NOW in sequenza ) {
+      # costruisco un contatore della riga della tabella in analisi
+      riga <- riga + 1
+      data.ev.NOW <- matriceSequenza[ riga ,col.dateName ]
       ct <- ct + 1
       # gestisci il log
       newNote();
       note.setStep(number = ct)
-      note.setEvent(eventType = ev.NOW)
+      note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW)
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
       
       # Cerca chi ha soddisfatto le precondizioni
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = FALSE   )
-      
+
       # Se c'e' un errore, ferma tutto
       if(newHop$error==TRUE) {
         note.set.error(error = newHop$error)
         note.flush()
-        return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger ) );
+        return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger , "date" = data.ev.NOW   ) );
       }
       
       # Se hai rilevato dei trigger attivi
@@ -229,7 +237,7 @@ confCheck_easy<-function() {
           ct <- ct + 1
           newNote();
           note.setStep(number = ct)
-          note.setEvent(eventType = '')
+          note.setEvent(eventType = '', eventDate = data.ev.NOW)
           note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
         }
         
@@ -237,12 +245,12 @@ confCheck_easy<-function() {
         if(newHop$error==TRUE) {
           note.set.error(error = newHop$error)
           note.flush()
-          return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger"=last.fired.trigger ) )
+          return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger"=last.fired.trigger, "date" = data.ev.NOW  ) )
         }
         
         # Se hai rilevato qualche trigger attivo
         if(length(newHop$active.trigger)!=0)  {
-          note.setEvent(eventType = '')
+          note.setEvent(eventType = '', eventDate = data.ev.NOW)
           note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
           note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
           note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
@@ -261,7 +269,7 @@ confCheck_easy<-function() {
     # gestisci il log
     newNote();
     note.setStep(number = ct)
-    note.setEvent(eventType = ev.NOW)
+    note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW)
     note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
     
     # Cerca chi ha soddisfatto le precondizioni
@@ -271,7 +279,7 @@ confCheck_easy<-function() {
     if(newHop$error==TRUE) {
       note.set.error(error = newHop$error)
       note.flush()
-      return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger ) );
+      return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger , "date" = data.ev.NOW ) );
     }
     
     # Se hai rilevato dei trigger attivi
@@ -290,7 +298,7 @@ confCheck_easy<-function() {
     note.flush()    
     
     # Ritorna
-    return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger ) );
+    return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger, "date" = data.ev.NOW ) );
   }  
   #===========================================================  
   # attiva.trigger
@@ -478,6 +486,87 @@ confCheck_easy<-function() {
     grViz(a);
   }
   #===========================================================  
+  # plotPatientEventTimeLine
+  # plot the event timeline for a ginven patient
+  #===========================================================  
+  plotPatientEventTimeLine<-function( patientID ) {
+    
+    st.POST<-list(); st.PRE<-list(); tr.fired<-list()
+    txt.section<-"";
+    
+    doc <- xmlInternalTreeParse(file = notebook$computationLog,asText = TRUE)
+    arr.step <- unlist(xpathApply(doc,str_c('//xml/computation[@IDPaz="',patientID,'"]/step'),xmlGetAttr,"evt"))
+    arr.date <- unlist(xpathApply(doc,str_c('//xml/computation[@IDPaz="',patientID,'"]/step'),xmlGetAttr,"date"))
+
+    matrice<-c()
+    for( riga in seq(1,length(arr.step))) {
+      matrice <- rbind(matrice, cbind(  arr.date[ riga ] , arr.step[ riga ]  ) )
+    }
+    
+    plotTimeline(matrice, format.date = "%d/%m/%Y")
+  }  
+  #===========================================================  
+  # plotPatientComputedTimeline
+  # plot the computed timeline for a given patient
+  #===========================================================   
+  plotPatientComputedTimeline<-function( patientID ) {  
+
+    st.POST<-list(); st.PRE<-list(); tr.fired<-list()
+    txt.section<-"";
+    
+    doc <- xmlInternalTreeParse(file = notebook$computationLog,asText = TRUE)
+    arr.step <- unlist(xpathApply(doc,str_c('//xml/computation[@IDPaz="',patientID,'"]/step'),xmlGetAttr,"n"))
+    arr.date <- unlist(xpathApply(doc,str_c('//xml/computation[@IDPaz="',patientID,'"]/step'),xmlGetAttr,"date"))
+    for( i in seq(1,length(arr.step)) ) {
+      st.POST[[ arr.step[i] ]]<-unlist(xpathApply(doc,str_c('//xml/computation[@IDPaz="',patientID,'"]/step[@n="',arr.step[i],'"]/st.ACTIVE.POST'),xmlGetAttr,"name"))
+      st.PRE[[ arr.step[i] ]]<-unlist(xpathApply(doc,str_c('//xml/computation[@IDPaz="',patientID,'"]/step[@n="',arr.step[i],'"]/st.ACTIVE.PRE'),xmlGetAttr,"name"))
+      tr.fired[[ arr.step[i] ]]<-unlist(xpathApply(doc,str_c('//xml/computation[@IDPaz="',patientID,'"]/step[@n="',arr.step[i],'"]/fired.trigger'),xmlGetAttr,"name"))
+    }
+    # prendi solo le date relative ai post/trigger attivati
+    arr.date<-arr.date[as.numeric(names(st.POST))]
+    
+    # prendi gli step da scorrere
+    step.da.scorrere <- names(st.POST)
+
+    num_section <- 1
+    
+    for( section in unlist(st.POST)) {
+      # Clear date fields
+      from.date <- "";    to.date <- "";  sec.run<-1;
+      is.begining <- FALSE; is.ending <- FALSE;
+      headLine <- str_c("\n section ",section)
+      line.to.write<-"";
+      # run for each computation step
+      for( step2Run in seq(1,length(step.da.scorrere))){
+
+        step2Run.index <- step.da.scorrere[step2Run]
+        # figure out if it is a begin or an end and set the dates
+        is.begining <- section %in% st.POST[[ step2Run.index ]] & !(section %in% st.PRE[[ step2Run.index ]] )
+        is.ending <- section %in% st.PRE[[ step2Run.index ]] & !(section %in% st.POST[[ step2Run.index ]] )
+        if(is.begining == TRUE) from.date <- arr.date[step2Run]
+        if(is.ending == TRUE) to.date <- arr.date[step2Run]
+        
+        if( is.ending ) {
+          days.delta.date<-as.character(  as.integer( difftime(as.POSIXct(to.date, format = "%d/%m/%Y"),as.POSIXct(from.date, format = "%d/%m/%Y"),units = 'days')  ))
+          line.to.write <- str_c(line.to.write,"\n\t ",days.delta.date," days             :active,          ",section,",    ",from.date,", ",to.date)
+          # reset the flags
+          is.begining <- FALSE;  is.ending <- FALSE; sec.run <- sec.run+1
+        }
+      }
+
+      if(sec.run>0) txt.section <- str_c(txt.section,"\n", headLine , line.to.write)
+      num_section <- num_section + 1 
+    }
+
+    aaa<- str_c(" gantt
+          dateFormat  DD/MM/YYYY
+          title time-event for Patient: ",patientID,"
+          
+          ",txt.section)
+    
+    mermaid(aaa)    
+  }    
+  #===========================================================  
   # plotComputationResult
   # plot the Graph
   # 'clear' is the graph as passed
@@ -486,7 +575,9 @@ confCheck_easy<-function() {
   #                to filter the computation
   # kindOfNumber : i numeri: 'relative' o 'absolute'
   #===========================================================   
-  plotComputationResult<-function( whatToCount='activations' , kindOfNumber='relative', avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c() ) {
+  plotComputationResult<-function( whatToCount='activations' ,     kindOfNumber='relative', 
+            avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c(), whichPatientID=c("*") ) {
+    
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
     arr.trigger.rappresentabili<-c();
@@ -547,7 +638,7 @@ confCheck_easy<-function() {
     stringa.stati<-"node [fillcolor = Orange]"
     for(nome.stato in arr.stati.raggiungibili)  {
       nome.stato.pulito <- str_replace_all(string = nome.stato,pattern = "'",replacement = "")
-      aa = giveBackComputationCounts(nomeElemento = nome.stato.pulito, tipo='stato', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger)
+      aa = giveBackComputationCounts(nomeElemento = nome.stato.pulito, tipo='stato', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID)
       howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
       penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
       penwidth<- 1
@@ -561,7 +652,7 @@ confCheck_easy<-function() {
     stringa.trigger<-"node [fillcolor = white, shape = box ]"
     for(nome.trigger in arr.trigger.rappresentabili)  {
       nome.trigger.pulito <- str_replace_all(string = nome.trigger,pattern = "'",replacement = "")
-      aa = giveBackComputationCounts(nomeElemento = nome.trigger.pulito, tipo='trigger', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger )
+      aa = giveBackComputationCounts(nomeElemento = nome.trigger.pulito, tipo='trigger', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID )
       howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
       lista.freq.trigger[[nome.trigger]]<-(aa$howMany  / aa$totalNumber)
       penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
@@ -639,7 +730,7 @@ confCheck_easy<-function() {
   #                           transitati dai pazienti da considerare (è un filtro)
   # avoidToFireTrigger = badalì, indovina un po'?
   #===========================================================  
-  giveBackComputationCounts<-function( nomeElemento, tipo, whatToCount, avoidFinalStates, avoidTransitionOnStates, avoidToFireTrigger) {
+  giveBackComputationCounts<-function( nomeElemento, tipo, whatToCount, avoidFinalStates, avoidTransitionOnStates, avoidToFireTrigger , whichPatientID) {
     # Carica l'XML
     doc <- xmlInternalTreeParse(file = notebook$computationLog,asText = TRUE)
     arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
@@ -655,6 +746,11 @@ confCheck_easy<-function() {
       st.FINAL.arr <- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/atTheEnd/finalState'),xmlGetAttr,"name"))
       st.TRANSITION.ON.arr <- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/st.ACTIVE.POST'),xmlGetAttr,"name"))      
       tr.fired.arr <- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/fired.trigger'),xmlGetAttr,"name"))
+      PatientID <- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]'),xmlGetAttr,"IDPaz"))
+      
+      if( !("*" %in% whichPatientID) & !(PatientID %in% whichPatientID)){
+        next;
+      }
       
       if(tipo=="stato") {
         if(whatToCount=='activations') howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/step/st.ACTIVE.POST[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
@@ -700,12 +796,14 @@ confCheck_easy<-function() {
     tmpAttr$stepNumber<<-''
     tmpAttr$boolean.fired.trigger<<-FALSE
     tmpAttr$event<<-""
+    tmpAttr$event.date<<-""
   }
   note.setStep<-function( number ){
     tmpAttr$stepNumber <<- number
   }  
-  note.setEvent<-function( eventType ){
+  note.setEvent<-function( eventType , eventDate){
     tmpAttr$event <<- eventType
+    tmpAttr$event.date <<- eventDate
   }
   note.set.st.ACTIVE.PRE<-function( array.st.ACTIVE.PRE ){
     tmpAttr$st.ACTIVE.PRE <<- array.st.ACTIVE.PRE   
@@ -722,7 +820,7 @@ confCheck_easy<-function() {
     tmpAttr$error <<- error   
   }   
   note.flush<-function( ){
-    testo<-str_c("\n\t\t<step n='",tmpAttr$stepNumber,"' trg='",tmpAttr$boolean.fired.trigger,"' evt='",tmpAttr$event,"'>")
+    testo<-str_c("\n\t\t<step n='",tmpAttr$stepNumber,"' trg='",tmpAttr$boolean.fired.trigger,"' evt='",tmpAttr$event,"' date='",tmpAttr$event.date,"'>")
     if(tmpAttr$boolean.fired.trigger==TRUE)  {
       for(i in tmpAttr$st.ACTIVE.PRE) testo<-str_c(testo,"\n\t\t\t<st.ACTIVE.PRE name=",i,"></st.ACTIVE.PRE>")
       for(i in tmpAttr$fired.trigger) testo<-str_c(testo,"\n\t\t\t<fired.trigger name='",i,"'></fired.trigger>")
@@ -742,15 +840,16 @@ confCheck_easy<-function() {
   #=================================================================================
   # costructor
   #=================================================================================  
-  costructor<-function() {
+  costructor<-function( verboseMode ) {
     WF.xml <<- c()
     WF.xml.fileName <<- c()
     dataLog <<- c()
     WF.struct <<- list()
     notebook <<- list()
     tmpAttr <<- list()
+    param.verbose <<- verboseMode
   }
-  costructor();
+  costructor( verboseMode = verbose.mode);
   #================================================================================= 
   return(list(
     "loadWorkFlow"=loadWorkFlow,
@@ -761,7 +860,9 @@ confCheck_easy<-function() {
     "plotComputationResult"=plotComputationResult,
     "getPlayedSequencesStat.00"=getPlayedSequencesStat.00,
     "getPatientLog"=getPatientLog,
-    "getPatientXML"=getPatientXML
+    "plotPatientComputedTimeline" = plotPatientComputedTimeline,
+    "getPatientXML"=getPatientXML,
+    "plotPatientEventTimeLine" = plotPatientEventTimeLine
   ))
 }
 

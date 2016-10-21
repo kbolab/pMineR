@@ -1,0 +1,457 @@
+---
+title: "pMineR"
+author: "Roberto Gatta"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+pMineR is a library to deal with Process Mining in Medicine. Using R, not Matlab, SPSS or anything else. R. 
+It is maintained thanks to the collaboration of a ring of friend working for different hospitals, university and companies.
+Anyone can cooperate contacting the project coord at: roberto.gatta.bs@gmail.com
+
+If this is the first time you hear about Process Mining this guide is not for you. Run away: we strongly suggest you to get a solid idea about Process Mining from some 'guru' of the discipline, like prof. Van Der Aalst or other researchers.
+
+The main concepts about the use of pMineR are:
+
+- how to load data
+- Process Discovery
+- Conformance Checking
+
+In this Vignette we will handle the reader to handle with Conformance Checking by example.
+
+
+## How can I get help, using pMineR?
+Classes, in pMineR, are written using closures techinques. It has pros and conse and one of the cons is that, unfortunately for you, the help is not available pressing F1. In order to help the users we provided a method called "help" available for each object of pMiner (NDA: non ancora implementato).
+For example, if you want to see the help of the method `loader::getData()` you can use the method `loader::help()`, passing as argument the name of the method you are looking for help.
+
+The output is not no pretty, but if you are a nerd in the soul you can appreciate it. Neverthless, if you want to cooperate with us in improving our "helping" system, please refers to the main author: he would be pleased to enroll you in the team.
+
+## The loader: because first of all you have to load your fucking data...
+First of all you have to instantiate an object of the class `loader`. This class provides some methods to load CSV and make some pre-computation (i.e. footprint table, transition matrix probability, etc..). 
+
+The result of such object, obtained by a `loader::getData()` method is a structure you can use to give in input to an object to buils a Finite State Machine Model, an Alpha Algoritm Model or to make Conformance Checking.
+
+It is not rocket science, a loader can easily created as:
+
+```
+obj.L <- dataLoader(); 
+```
+
+Once the object is created we can load LOGs data in two ways:
+
+1. a csv, using `loader::load.csv()`. Input parameters are:
+    * _nomeFile_ is the CSV filename
+    * _IDName_ is the name of the column which refers to the 'Patient ID'. 
+    * _EVENTName_ is the name of the column which refers to the events. 
+    * _quote_ if the text quoted? default is '"'
+    * _sep_ if the separator: default is ","
+    * _dateColumnName_ is the name of the column which refers to the date of the events. 
+    
+1. a dataframe, using `loader::load.data.frame()`
+    * _mydata_ is the data frame
+    * _IDName_ is the name of the column which refers to the 'Patient ID'. 
+    * _EVENTName_ is the name of the column which refers to the events. 
+    * _dateColumnName_ is the name of the column which refers to the date of the events. 
+
+Both they do the same thing, so if you want to make a test, you can load the buil-in testing.
+You can watch the content of such data frame by the command:
+
+```c 
+View(testData)
+```
+
+Load it in a `dataLoader` object is easy:
+
+```{r, results='hide' , warning = FALSE,  message = FALSE}
+library(pMineR)
+obj.L <- dataLoader();
+obj.L$load.data.frame(mydata = testData,IDName = "patId",EVENTName = "eventName",dateColumnName = "date")
+```
+
+If you want to see now what obj.L have done, you can retrieve the data by `loader::getData()`:
+
+```c 
+loadedData <- obj.L$getData()
+```
+
+The method `loader::getData()` returns a list with the following names:
+
+* _arrayAssociativo_ is an array containing the names of the type of clinical events (it includes BEGIN and END)
+* _footPrint_ the footprint table
+* _MMatrix_ the transition matrix
+* _pat.process_ an ordered structure with the processes ordered in a list of matrices
+* _MMatrix.perc_ the same content of MMatrix but in percentage
+* _MMatrix.perc.noLoop_ the same content of MMatrix but in percentage and re-calculated avoiding the event auto-loop
+* _wordSequence.raw_ a trivial sequence of events, without data
+* _MM.mean.time_ the transition matrix with, in the cells, the mean of the transition time: 'Inf' means no transition between states
+* _MM.density.list_ a list of array containing the single transition time from state to state. Useful for building a kernel density function
+* _csv.IDName_ the passed "patient ID" column name
+* _csv.EVENTName_ the passed "clinical event" column name
+* _csv.dateColumnName_ the passed "date of clinical event" column name
+
+
+
+#### removing unwished events
+
+In some cases we are not interested in some events (for example administrative events) and we could desire to remove it in order to avoid noise. Another good reason to remove clinical events is because the unfrequent events can play an undesired pivotal role in computation, due to their "decisive behavior" in the transition probability matrix.
+Such removal can be easily done using the method `dataLoader::removeElements()`. This methods allow to remove elements in many ways:
+
+- _array.events_ is an array of strings containing the type of clinical event you want to remove
+
+At the beginning "Radiotherapy" is an accepted state
+```{r, echo=TRUE}
+print(round(obj.L$getData()$MMatrix.perc, digits = 2))
+```
+
+we remove it
+
+```{r, echo=TRUE}
+obj.L$removeEvents(array.events = c("Radiotherapy"))
+```
+
+now "Radiotherapy" is removed and percentages updated with the new cardinalities:
+
+```{r, echo=TRUE}
+print(round(obj.L$getData()$MMatrix.perc, digits = 2))
+```
+
+## how to make Conformance Checking
+
+At the moment there are only one method to deal with conformance checking. Do you think that one is not enough? No worrie, is the right one. Go on with your reading and watch what we propose...
+
+#### a first basic (but important) assumption
+
+In order to let you understand how Conformanche Checking works, I have to spend few words about the background and an assumption. We have to deal with Process Mining in HealthCare and to do that we have to cope with the big cultural gap that exists betweem Computer Scientists and Healthcare workers. 
+
+For example, let's consider the physicians. 
+
+They are not confident with all our languages like Petri Network, Finite State Automata, Markov Models, etc., and the most complex graphical language they can work with are the Work-Flow (WF) diagrams ( semi-formal language, better than nothing). This is not true for all of them, abviously, but the gaussian in surely centered here (and the sigma is quite low). 
+
+In addition, they have a tons of things to do so the attention they can pay in trying to learn a new language is moreover the same that a Labrador can pay in understanding the  Fourier transformation.
+
+So, in order to be pragmatic, our aim is to let physician use their loved WF diagram (or something similar) and in bringing them to our side (Computer Scientists) the challenge of making a WF parseable and executable from a software agent.
+In this perspective, the gap between physicians and Computer Scientists is both linguistic and cultural. Linguistic because physicians prefers a semi-formal language while Computer Scientists need a formal language in order to allow automatic computation.
+Moreover, physicians thinks (almost always correctly) that coping with the complexity of the language should be a duty in charge of Computer Scientists.
+
+#### from Work-Flow to a Pseudo-Work-Flow diagram
+We propose to deal with WF proposing to the physician to think in terms of Pseudo-Work-Flow diagrams (PWF). They fundamentally are similar to WF but introduces some improvement that allow us to use parallelism (like Petri Network allow to do) and stay close to the abstract, high-level concept of the clinical domain.
+
+The main construct we will introduce are fundamentally three:
+
+- the Events
+- the States
+- the Trigger
+
+The Events are exactly the Events as taken from the LOGs. They are important because are the first source of information at our disposal for doing almost anything. Neverthless they are not enougt, in general, because their semantic reflect the meaning they are stored thinkin about. For example: in some cases, working in a hospital, we could be foced to use some administrative LOG to do clinical reasoning: this is good but in general, but the cultural gap between the two domain can play an undesired role. For example, the generic term of "medical examination" which is the same, from ad administrative point of view during all the patient's clinical pathway, is dramatically different from the physician perspective. A "medical examination" before a "surgical intervention", for example, is a "pre-treatment visit" while after the treatmen become a "follow up visit". 
+So, the semantic can change only because often we have to use the LOG we have, not the one we wish.
+How to solve this problem and "enrich" the semantic of the LOG, in order to reduce the gap between LOG and physicians' need?
+For such reason we introduce the other two constructs, which are the States and Trigger.
+States should be thought as states where a patient can be, for a while. For example a patient could be "waiting for a treatment" or "whith CVC", or "during Chemotherapy". Such states reflect the high  abstract level of physician's world and should not related to the Events we have on the log.
+The pivot between Event and States (because we need something, at this point) is represented by the third construct: the trigger.
+Triggers have conditions for they activations and, if fired, the can unset or set states. The condition statements can handle with both, States and Events.
+
+#### a simple example
+
+Consider, for example, the following XML:
+
+```
+<xml>
+  <workflow>
+    <node name='waiting for a visit'></node>  
+    <node name='waiting for therapy'></node>
+    <node name='patient irradiated' ></node>
+    <node name='patient operated'></node>      
+    <node name='patient treated with radio' ></node>
+    <node name='patient trated with radiochemo' ></node>
+
+    <trigger name='Imaging Detected'>
+        <condition>'BEGIN' %in% $st.ACTIVE$ AND $ev.NOW$=='Imaging'</condition>
+        <set>'waiting for a visit'</set>
+        <unset>'BEGIN'</unset>
+    </trigger>
+    
+    <trigger name='visit detected'>
+        <condition>'waiting for a visit' %in% $st.ACTIVE$ AND $ev.NOW$=='Visit'</condition>
+        <set>'waiting for therapy'</set>
+        <unset>'waiting for a visit'</unset>
+    </trigger>    
+    
+    <trigger name='Surg. int. detected'>
+        <condition>'waiting for therapy' %in% $st.ACTIVE$ AND $ev.NOW$=='Surgery'</condition>
+        <set>'patient operated'</set>
+        <unset>'waiting for therapy'</unset>
+    </trigger>     
+    
+    <trigger name='RT detected'>
+        <condition>'waiting for therapy' %in% $st.ACTIVE$ AND $ev.NOW$=='Radiotherapy'</condition>
+        <set>'patient treated with radio'</set>
+        <unset>'waiting for therapy'</unset>
+    </trigger>     
+    
+    <trigger name='CHT detected'>
+        <condition>'patient treated with radio' %in% $st.ACTIVE$ AND $ev.NOW$=='Chemotherapy'</condition>
+        <set>'patient trated with radiochemo'</set>
+        <unset>'patient treated with radio'</unset>
+    </trigger>  
+
+  </workflow>
+</xml>
+```
+If we save this XML in a file called, for example 'XML4test.xml' and we run the follwing lines:
+
+```
+# Create a Conformance Check Object
+obj.cc <- confCheck_easy()
+ 
+# Load an XML with the workflow to check
+obj.cc$loadWorkFlow( WF.fileName='./XML4test.xml' )
+
+# Show me the graph
+obj.cc$plotGraph()
+```
+
+we should be able to see the engine in action, showing the following graph:
+
+```{r, warning = FALSE,  message = FALSE, echo = FALSE, fig.width=7, fig.height=3.5}
+# Create a Conformance Check Object
+obj.cc <- confCheck_easy()
+ 
+# Load an XML with the workflow to check
+obj.cc$loadWorkFlow( WF.fileName='../XML4test.xml' )
+
+# Show me the graph
+obj.cc$plotGraph()
+```
+
+The showed graph is a graphical representation of what is specified in the XML.
+NOTE: THIS IS NOT A WORKFLOW DIAGRAM! It could seems but it is not properly a WF. That's why I talked about Pseudo-WF (PWF)! To understand this graph pay attention to Triggers (the one in the boxes): the input arcs come from the nodes that will be de-activated when the trigger will be fired and the outgoing arcs go toward the nodes that will be activated.
+Consider that a Trigger could also avoid to de-activate a node, so don't think "too much easy"; anyway with a bit of practice it will be expressive and easy to handle.
+
+Now let's see more in detail how the XML is built: the section `workflow` allows two possible sub-tags: `node` ad `trigger`. Using  `node` we can list all the possible States and with `trigger`, the Trigger and their rules.
+Triggers can be fired according to their `condition` and, if fired, can `set` or `unset` some States (nodes). In the rest of the paper `nodes` and States will be considered equivalent (damn to me the day that I named `nodes` that tag!)
+
+The engine in charge of read, parse and execute such XML, will read all the Events in the LOG (in cronological order) and for each of them will check if some Triggers can be fired. At the beginning it forces the `nodes` called 'BEGIN' as the only state in the array called `$st.ACTIVE$`, which contains the active Nodes in any step of the computation. Many Triggers can be fired and many Nodes can be activated: in case of conflicts the engine will stop the computation (for example if two Triggers set/unset the same Node at the same time).
+
+Consider, for example, the Patient with 'patID' equal to 1:
+
+```{r, echo=TRUE}
+testData[which(testData$patId=="6"),]
+```
+
+For him the expected computation will be the following:
+
+- 1- the engine read the Event 'Imaging'. In the `$st.ACTIVE$` we have only 'BEGIN'. The engine parse the XML and find that the trigger 'Imaging Detected' can be fired (because 'BEGIN' is in `$st.ACTIVE$`  and `$ev.NOW$` is equal to 'Imaging'). So, the Trigger called 'Imaging Detected' is fired, the Node 'waiting for a visit' is set and  'BEGIN' is unset. Now, in `$st.ACTIVE$` we have only 'waiting for a visit'.
+
+- 2- now the engine read 'Visit' and because of the condition `<condition>'waiting for a visit' %in% $st.ACTIVE$ AND $ev.NOW$=='Visit'</condition>` is satisfied, the Trigger 'visit detected' can be fired. At the end of such fire, `$st.ACTIVE$` will containn only 'waiting for therapy'.
+
+Ok, I think you can continue by yourself: you are not a Labrador, I suppose.
+
+The idea behind our proposal is that even a physician can think in terms of Nodes ( abstract clnical concepts) and the rules to move from a state to another. We assume that such 'divid-et-impera' can be dealed also from a physician, at least with the cooperation of a Computer Scientist. This language, this formalism can a shared language able to build a bridge between the two continent of the two disciplines.
+
+To see what the computation can produce on ALL the patient stored in `testData`, we can simply use the following code:
+
+```{r, warning = FALSE,  message = FALSE, echo = TRUE, results='hide'}
+obj.L <- dataLoader();
+obj.L$load.data.frame(mydata = testData,IDName = "patId",EVENTName = "eventName",dateColumnName = "date")
+obj.cc <- confCheck_easy()
+obj.cc$loadWorkFlow( WF.fileName='../XML4test.xml' )
+obj.cc$loadDataset( obj.L$getData() );
+obj.cc$playLoadedData()
+obj.cc$plotComputationResult(whatToCount = 'terminations',kindOfNumber = 'absolute')
+```
+
+It will result:
+
+```{r, warning = FALSE,  message = FALSE, echo = FALSE, fig.width=7, fig.height=3.5}
+obj.L <- dataLoader( verbose.mode = FALSE );
+obj.L$load.data.frame(mydata = testData,IDName = "patId",EVENTName = "eventName",dateColumnName = "date")
+ 
+# Create a Conformance Checking Object (a Conformance Checker?)
+obj.cc <- confCheck_easy( verbose.mode = FALSE )
+ 
+# Load an XML with the workflow to check
+obj.cc$loadWorkFlow( WF.fileName='../XML4test.xml' )
+ 
+# Load the data into the Comformance Checker
+obj.cc$loadDataset( obj.L$getData() );
+
+# Run the check. This will not produce any visible effects but... OMG, I can assure
+# you that does a lot of things
+obj.cc$playLoadedData()
+
+# Plot the results of the computation, in particular show 
+# the number of the patients who terminated the computarion in each node
+obj.cc$plotComputationResult(whatToCount = 'terminations',kindOfNumber = 'absolute')
+```
+
+Which means that 2 patients cannot see any trigger fired (stay in 'BEGIN' for all the computation), one patient terminate the computation 'waiting for a visit', two patients were 'operated', one patient was 'treated with Radio' and two were 'treated with radiochemo'. Those numbers refers only at the end of computation, depending on the LAST state reached when the last EVENT LOG was consumed.
+The `confCheck_easy::plotComputationResult()` can be evocked by passing a set of possible of interesting parameters:
+
+- _whatToCount_ can be 'terminations' or 'activations'. The default value is 'activations'. While 'terminations' allow to count the nodes only if are the final states, 'activations' count the nodes also if they are touched during the computation. This is particularly usefult because can give the idea of where the patients flows, in average.
+- _kindOfNumber_ can be 'absolute' or 'relative' depending on which kind of output you prefer.
+- _avoidFinalStates_ is an array (empty, by default) which can contain a list of states. All the patients which terminates the computation in a state liste in such array are removed from the computation. This is useful in order to watch the flows of the patients who run toward different 'destination' because the patients who run toward different final states can have (normally they do) different flows.
+- _avoidTransitionOnStates_ it works in similar way than _avoidFinalStates_: the states listed in this array are the one that, if touched for a particular patient, remove such patient from the computation. This, again, could be useful to see the highligh the flows of the patients who don't do a specific (or more) treatement or diagnostic investigation, for example.
+- _avoidToFireTrigger_ the consideration valid for _avoidFinalStates_ and _avoidTransitionOnStates_ can be done also in terms of Trigger. In this array you can list of Trigger that, if activated, can remove the patient from the computation.
+- _whichPatientID_ this is an array useful if you want to watch the flow of a specific set of patient (one or more). If not specified, the engine will compute run all the patients otherwise it will run only the listed ones (use PatientID to identify the wished ones).
+
+For exmaple, the following tree shows the flow of the activations avoiding the patient who pass through the state "patient operated":
+
+```{r, warning = FALSE,  message = FALSE, echo = FALSE, fig.width=7, fig.height=3.5}
+obj.cc$plotComputationResult( whatToCount ='activations',avoidTransitionOnStates = c("patient operated") )
+```
+
+Now, if you really want to play hard, you can also write the result of the computation in form of XML file, using the method `confCheck_easy::getXML()`: 
+
+```
+write( obj.cc$getXML(),file = "prova.xml")
+```
+
+Here is a little example of such XML:
+
+```
+<xml>
+	<computation n='1' IDPaz='1'>
+		<step n='1' trg='FALSE' evt='Visit' date='01/10/2002'>
+		</step>
+		<step n='2' trg='TRUE' evt='Imaging' date='05/10/2002'>
+			<st.ACTIVE.PRE name='BEGIN'></st.ACTIVE.PRE>
+			<fired.trigger name='Imaging Detected'></fired.trigger>
+			<st.ACTIVE.POST name='waiting for a visit'></st.ACTIVE.POST>
+		</step>
+		<step n='3' trg='TRUE' evt='Visit' date='07/10/2002'>
+			<st.ACTIVE.PRE name='waiting for a visit'></st.ACTIVE.PRE>
+			<fired.trigger name='visit detected'></fired.trigger>
+			<st.ACTIVE.POST name='waiting for therapy'></st.ACTIVE.POST>
+		</step>
+		<step n='4' trg='TRUE' evt='Radiotherapy' date='01/11/2002'>
+			<st.ACTIVE.PRE name='waiting for therapy'></st.ACTIVE.PRE>
+			<fired.trigger name='RT detected'></fired.trigger>
+			<st.ACTIVE.POST name='patient treated with radio'></st.ACTIVE.POST>
+		</step>
+		<step n='5' trg='FALSE' evt='Radiotherapy' date='01/11/2002'>
+		</step>
+		<atTheEnd>
+			<finalState name='patient treated with radio'></finalState>
+			<last.fired.trigger name='RT detected'></last.fired.trigger>
+		</atTheEnd>
+	</computation>
+	...
+```
+
+This will produce an output showing each step of the computation for each patient and hightling, for each step, which were the active status pre the activation of one or more trigger, which trigger were activated and the active status after the triggers were fired. This is very helpful in a preliminary phase, in tuning the XML file, or "in production" to invetigate the behaviour of some patients with strange flows.
+
+This is not the end. We can further investigate the behaviour of any single patient using a couple of plotting methods. The first is `confCheck_easy::plotPatientEventTimeLine()` 
+
+```{r, warning = FALSE,  message = FALSE, echo = TRUE, fig.width=7, fig.height=3.5}
+obj.cc$plotPatientEventTimeLine(patientID = "3")
+```
+
+The other is the method `confCheck_easy::plotPatientComputedTimeline()` 
+
+```{r, warning = FALSE,  message = FALSE, echo = TRUE, fig.width=7, fig.height=3.5}
+obj.cc$plotPatientComputedTimeline(patientID = "3")
+```
+
+PAY ATTENTION! They can obviously differ: while the first simply plot the Event timeline as they are specified in the LOG file, the second show the timeline of activation of the States, according with the activation of the Triggers. So, while the first refers to the blood and mud of the real LOG data, the second is more abstract and near to the conceptualization of the physician.
+
+#### a little more interesting example
+
+Now we will try to improve the previous model, making it more expressive. In this example we will clarify the benefits of the event-trigger-states based model.
+
+Suppose we want to caught, in general, when a patient is not yet treated and when he is. Thinking high we should think in two states: 'not treated yet' and 'treated'. Effectively, it is. Consider the folliwing XML:
+
+```
+<xml>
+  <workflow>
+    <node name='waiting for a visit'></node>  
+    <node name='waiting for therapy'></node>
+    <node name='not treated yet'></node>
+    <node name='treated'></node>      
+    <node name='patient irradiated' ></node>
+    <node name='patient operated'></node>      
+    <node name='patient treated with radio' ></node>
+    <node name='patient trated with radiochemo' ></node>
+
+    <trigger name='Imaging Detected'>
+        <condition>'BEGIN' %in% $st.ACTIVE$ AND $ev.NOW$=='Imaging'</condition>
+        <set>'waiting for a visit'</set>
+        <set>'not treated yet'</set>
+        <unset>'BEGIN'</unset>
+    </trigger>
+    
+    <trigger name='visit detected'>
+        <condition>'waiting for a visit' %in% $st.ACTIVE$ AND $ev.NOW$=='Visit'</condition>
+        <set>'waiting for therapy'</set>
+        <unset>'waiting for a visit'</unset>
+    </trigger> 
+
+    <trigger name='Surg. int. detected'>
+        <condition>'waiting for therapy' %in% $st.ACTIVE$ AND $ev.NOW$=='Surgery'</condition>
+        <set>'patient operated'</set>
+        <unset>'waiting for therapy'</unset>
+        <unset>'not treated yet'</unset>
+        <set>'treated'</set>
+    </trigger>     
+    
+    <trigger name='RT detected'>
+        <condition>'waiting for therapy' %in% $st.ACTIVE$ AND $ev.NOW$=='Radiotherapy'</condition>
+        <set>'patient treated with radio'</set>
+        <unset>'waiting for therapy'</unset>
+        <unset>'not treated yet'</unset>
+        <set>'treated'</set>
+    </trigger>     
+    
+    <trigger name='CHT detected'>
+        <condition>'patient treated with radio' %in% $st.ACTIVE$ AND $ev.NOW$=='Chemotherapy'</condition>
+        <set>'patient trated with radiochemo'</set>
+        <unset>'patient treated with radio'</unset>
+    </trigger>
+  </workflow>
+</xml>
+```
+
+To avoid confusion let's call this second XML 'XML4test.V2.xml'.
+In this case the node 'not treated yet' is activated when a first 'Imaging' Event is found and unset when an event 'Surgery' or 'Radiotherapy' is found. This means that 'not treated yet' can be activated SIMULTANEUSLY respect than 'waiting for a visit' and 'waiting for a therapy'.
+
+The updated tree is the following:
+
+```{r, warning = FALSE,  message = FALSE, echo = TRUE, fig.width=7, fig.height=3.5}
+# Create a Conformance Check Object
+obj.cc <- confCheck_easy()
+ 
+# Load an XML with the workflow to check
+obj.cc$loadWorkFlow( WF.fileName='../XML4test.V2.xml' )
+
+# Show me the graph
+obj.cc$plotGraph()
+```
+
+It could seem a little bit confused. Probably it is, but remeber: this is a PWF. The key to read it correctly is to pay attention to the trigger.
+
+If you consider the following line:
+
+```
+obj.cc$plotComputationResult( whatToCount ='activations',avoidFinalStates = 'patient operated' )
+```
+By that yuo can see the nodes activated by all the patient not went to surgery.
+
+```{r, warning = FALSE,  message = FALSE, echo = FALSE, fig.width=7, fig.height=3.5}
+obj.L <- dataLoader( verbose.mode = FALSE);
+obj.L$load.data.frame(mydata = testData,IDName = "patId",EVENTName = "eventName",dateColumnName = "date")
+obj.cc$loadDataset( obj.L$getData() );
+obj.cc$playLoadedData()
+obj.cc$plotComputationResult( whatToCount ='activations',avoidFinalStates = 'patient operated' )
+```
+
+The state-timeline is now more expressive and much more representative of a relevant meaning:
+
+```{r, warning = FALSE,  message = FALSE, echo = TRUE, fig.width=7, fig.height=3.5}
+obj.cc$plotPatientComputedTimeline(patientID = "6")
+```
+
+The 'not treated yet' could be considered more 'virtual' than the other nodes: it depends more on the states of other nodes than the effective Event that the engine is reading. That's the game: PWF allow to build "abstract states" closer to the physician relevant meaning which are often far from the poor informative content (due to the high granularity) of the event LOG.
+Moreover, such "abstract states" can easily catch the difference between the different role of the same Event in the Work-Flow (i.e. Visit as 'pre-treatement visit' or 'follow up visit')

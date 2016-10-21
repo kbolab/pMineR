@@ -127,7 +127,6 @@ logInspector <- function() {
   getProcessStats<-function() {
     
   # 1)associate each event name to a letter, and 2) define variables
-    
     eventType.toSymbol <- paste(letters[1:length(eventType)])
     processInstances.toSymbol <- vector("list", length(processInstances))
     processInstances.toSymbolCollapsed <- vector("list", length(processInstances))

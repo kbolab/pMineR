@@ -12,20 +12,26 @@ plotTimeline.ID.From.CSV<-function( nomeFile,  IDToPlot, IDName, EVENTName, DATA
 
   plotTimeline( eventTable = matrice )
 }
-
-plotTimeline<-function( eventTable , dataSep='/' ) {
+#' vcxvcxcv
+#' 
+#' @description  kfjvkcvcx
+#' @export
+#' @examples \dontrun{
+plotTimeline<-function( eventTable , dataSep='/', format.date = "%Y/%m/%d" ) {
   
-  #   eventTable<-c("2001-01-10","RX torace")
-  #   eventTable<-rbind(eventTable, c("2001-05-10","CT torace")   )
-  #   eventTable<-rbind(eventTable,   c("2002-05-10","Dieta")   )
+#     eventTable<-c("2001-01-10","RX torace")
+#     eventTable<-rbind(eventTable, c("2001-05-10","CT torace")   )
+#     eventTable<-rbind(eventTable,   c("2002-05-10","Dieta")   )
   colnames(eventTable)<-c("DATA","DES");
   df<-as.data.frame(eventTable)
   
   df$DATA<-as.character.factor(df$DATA)
   
-  if ( dataSep == "-") df$YM <- as.Date(df$DATA, format="%Y-%m-%d")
-  if ( dataSep == "/") df$YM <- as.Date(df$DATA, format="%Y/%m/%d")
-  if ( dataSep == ":") df$YM <- as.Date(df$DATA, format="%Y:%m:%d")
+#   if ( dataSep == "-") df$YM <- as.Date(df$DATA, format="%Y-%m-%d")
+#   if ( dataSep == "/") df$YM <- as.Date(df$DATA, format="%Y/%m/%d")
+#   if ( dataSep == ":") df$YM <- as.Date(df$DATA, format="%Y:%m:%d")
+  
+  df$YM <- as.Date(df$DATA, format=format.date)
   
   rangeYM <- range(df$YM)
   

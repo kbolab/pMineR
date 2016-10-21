@@ -48,7 +48,7 @@
 #' # print the footprint table
 #' print(res$footprint)
 #' }
-dataLoader<-function() {
+dataLoader<-function( verbose.mode = TRUE ) {
   arrayAssociativo<-''
   footPrint<-''
   MMatrix<-''
@@ -60,6 +60,7 @@ dataLoader<-function() {
   param.IDName<-''
   param.EVENTName<-''
   param.dateColumnName<-''  
+  param.verbose<-''
   #=================================================================================
   # clearAttributes
   #=================================================================================    
@@ -131,7 +132,7 @@ dataLoader<-function() {
   # array.events: the array of Events to remove
   # min.abs.freq: the threshold to keep an event (absolute frequences): NOT YET IMPLEMENTED
   #================================================================================= 
-  removeEvents<-function( array.events=NA, min.abs.freq=NA ) {
+  removeEvents<-function( array.events=NA) {
     bbb<-array.events
     arrayAssociativo<<-arrayAssociativo[!(arrayAssociativo %in% bbb)]
     footPrint<<-footPrint[ !(rownames(footPrint) %in% bbb),!(colnames(footPrint) %in% bbb) ]
@@ -329,7 +330,7 @@ dataLoader<-function() {
       colnames(listToBeOrdered[[paziente]])<-c(colnames(listToBeOrdered[[paziente]])[1:length(colnames(listToBeOrdered[[paziente]]))-1],deltaDate.column.name)
       # Ordina il data.frame di ogni paziente per la colonna DeltaT
       listToBeOrdered[[paziente]]<-listToBeOrdered[[paziente]][order(listToBeOrdered[[paziente]][[deltaDate.column.name]]),]
-      cat("\n Now ordering: ",paziente)
+      if(param.verbose == TRUE) cat("\n Now ordering: ",paziente)
     }
     return(listToBeOrdered);
   } 
@@ -475,7 +476,7 @@ dataLoader<-function() {
   #=================================================================================
   # costructor
   #=================================================================================  
-  costructor<-function() {
+  costructor<-function( verboseMode  ) {
     arrayAssociativo<<-''
     footPrint<<-''
     MMatrix<<-''
@@ -487,8 +488,9 @@ dataLoader<-function() {
     param.IDName<<-''
     param.EVENTName<<-''
     param.dateColumnName<<-''
+    param.verbose<<-verbose.mode
   }
-  costructor();
+  costructor( verboseMode = verbose.mode )
   #================================================================================= 
   return(list(
     "load.csv"=load.csv,
