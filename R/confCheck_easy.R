@@ -22,7 +22,7 @@
 #' obj.cc$loadDataset( obj.L$getData() );
 #' 
 #' }
-confCheck_easy<-function( verbose.mode = FALSE ) {
+confCheck_easy<-function( verbose.mode = TRUE ) {
   WF.xml <- c()                 # The XML with the WF
   WF.xml.fileName <- c()        # Just the XML filename
   dataLog <- c()                # The data structure with the LOGs
@@ -118,19 +118,26 @@ confCheck_easy<-function( verbose.mode = FALSE ) {
     
     # Per ogni paziente
     for( indice in names(dataLog$wordSequence.raw)) {
-      if(param.verbose == TRUE) cat("\n Doing:",indice)
-
-      addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
-      # res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
-      res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], col.eventName = dataLog$csv.EVENTName, col.dateName = dataLog$csv.dateColumnName  )
-
-      addNote(msg = "\n\t\t<atTheEnd>")
-      for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
-      for(i in res$last.fired.trigger) addNote(msg = str_c("\n\t\t\t<last.fired.trigger name='",i,"'></last.fired.trigger>"))
-      addNote(msg = "\n\t\t</atTheEnd>")
-      addNote(msg = "\n\t</computation>")
-      ct <- ct + 1
-      if(   (ct/length(dataLog$wordSequence.raw)) > number.perc  ) break;
+      
+      if(dim(dataLog$pat.process[[ indice ]])[1]>0) {
+      
+        if(param.verbose == TRUE) cat("\n Doing:",indice)
+  
+        addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
+        # res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
+        if(param.verbose == TRUE) cat(str_c("\nBeginning Pat ",indice,"..."))
+        res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], col.eventName = dataLog$csv.EVENTName, col.dateName = dataLog$csv.dateColumnName , IDPaz = indice  )
+        if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
+        addNote(msg = "\n\t\t<atTheEnd>")
+        for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
+        for(i in res$last.fired.trigger) addNote(msg = str_c("\n\t\t\t<last.fired.trigger name='",i,"'></last.fired.trigger>"))
+        addNote(msg = "\n\t\t</atTheEnd>")
+        addNote(msg = "\n\t</computation>")
+        ct <- ct + 1
+        if(   (ct/length(dataLog$wordSequence.raw)) > number.perc  ) break;
+      
+      }
+      
     }
     # Chiudi l'XML
     addNote(msg = "\n</xml>")
@@ -174,7 +181,7 @@ confCheck_easy<-function( verbose.mode = FALSE ) {
   # esegue il conformanche checking con una specifica sequenza 
   # di LOG (di un paziente)
   #===========================================================     
-  playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName) {
+  playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz) {
 
     # Cerca lo stato che viene triggerato dal BEGIN
     st.LAST<-""
@@ -188,6 +195,7 @@ confCheck_easy<-function( verbose.mode = FALSE ) {
     
     # Analizza TUTTI gli eventi della sequenza
     for( ev.NOW in sequenza ) {
+      if(param.verbose == TRUE) cat(str_c("\n\t processing:",ev.NOW))
       # costruisco un contatore della riga della tabella in analisi
       riga <- riga + 1
       data.ev.NOW <- matriceSequenza[ riga ,col.dateName ]
