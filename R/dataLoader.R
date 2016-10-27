@@ -55,7 +55,9 @@ dataLoader<-function( verbose.mode = TRUE ) {
   pat.process<-''   
   wordSequence.raw<-''
   MM.mean.time<-''  
-  MM.density.list<-''    
+  MM.density.list<-''
+  list.dictionary<-''
+  list.dict.column.event.name<-''
   
   param.IDName<-''
   param.EVENTName<-''
@@ -65,7 +67,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
   # clearAttributes
   #=================================================================================    
   clearAttributes<-function() {
-    costructor();
+    costructor( verboseMode = param.verbose )
   }
   #=================================================================================
   # buildFootPrintTable
@@ -84,6 +86,63 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # CHIODO
     for(i in seq(1,nrow(FF))) FF[i,i]<-'#'
     return(FF);
+  }
+  #=================================================================================
+  # addDictionary
+  #=================================================================================    
+  addDictionary<-function( fileName, sep =',', dict.name='main' , column.event.name) {
+    list.dictionary[[ dict.name ]] <<- read.csv(fileName,header = T,sep = sep)
+    list.dict.column.event.name[[ dict.name ]] <<- column.event.name
+  }    
+  #=================================================================================
+  # getTranslation
+  #=================================================================================   
+  getTranslation<-function(  column.name , dict.name = 'main') {
+    # Se era stato indicato un dizionario (e la relativa colonna) caricalo
+    # e popola una colonna aggiuntiva
+    
+    new.myData<-c()
+    # uuu$pat.process
+    for(idPaz in names(pat.process)) {
+      matrice<-pat.process[[idPaz]]
+      names(matrice)<-names(pat.process[[idPaz]])
+      # for( riga in seq(1,nrow(pat.process[[idPaz]]))) {
+        # browser()
+        aaa<-as.character(pat.process[[idPaz]][[param.EVENTName]])
+        # browser()
+        # APPLY!
+        bbb<-unlist(lapply(aaa, function(x) { 
+          # prendi la voce corrispondente al nome dell'evento
+          column.event.name<-list.dict.column.event.name[[ dict.name ]] 
+          arrPosizioniTMP<-which(list.dictionary[[ dict.name ]][[ column.event.name ]]==x )
+          # e sostituisci
+          # browser()
+#           cat("\n ",x," :: ",length(arrPosizioniTMP))
+          if(length(arrPosizioniTMP)==0) return( "" )
+          else return(as.character( list.dictionary[[ dict.name ]][[ column.name ]][arrPosizioniTMP])  )
+        }  ))   
+        # cat("\n",idPaz)
+        matrice[[param.EVENTName]] <- bbb
+        # cat("\n",riga, " = ",param.EVENTName)
+        matrice <- matrice[  which(matrice[[param.EVENTName]]!="") ,   ]
+      # }
+      new.myData <- rbind(new.myData,matrice)
+    }
+#     
+#     
+#     if(length(column.name)  > 0 ) {
+#       if(nrow(list.dictionary[[ dict.name ]])  > 0 ) {
+#         aaa<-as.character(a[[matchingColumn.csv]])
+#         bbb<-unlist(lapply(aaa, function(x) { 
+#           arrPosizioniTMP<-which(dizionarioPrestazioni[[ matchingColumn.diz ]]==x )
+#           if(length(arrPosizioniTMP)==0) return( misclassifiedName )
+#           else return(as.character(dizionarioPrestazioni[  arrPosizioniTMP  ,column.name])  )
+#         }  ))
+#         a<-cbind(a,bbb)
+#         colnames(a)<-c(colnames(a)[1:(length(colnames(a))-1)] ,newColumnName)
+#       } 
+#     }
+    return(new.myData)
   }
   #=================================================================================
   # buildFootPrintTable.plus
@@ -157,6 +216,16 @@ dataLoader<-function( verbose.mode = TRUE ) {
     MM.density.list<<-new.list.density
   } 
   #=================================================================================
+  # keepOnlyEvents
+  # array.events: the array of Events to keep
+  #================================================================================= 
+  keepOnlyEvents<-function( array.events=NA) {
+    # calcola quelli da togliere
+    eventi.da.togliere <- arrayAssociativo[!(arrayAssociativo %in% array.events)]
+    eventi.da.togliere <- eventi.da.togliere[!(eventi.da.togliere %in% c("BEGIN","END"))]
+    removeEvents(array.events = eventi.da.togliere)
+  }   
+  #=================================================================================
   # getAttribute
   #=================================================================================  
   getAttribute<-function( attributeName ) {
@@ -208,6 +277,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
     # per ogni paziente
     for(patID in seq(1,length(ID.act.group))) {
+      cat(str_c("\n   ->",patID))
       # su ogni elemento del percorso clinico
       # t e' il "tempo" in senso di "step"
       for(t in seq(1,nrow(ID.act.group[[patID]]))) {
@@ -237,6 +307,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
         }    
       }
     }
+    quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
+    cat(str_c("\n mean times : ",quanti.da.fare," \n"))
     
     # Calcola la matrice delle medie dei tempi
     # Sarebbe bello avere le density... vabbè. più avanti
@@ -245,6 +317,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
       MM.mean.time[ 1:nrow(MM.mean.time) , 1:ncol(MM.mean.time)   ]<-Inf
       for(state.from in names(MM.den.list))  {
         for(state.to in names(MM.den.list[[state.from]]))  {
+          cat(str_c("."))
           # if(length(MM.den.list[[ state.from]][[ state.from ]])!=0)
           MM.mean.time[state.from,state.to ]<-mean(MM.den.list[[ state.from]][[ state.to ]])
 #           else 
@@ -253,19 +326,31 @@ dataLoader<-function( verbose.mode = TRUE ) {
       }
     }
     # costruisci una semplice versione, con le parole (come piace tanto a Van der Aalst)
+    cat(str_c("\n simple version: ",length(seq(1,length(ID.act.group))),"\n"))
     wordSequence.TMP01<-list();
     for(i in seq(1,length(ID.act.group))) {
+      cat(str_c("*"))
       IDPat<-names(  ID.act.group)[i]
       wordSequence.TMP01[[IDPat]]<-ID.act.group[[ IDPat ]][[EVENTName]]
     }    
+    cat(str_c("\n End"))
+
+#     return(list( "arrayAssociativo" = rownames(MM),
+#                  "footPrint"=buildFootPrintTable(MM),
+# #                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
+#                  "MMatrix"=MM,
+#                  "MM.mean.time"=MM.mean.time,
+#                  "MM.density.list"=MM.den.list,
+#                  "pat.process"=ID.act.group,
+#                  "wordSequence.raw"=wordSequence.TMP01) )
     return(list( "arrayAssociativo" = rownames(MM),
-                 "footPrint"=buildFootPrintTable(MM),
-#                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
+                 "footPrint"="",
+                 #                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
                  "MMatrix"=MM,
                  "MM.mean.time"=MM.mean.time,
                  "MM.density.list"=MM.den.list,
                  "pat.process"=ID.act.group,
-                 "wordSequence.raw"=wordSequence.TMP01) )
+                 "wordSequence.raw"=wordSequence.TMP01) )    
   }
   #=================================================================================
   # buildSplittedLoader
@@ -336,7 +421,11 @@ dataLoader<-function( verbose.mode = TRUE ) {
   } 
   load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA) {
     # clear all the attributes
-    clearAttributes();
+    clearAttributes( );
+    
+    # Add an internal ID attribute to myData (to uniquely identify Logs)
+    if(!("pMineR.internal.ID.Evt" %in% colnames(mydata) ))
+      { mydata <- cbind("pMineR.internal.ID.Evt"=seq(1,nrow(mydata)),mydata ) }
     
     # Just to have then an idea of the passed parameters...
     param.IDName<<-IDName
@@ -352,19 +441,24 @@ dataLoader<-function( verbose.mode = TRUE ) {
     if(!is.na(dateColumnName)) {
       mydata[[dateColumnName]]<-as.character(mydata[[dateColumnName]])
     }
+    cat("\n internal Grouping")
     # group the log of the patient in a structure easier to handle
     ID.act.group<-groupPatientLogActivity(mydata, ID.list.names) 
     
+    cat("\n Ordering date:")
     # Order the list by the interested date (if exists)
     if(!is.na(dateColumnName)) {
       ID.act.group<-order.list.by.date(listToBeOrdered = ID.act.group, dateColumnName = dateColumnName)
     }
+    cat("\n Building MMatrices and other stuff")
     # build the MM matrix and other stuff...
     res<-buildMMMatrices.and.other.structures(mydata = mydata, 
                                               EVENT.list.names = EVENT.list.names, 
                                               EVENTName = EVENTName, 
                                               ID.act.group = ID.act.group)
     #populate the internal attributes
+    
+    
     arrayAssociativo<<-res$arrayAssociativo
     footPrint<<-res$footPrint
     MMatrix<<-res$MMatrix
@@ -386,7 +480,9 @@ dataLoader<-function( verbose.mode = TRUE ) {
   # load.listOfWords
   #=================================================================================  
   load.listOfSimpleWords<-function( load.listOfSimpleWords , IDName="ID1", EVENTName="Event") {
-    clearAttributes();
+    cat("\n ==================\n NOT MORE SUPPORTED \n =====================")
+    stop("Not more supported")
+    clearAttributes( );
     ID.list.names<-IDName
     EVENT.list.names<-EVENTName
     
@@ -446,7 +542,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
   #=================================================================================
   # loader
   #=================================================================================  
-  getData<-function() {
+  getData<-function( ) {
+    
     # MMatrix.perc
     MM<-MMatrix;
     for( i in seq( 1 , nrow(MM)) ) {  if(sum(MM[i,])>0)  {MM[i,]<-MM[i,]/sum(MM[i,]);}  } 
@@ -470,7 +567,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
       "MM.density.list"=MM.density.list,
       "csv.IDName"=param.IDName,
       "csv.EVENTName"=param.EVENTName,
-      "csv.dateColumnName"=param.dateColumnName    
+      "csv.dateColumnName"=param.dateColumnName
     ))
   }
   #=================================================================================
@@ -484,6 +581,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
     wordSequence.raw<<-''
     MM.mean.time<<-''  
     MM.density.list<<-''    
+    list.dictionary<<-list()
+    list.dict.column.event.name<<-list()
     # Not true data, but useful anyway
     param.IDName<<-''
     param.EVENTName<<-''
@@ -498,6 +597,9 @@ dataLoader<-function( verbose.mode = TRUE ) {
     "load.listOfSimpleWords"=load.listOfSimpleWords,
     "getData"=getData,
     "removeEvents"=removeEvents,
-    "apply.filter"=apply.filter
+    "keepOnlyEvents"=keepOnlyEvents,
+    # "apply.filter"=apply.filter,
+    "addDictionary"=addDictionary,
+    "getTranslation"=getTranslation
   ))
 }

@@ -873,9 +873,3 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     "plotPatientEventTimeLine" = plotPatientEventTimeLine
   ))
 }
-
-# TO DO:
-# aggiungere un <semLink> nell'XML, all'interno di <trigger> per legare fra loro dei nodi (link direzionale molti a molti)
-# gestire le trap tramite i 'trigger'. ? (invece di fare in <set> può fare altro, oppure può comunque fare il <set> di alcuni nodi  di tipo "error"? )
-# Aggiunto controllo set/unset
-# Aggiunta esecuzione EVENTO ''
