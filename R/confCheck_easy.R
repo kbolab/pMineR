@@ -31,7 +31,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   tmpAttr <- list()
   
   param.verbose <- c()
-
+  
   #=================================================================================
   # clearAttributes
   # If we want to 'reset' the obj, this can clear all the attributes
@@ -61,7 +61,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # carica la lista degli stati e dei triggers    
     array.stati<-unlist(xpathApply(WF.xml,'//xml/workflow/node',xmlGetAttr, "name"))
     array.trigger<-unlist(xpathApply(WF.xml,'//xml/workflow/trigger',xmlGetAttr, "name"))
-
+    
     # Per ogni stato carica gli attributi (ad es. 'plotIt')
     for(state.name in array.stati) {
       plotIt<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"plotIt")[[1]]
@@ -69,7 +69,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       
       if(length(plotIt)==0) plotIt=TRUE
       else plotIt = str_replace_all(string = plotIt,pattern = "'",replacement = "") 
-
+      
       if(length(st.type)==0) st.type="normal"
       else st.type = str_replace_all(string = st.type,pattern = "'",replacement = "") 
       
@@ -90,7 +90,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       
       if(length(plotIt)==0) plotIt=TRUE
       else plotIt = str_replace_all(string = plotIt,pattern = "'",replacement = "")
-
+      
       # Carica quanto indicato nell'XML nella variabile che poi andrà copiata 
       # negli attributi globali      
       lista.trigger[[ trigger.name ]]<-list()
@@ -120,9 +120,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     for( indice in names(dataLog$wordSequence.raw)) {
       
       if(dim(dataLog$pat.process[[ indice ]])[1]>0) {
-      
+        
         if(param.verbose == TRUE) cat("\n Doing:",indice)
-  
+        
         addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
         # res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
         if(param.verbose == TRUE) cat(str_c("\nBeginning Pat ",indice,"..."))
@@ -135,7 +135,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         addNote(msg = "\n\t</computation>")
         ct <- ct + 1
         if(   (ct/length(dataLog$wordSequence.raw)) > number.perc  ) break;
-      
+        
       }
       
     }
@@ -151,7 +151,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     list.final.states<-list()    
     doc <- xmlInternalTreeParse(file = getXML(),asText = TRUE)
     arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
-
+    
     for( i in arr.Computazioni) {
       arr.step<-unlist(xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step'),collapse = ""),xmlGetAttr,"n"))
       array.fired.trigger<-c()
@@ -162,15 +162,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           # Prendi i trigger attivati
           fired.trigger<-unlist(xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step[@n="',s,'"]/fired.trigger'),collapse = ""),xmlGetAttr,"name"))
           array.fired.trigger<-c( array.fired.trigger , fired.trigger )
-
+          
           final.states<-unlist(xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step[@n="',s,'"]/st.ACTIVE.POST'),collapse = ""),xmlGetAttr,"name"))
         }
       }
       list.fired.trigger[[i]] <-array.fired.trigger
       list.final.states[[i]] <- final.states
-
+      
     }
-
+    
     return(list(
       "list.fired.trigger"=list.fired.trigger,
       "list.final.states"=list.final.states
@@ -182,7 +182,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # di LOG (di un paziente)
   #===========================================================     
   playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz) {
-
+    
     # Cerca lo stato che viene triggerato dal BEGIN
     st.LAST<-""
     st.DONE<-c("")
@@ -190,7 +190,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     last.fired.trigger<-c()
     ct <- 0; riga <- 0
     error<-""
-
+    
     sequenza <- as.array(matriceSequenza[ ,col.eventName ])
     
     # Analizza TUTTI gli eventi della sequenza
@@ -208,7 +208,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       
       # Cerca chi ha soddisfatto le precondizioni
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = FALSE   )
-
+      
       # Se c'e' un errore, ferma tutto
       if(newHop$error==TRUE) {
         note.set.error(error = newHop$error)
@@ -237,9 +237,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       devo.restare.in.trigger.loop<-TRUE
       # Continua a loopare fino a che e' vero che qualche trigger e' scattato
       while(  devo.restare.in.trigger.loop == TRUE  ) {
- 
+        
         newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = "", st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = FALSE   )
-
+        
         # inzializza il log in caso di errore o in caso di trigger
         if(newHop$error==TRUE | length(newHop$active.trigger)!=0) {
           ct <- ct + 1
@@ -429,33 +429,33 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # Frulla per ogni possibile trigger, verificando se si puo' attivare
     for( trigger.name in names(WF.struct$info$trigger) ) {
       # Se il trigger e' plottabile
-     if(WF.struct$info$trigger[[trigger.name]]$plotIt == TRUE) {
-
-       stringa.nodo.from<-str_c( stringa.nodo.from,"\n" )
-       stringa.nodo.to<-str_c( stringa.nodo.to,"\n" )
-       # Prendi i nodi 'unset' (from)
-       arr.nodi.from<-unlist(WF.struct$info$trigger[[trigger.name]]$unset)
-       # Prendi i nodi 'set' (to)
-       arr.nodi.to<-unlist(WF.struct$info$trigger[[trigger.name]]$set)
-       # Considera solo i nodi plottabili (from e to)
-       arr.nodi.from <- arr.nodi.from [arr.nodi.from %in% arr.st.plotIt]
-       arr.nodi.to <- arr.nodi.to [arr.nodi.to %in% arr.st.plotIt]
-
-       if(length(arr.nodi.to)>0) {
-         # Aggiorna l'array degli stati raggiungibili (in generale)
-         # e l'array con i nomi dei trigger rappresentabili
-         arr.stati.raggiungibili <- unique(c( arr.stati.raggiungibili, arr.nodi.to, arr.nodi.from ))
-         arr.trigger.rappresentabili <- c( arr.trigger.rappresentabili, str_c("'",trigger.name,"'") )
-         
-         # Costruisci le stringhe dei nomi degli archi (from e to) con in mezzo il trigger
-         for( st.nome in arr.nodi.from ) {
-           stringa.nodo.from<-str_c( stringa.nodo.from," ",st.nome,"->'",trigger.name,"'" )
-         }
-         for( st.nome in arr.nodi.to ) {
-           stringa.nodo.to<-str_c( stringa.nodo.to," ","'",trigger.name,"'->",st.nome )
-         }
-       }
-     }
+      if(WF.struct$info$trigger[[trigger.name]]$plotIt == TRUE) {
+        
+        stringa.nodo.from<-str_c( stringa.nodo.from,"\n" )
+        stringa.nodo.to<-str_c( stringa.nodo.to,"\n" )
+        # Prendi i nodi 'unset' (from)
+        arr.nodi.from<-unlist(WF.struct$info$trigger[[trigger.name]]$unset)
+        # Prendi i nodi 'set' (to)
+        arr.nodi.to<-unlist(WF.struct$info$trigger[[trigger.name]]$set)
+        # Considera solo i nodi plottabili (from e to)
+        arr.nodi.from <- arr.nodi.from [arr.nodi.from %in% arr.st.plotIt]
+        arr.nodi.to <- arr.nodi.to [arr.nodi.to %in% arr.st.plotIt]
+        
+        if(length(arr.nodi.to)>0) {
+          # Aggiorna l'array degli stati raggiungibili (in generale)
+          # e l'array con i nomi dei trigger rappresentabili
+          arr.stati.raggiungibili <- unique(c( arr.stati.raggiungibili, arr.nodi.to, arr.nodi.from ))
+          arr.trigger.rappresentabili <- c( arr.trigger.rappresentabili, str_c("'",trigger.name,"'") )
+          
+          # Costruisci le stringhe dei nomi degli archi (from e to) con in mezzo il trigger
+          for( st.nome in arr.nodi.from ) {
+            stringa.nodo.from<-str_c( stringa.nodo.from," ",st.nome,"->'",trigger.name,"'" )
+          }
+          for( st.nome in arr.nodi.to ) {
+            stringa.nodo.to<-str_c( stringa.nodo.to," ","'",trigger.name,"'->",st.nome )
+          }
+        }
+      }
     }
     
     # Distingui fra nodi end e nodi nnormali (questione di colore)
@@ -464,35 +464,32 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     # browser()
     a<-paste(c("digraph boxes_and_circles {
-             
-             # a 'graph' statement
-             graph [overlap = true, fontsize = 10]
-             
-             # several 'node' statements
-             node [shape = oval,
-             fontname = Helvetica,
-             style = filled]
-
-             node [fillcolor = green] 
-             'BEGIN'; 
-
-             node [fillcolor = red] 
-             ",paste(arr.terminazioni.raggiungibili,collapse=" "),"
-             
-             node [fillcolor = orange]
-             ",paste(arr.stati.raggiungibili,collapse=" "),"
-
-             node [fillcolor = white, shape = box ]
-             ",paste(arr.trigger.rappresentabili,collapse=" "),"
-             
-             edge [arrowsize = 1 ]
-             # several edge
-             ",stringa.nodo.from,"
-             ",stringa.nodo.to,"
-    }"), collapse='') 
+               
+               # a 'graph' statement
+               graph [overlap = true, fontsize = 10]
+               
+               # several 'node' statements
+               node [shape = oval,
+               fontname = Helvetica,
+               style = filled]
+               node [fillcolor = green] 
+               'BEGIN'; 
+               node [fillcolor = red] 
+               ",paste(arr.terminazioni.raggiungibili,collapse=" "),"
+               
+               node [fillcolor = orange]
+               ",paste(arr.stati.raggiungibili,collapse=" "),"
+               node [fillcolor = white, shape = box ]
+               ",paste(arr.trigger.rappresentabili,collapse=" "),"
+               
+               edge [arrowsize = 1 ]
+               # several edge
+               ",stringa.nodo.from,"
+               ",stringa.nodo.to,"
+  }"), collapse='') 
     # browser()
     grViz(a);
-  }
+}
   #===========================================================  
   # plotPatientEventTimeLine
   # plot the event timeline for a ginven patient
@@ -505,7 +502,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     doc <- xmlInternalTreeParse(file = notebook$computationLog,asText = TRUE)
     arr.step <- unlist(xpathApply(doc,str_c('//xml/computation[@IDPaz="',patientID,'"]/step'),xmlGetAttr,"evt"))
     arr.date <- unlist(xpathApply(doc,str_c('//xml/computation[@IDPaz="',patientID,'"]/step'),xmlGetAttr,"date"))
-
+    
     matrice<-c()
     for( riga in seq(1,length(arr.step))) {
       matrice <- rbind(matrice, cbind(  arr.date[ riga ] , arr.step[ riga ]  ) )
@@ -518,7 +515,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # plot the computed timeline for a given patient
   #===========================================================   
   plotPatientComputedTimeline<-function( patientID ) {  
-
+    
     st.POST<-list(); st.PRE<-list(); tr.fired<-list()
     txt.section<-"";
     
@@ -535,7 +532,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     # prendi gli step da scorrere
     step.da.scorrere <- names(st.POST)
-
+    
     num_section <- 1
     
     for( section in unlist(st.POST)) {
@@ -546,7 +543,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       line.to.write<-"";
       # run for each computation step
       for( step2Run in seq(1,length(step.da.scorrere))){
-
+        
         step2Run.index <- step.da.scorrere[step2Run]
         # figure out if it is a begin or an end and set the dates
         is.begining <- section %in% st.POST[[ step2Run.index ]] & !(section %in% st.PRE[[ step2Run.index ]] )
@@ -561,16 +558,16 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           is.begining <- FALSE;  is.ending <- FALSE; sec.run <- sec.run+1
         }
       }
-
+      
       if(sec.run>0) txt.section <- str_c(txt.section,"\n", headLine , line.to.write)
       num_section <- num_section + 1 
     }
-
+    
     aaa<- str_c(" gantt
-          dateFormat  DD/MM/YYYY
-          title time-event for Patient: ",patientID,"
-          
-          ",txt.section)
+                dateFormat  DD/MM/YYYY
+                title time-event for Patient: ",patientID,"
+                
+                ",txt.section)
     
     mermaid(aaa)    
   }    
@@ -584,7 +581,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # kindOfNumber : i numeri: 'relative' o 'absolute'
   #===========================================================   
   plotComputationResult<-function( whatToCount='activations' ,     kindOfNumber='relative', 
-            avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c(), whichPatientID=c("*") ) {
+                                   avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c(), whichPatientID=c("*") ) {
     
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
@@ -636,11 +633,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         }
       }
     }
-
+    
     # Distingui fra nodi end e nodi normali (questione di colore)
     arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
     arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
-
+    
     # Ora sistema le froceries grafiche
     # PER I NODI
     stringa.stati<-"node [fillcolor = Orange]"
@@ -681,7 +678,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       nuovaRiga<-str_c("\n\t",matrice.nodi.from[i,1],"->'",matrice.nodi.from[i,2],"' [label = '",labelArco,"', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"'  ]")
       stringa.nodo.from<-c(stringa.nodo.from,nuovaRiga)
     }
-      
+    
     # STRINGA NODO TO (ARCO)
     stringa.nodo.to<-"\nedge [arrowsize = 1 ]"
     for(i in seq(1,nrow(matrice.nodi.to))) {
@@ -696,32 +693,29 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     # browser()
     a<-paste(c("digraph boxes_and_circles {
-             
-             # a 'graph' statement
-             graph [overlap = true, fontsize = 10]
-             
-             # several 'node' statements
-             node [shape = oval,
-             fontname = Helvetica,
-             style = filled]
-
-             node [fillcolor = green] 
-             'BEGIN'; 
-
-             node [fillcolor = red] 
-             ",paste(arr.terminazioni.raggiungibili,collapse=" "),"
-             
-             ",stringa.stati,"
-
-             ",stringa.trigger,"
-             
-             edge [arrowsize = 1 ]
-             # several edge
-             ",stringa.nodo.from,"
-             ",stringa.nodo.to,"
-    }"), collapse='') 
+               
+               # a 'graph' statement
+               graph [overlap = true, fontsize = 10]
+               
+               # several 'node' statements
+               node [shape = oval,
+               fontname = Helvetica,
+               style = filled]
+               node [fillcolor = green] 
+               'BEGIN'; 
+               node [fillcolor = red] 
+               ",paste(arr.terminazioni.raggiungibili,collapse=" "),"
+               
+               ",stringa.stati,"
+               ",stringa.trigger,"
+               
+               edge [arrowsize = 1 ]
+               # several edge
+               ",stringa.nodo.from,"
+               ",stringa.nodo.to,"
+  }"), collapse='') 
     grViz(a);
-  }  
+    }  
   #===========================================================  
   # giveBackComputationCounts
   # fa la conta di quanto quello 'stato' o 'trigger' e' stato
@@ -744,7 +738,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
     totalAmount <- 0 
     totalNumber <- 0
-
+    
     # Loopa per ogni computazione
     for(i in seq(1,length(arr.Computazioni))) {
       skipComputation <- FALSE
@@ -873,9 +867,3 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     "plotPatientEventTimeLine" = plotPatientEventTimeLine
   ))
 }
-
-# TO DO:
-# aggiungere un <semLink> nell'XML, all'interno di <trigger> per legare fra loro dei nodi (link direzionale molti a molti)
-# gestire le trap tramite i 'trigger'. ? (invece di fare in <set> può fare altro, oppure può comunque fare il <set> di alcuni nodi  di tipo "error"? )
-# Aggiunto controllo set/unset
-# Aggiunta esecuzione EVENTO ''
