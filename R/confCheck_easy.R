@@ -867,3 +867,4 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     "plotPatientEventTimeLine" = plotPatientEventTimeLine
   ))
 }
+
