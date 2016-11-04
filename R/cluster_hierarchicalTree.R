@@ -70,8 +70,8 @@ cluster_hierarchicalTree <- function() {
   #===========================================================  
   calculateClusters<-function(num,typeOfModel = "firstOrderMarkovModel") {
     x <- sapply(processInstances,unlist)
-    #xx <- as.data.frame(t(x))
-    trans <- as(x, "transactions")
+    xx <- sapply(x,unique)
+    trans <- as(xx, "transactions")
     dd <- dissimilarity(trans, method = "phi", which = "processID")
     dd[is.na(dd)] <- 1 # get rid of missing values
     processToCluster <- cutree(hclust(dd), k = num)
@@ -101,6 +101,7 @@ cluster_hierarchicalTree <- function() {
             al <- vector(length = length(colnames(cc)))
             cc <- cbind(cc,al)
             colnames(cc)[dim(cc)[2]] <- paste(eventType[n])
+            al <- vector(length = length(colnames(cc)))
             cc <- rbind(cc,al)
             rownames(cc)[dim(cc)[1]] <- paste(eventType[n])
           }

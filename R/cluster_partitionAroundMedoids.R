@@ -70,8 +70,8 @@ cluster_partitionAroundMedoids <- function() {
     clusters_tmp <- list()
     transitionCountMatrix <-list()
     x <- sapply(processInstances,unlist)
-    #xx <- as.data.frame(t(x))
-    trans <- as(x, "transactions")
+    xx <- sapply(x,unique)
+    trans <- as(xx, "transactions")
     d <- dissimilarity(trans, method = "Jaccard")
     start.time <- Sys.time()
     clustering <<- pam(d, k = num)
@@ -79,7 +79,7 @@ cluster_partitionAroundMedoids <- function() {
     #allLabels <- predict(trans[clustering$id.med], trans, method = "Jaccard")
     #clusters <- split(trans, allLabels)
     for(i in 1:length(clustering$medoids)){
-      clusters_tmp[[i]] <- processInstances[[as.numeric(clustering$medoids[i])]]
+      clusters_tmp[[i]] <- processInstances[[clustering$medoids[i]]]
        #clusters_tmp[[i]] <- append("BEGIN",clusters_tmp[[i]])
        #clusters_tmp[[i]] <- append(clusters_tmp[[i]],"END")
       
