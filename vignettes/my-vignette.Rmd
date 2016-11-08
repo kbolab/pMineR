@@ -125,20 +125,21 @@ At the moment there are only one method to deal with conformance checking. Do yo
 
 #### a first basic (but important) assumption
 
-In order to let you understand how Conformanche Checking works, I have to spend few words about the background and an assumption. We have to deal with Process Mining in HealthCare and to do that we have to cope with the big cultural gap that exists betweem Computer Scientists and Healthcare workers. 
+In order to let you understand how Conformanche Checking works, I have to spend few words about the background and an assumption. We have to deal with Process Mining in HealthCare: to do that we have to cope with the big cultural gap existing betweem Computer Scientists and Healthcare workers. 
 
 For example, let's consider the physicians. 
 
 They are not confident with all our languages like Petri Network, Finite State Automata, Markov Models, etc., and the most complex graphical language they can work with are the Work-Flow (WF) diagrams ( semi-formal language, better than nothing). This is not true for all of them, abviously, but the gaussian in surely centered here (and the sigma is quite low). 
 
-In addition, they have a tons of things to do so the attention they can pay in trying to learn a new language is moreover the same that a Labrador can pay in understanding the  Fourier transformation.
+In addition, they have a tons of things to do so the attention they can pay in trying to learn a new language is moreover the same that a Labrador can/want pay in understanding the Fourier transformation.
 
 So, in order to be pragmatic, our aim is to let physician use their loved WF diagram (or something similar) and in bringing them to our side (Computer Scientists) the challenge of making a WF parseable and executable from a software agent.
 In this perspective, the gap between physicians and Computer Scientists is both linguistic and cultural. Linguistic because physicians prefers a semi-formal language while Computer Scientists need a formal language in order to allow automatic computation.
-Moreover, physicians thinks (almost always correctly) that coping with the complexity of the language should be a duty in charge of Computer Scientists.
+Cultural because they are the only owner of the needed knowledge to write/check clinical patterns.
+Moreover physicians think (almost always correctly) that coping with the complexity of the language should be a duty in charge of Computer Scientists.
 
 #### from Work-Flow to a Pseudo-Work-Flow diagram
-We propose to deal with WF proposing to the physician to think in terms of Pseudo-Work-Flow diagrams (PWF). They fundamentally are similar to WF but introduces some improvement that allow us to use parallelism (like Petri Network allow to do) and stay close to the abstract, high-level concept of the clinical domain.
+We propose to deal with WF proposing to the physician to think in terms of Pseudo-Work-Flow diagrams (PWF). They are fundamentally similar to WF, but they also introduce some improvement that allow us to use parallelism (like Petri Network) staying simple and close to the abstract, high-level concept of the clinical mind.
 
 The main construct we will introduce are fundamentally three:
 
@@ -146,10 +147,12 @@ The main construct we will introduce are fundamentally three:
 - the States
 - the Trigger
 
-The Events are exactly the Events as taken from the LOGs. They are important because are the first source of information at our disposal for doing almost anything. Neverthless they are not enougt, in general, because their semantic reflect the meaning they are stored thinkin about. For example: in some cases, working in a hospital, we could be foced to use some administrative LOG to do clinical reasoning: this is good but in general, but the cultural gap between the two domain can play an undesired role. For example, the generic term of "medical examination" which is the same, from ad administrative point of view during all the patient's clinical pathway, is dramatically different from the physician perspective. A "medical examination" before a "surgical intervention", for example, is a "pre-treatment visit" while after the treatmen become a "follow up visit". 
-So, the semantic can change only because often we have to use the LOG we have, not the one we wish.
-How to solve this problem and "enrich" the semantic of the LOG, in order to reduce the gap between LOG and physicians' need?
-For such reason we introduce the other two constructs, which are the States and Trigger.
+The Events are exactly the Events as taken from the LOGs. They are important because are the first source of information at our disposal for doing almost anything. Neverthless they are not enougt, in general, because their semantic reflects the reason they were stored for. For example: in some cases, working in a hospital, we could be foced to use some administrative LOG to do clinical reasoning: this is good, but in general the cultural gap between the two domain (Administrative vs Clinical) can have an undesired effect. 
+The generic term of "medical examination" which is the same, from ad administrative point of view during all the patient's clinical pathway, is dramatically different from the physician perspective. A "medical examination" before a "surgical intervention", for example, is a "pre-treatment visit" while after the treatmen become a "follow up visit". 
+So, because of we are often forces to use the LOG we have and not the one we wish, some "knowledge" has to be pumped in, in some way..
+How to solve this problem and "enrich" the semantic of the LOG, in order to reduce the gap between LOG and physicians' need? In literature, languages like GLIF, Arden Syntax, etc. can handle similar situation but the aim was different, due to the different goals of Computer Interpretable Guidelines, the topic they were born for.
+For such reason we think to easily solve our problems enriching the normal idea of WF keeping the language simple and easy to be managed.
+As said, Events are exactly the Events as taken from the LOGs.
 States should be thought as states where a patient can be, for a while. For example a patient could be "waiting for a treatment" or "whith CVC", or "during Chemotherapy". Such states reflect the high  abstract level of physician's world and should not related to the Events we have on the log.
 The pivot between Event and States (because we need something, at this point) is represented by the third construct: the trigger.
 Triggers have conditions for they activations and, if fired, the can unset or set states. The condition statements can handle with both, States and Events.
@@ -228,13 +231,15 @@ obj.cc$plotGraph()
 ```
 
 The showed graph is a graphical representation of what is specified in the XML.
-NOTE: THIS IS NOT A WORKFLOW DIAGRAM! It could seems but it is not properly a WF. That's why I talked about Pseudo-WF (PWF)! To understand this graph pay attention to Triggers (the one in the boxes): the input arcs come from the nodes that will be de-activated when the trigger will be fired and the outgoing arcs go toward the nodes that will be activated.
+NOTE: THIS IS NOT A WORKFLOW DIAGRAM! It could seems but it is not properly a WF. That's why I talk about Pseudo-WF (PWF)! To understand this graph pay attention to Triggers (the one in the boxes): the input arcs come from the nodes that will be de-activated when the trigger will be fired and the outgoing arcs go toward the nodes that will be activated.
 Consider that a Trigger could also avoid to de-activate a node, so don't think "too much easy"; anyway with a bit of practice it will be expressive and easy to handle.
 
 Now let's see more in detail how the XML is built: the section `workflow` allows two possible sub-tags: `node` ad `trigger`. Using  `node` we can list all the possible States and with `trigger`, the Trigger and their rules.
 Triggers can be fired according to their `condition` and, if fired, can `set` or `unset` some States (nodes). In the rest of the paper `nodes` and States will be considered equivalent (damn to me the day that I named `nodes` that tag!)
 
-The engine in charge of read, parse and execute such XML, will read all the Events in the LOG (in cronological order) and for each of them will check if some Triggers can be fired. At the beginning it forces the `nodes` called 'BEGIN' as the only state in the array called `$st.ACTIVE$`, which contains the active Nodes in any step of the computation. Many Triggers can be fired and many Nodes can be activated: in case of conflicts the engine will stop the computation (for example if two Triggers set/unset the same Node at the same time).
+The engine work as a stupid jumpless one-step Touring Machine: read and Event and looks for if a trigger can be activated from it (and its internal state). If so, it update the internal state and goes to read the next Event. It never come back and never jump: that's why I described it as "jumpless one-step" and "stupid".
+
+To understand if a trigger can be fired, the engine reads the XML, reads an Eventa from the LOG (in cronological order) and checks if some Triggers can be fired. At the beginning it forces the `nodes` called 'BEGIN' as the only state in the array called `$st.ACTIVE$`, which contains the active Nodes in any step of the computation. Many Triggers can be fired and many Nodes can be activated: in case of conflicts the engine will stop the computation (for example if two Triggers set/unset the same Node at the same time).
 
 Consider, for example, the Patient with 'patID' equal to 1:
 

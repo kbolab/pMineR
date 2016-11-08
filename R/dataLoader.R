@@ -174,7 +174,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
         }
       }
     }
-    browser()
+     browser()
     aa<-as.data.frame(which(FF=="T",arr.ind = T)) # cerca i T e mettili in un dataFrame
     for(i in seq(1,nrow(aa))) {
       rigaComplementare<-which(  aa$row == aa$col[i]  & aa$col== aa$row[i])
@@ -194,7 +194,9 @@ dataLoader<-function( verbose.mode = TRUE ) {
   removeEvents<-function( array.events=NA) {
     bbb<-array.events
     arrayAssociativo<<-arrayAssociativo[!(arrayAssociativo %in% bbb)]
-    footPrint<<-footPrint[ !(rownames(footPrint) %in% bbb),!(colnames(footPrint) %in% bbb) ]
+    if(is.matrix(footPrint)) { 
+      footPrint<<-footPrint[ !(rownames(footPrint) %in% bbb),!(colnames(footPrint) %in% bbb) ]
+    }
     MMatrix<<-MMatrix[ !(rownames(MMatrix) %in% bbb),!(colnames(MMatrix) %in% bbb) ]
     MM.mean.time<<- MM.mean.time[ !(rownames(MM.mean.time) %in% bbb),!(colnames(MM.mean.time) %in% bbb) ]
     
@@ -273,7 +275,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # (ma solo se c'è un campo DATA TIME)
     MM.den.list<-list()
     # ID.act.group[[1]][EVENT.list.names]<-as.character(ID.act.group[[1]][EVENT.list.names])
-
+    # browser()
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
     # per ogni paziente
     for(patID in seq(1,length(ID.act.group))) {
@@ -309,7 +311,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     }
     quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
     cat(str_c("\n mean times : ",quanti.da.fare," \n"))
-    
+    # browser()
     # Calcola la matrice delle medie dei tempi
     # Sarebbe bello avere le density... vabbè. più avanti
     if(param.dateColumnName!='' & !is.na(param.dateColumnName)){
@@ -325,6 +327,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
         }        
       }
     }
+    # browser()
     # costruisci una semplice versione, con le parole (come piace tanto a Van der Aalst)
     cat(str_c("\n simple version: ",length(seq(1,length(ID.act.group))),"\n"))
     wordSequence.TMP01<-list();
@@ -334,7 +337,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
       wordSequence.TMP01[[IDPat]]<-ID.act.group[[ IDPat ]][[EVENTName]]
     }    
     cat(str_c("\n End"))
-
+    # browser()
 #     return(list( "arrayAssociativo" = rownames(MM),
 #                  "footPrint"=buildFootPrintTable(MM),
 # #                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
@@ -345,7 +348,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
 #                  "wordSequence.raw"=wordSequence.TMP01) )
     return(list( "arrayAssociativo" = rownames(MM),
                  "footPrint"="",
-                 #                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
+                                  # "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
                  "MMatrix"=MM,
                  "MM.mean.time"=MM.mean.time,
                  "MM.density.list"=MM.den.list,
@@ -404,8 +407,10 @@ dataLoader<-function( verbose.mode = TRUE ) {
     
     if(format.column.date!="%d/%m/%Y") stop("Not Yet Implemented (ErrCod: #89h89h8h")
     # Cicla per ogni paziente
+    # browser()
     for( paziente in seq(1,length(listToBeOrdered)) ) {
       # Estrai la matrice
+      
       matrice.date<-listToBeOrdered[[paziente]]
       # Calcola la colonna delle differenze di date rispetto ad una data di riferimento ed azzera rispetto al minore
       colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y"),as.POSIXct("01/01/2001", format = "%d/%m/%Y"),units = 'days'))
@@ -417,6 +422,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
       listToBeOrdered[[paziente]]<-listToBeOrdered[[paziente]][order(listToBeOrdered[[paziente]][[deltaDate.column.name]]),]
       if(param.verbose == TRUE) cat("\n Now ordering: ",paziente)
     }
+#     browser()
     return(listToBeOrdered);
   } 
   load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA) {
@@ -540,6 +546,15 @@ dataLoader<-function( verbose.mode = TRUE ) {
     return;
   }
   #=================================================================================
+  # plotTimeline
+  #=================================================================================   
+  plot.Timeline<-function( patID ) {
+
+   matrice <- cbind( pat.process[[ as.character(patID) ]][[param.dateColumnName]],
+                         pat.process[[ as.character(patID) ]][[param.EVENTName]]) 
+   plotTimeline(eventTable = matrice, format.date = "%d/%m/%Y")
+  }
+  #=================================================================================
   # loader
   #=================================================================================  
   getData<-function( ) {
@@ -600,6 +615,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     "keepOnlyEvents"=keepOnlyEvents,
     # "apply.filter"=apply.filter,
     "addDictionary"=addDictionary,
-    "getTranslation"=getTranslation
+    "getTranslation"=getTranslation,
+    "plot.Timeline"=plot.Timeline
   ))
 }

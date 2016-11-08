@@ -207,12 +207,18 @@ logInspector <- function() {
     max.Delta<-c()
     arr.occorrenze<-c(); occorrenza.cum<-c(); occorrenza.diff<-c();
     aaa<-res.dataLoader$pat.process
-    
+    # browser()
     if(!(deltaDate.column.name %in% colnames(aaa[[1]])   )) stop(" please check the delta.date column name! ErrCode: #rh4389hcv ");
     
     for(i in seq(1,length(aaa) )) {
-      max.Delta<- c(max.Delta, max(aaa[[i]][[deltaDate.column.name]]))
+      if(length(aaa[[i]][[deltaDate.column.name]])>0)
+        max.Delta<- c(max.Delta, max(aaa[[i]][[deltaDate.column.name]]))
+      else 
+        max.Delta<- c(max.Delta, 0)
     } 
+    #     Se qualche paziente non ha eventi e'' possibile che si fissi a -Inf, in questo
+    #     caso setta a zero la sua massima timeline
+    # max.Delta[which(max.Delta==-Inf)]<-0
 
     # plotta gli assi e definisci i gap per le timeline
     y.gap<-1;  x.gap<-20
@@ -231,12 +237,14 @@ logInspector <- function() {
     
     # Cicla per ogni paziente
     for(i in seq(1,length(aaa) )) {
+      # browser()
       # Array con i delta giorni di tutti gli eventi
-      arr.tak<-aaa[[i]]$delta.dataDiagnosi
+      arr.tak<-as.numeric(aaa[[i]]$delta.dataDiagnosi)
+      # if(lengh(arr.tak)==0) arr.tak<-c(0)
       # la riga orizzontale
-      if(plotGraph.01==T) points(  x=c(0, max(arr.tak) ), y=c(i * y.gap,i *y.gap),  type='l' , col='grey' ) 
+      if(plotGraph.01==T & length(arr.tak)>0) points(  x=c(0, max(arr.tak) ), y=c(i * y.gap,i *y.gap),  type='l' , col='grey' ) 
       # le righette verticali
-      if(plotGraph.01==T) points(  x=arr.tak, y=rep(c(i * y.gap),length(arr.tak) ) ,pch=3 , col='grey'  ) 
+      if(plotGraph.01==T & length(arr.tak)>0) points(  x=arr.tak, y=rep(c(i * y.gap),length(arr.tak) ) ,pch=3 , col='grey'  ) 
       # passiamo ai colori
       for( indice in seq(1,length(lst.pnt.attr.name))) {
         sottoMatrice<-aaa[[i]][ which(aaa[[i]][[ lst.pnt.attr.name[indice] ]] %in% lst.pnt.attr.value[[ lst.pnt.attr.name[indice] ]]  ) , ]
@@ -255,7 +263,7 @@ logInspector <- function() {
     # mo' plotta i punti (in differita)'
     if(plotGraph.01==T) points(  x=arr.punti.da.plottare.x, y=arr.punti.da.plottare.y ,pch=20, col=color  ) 
     # Calcola l'occorrenza in cumulativo
-    arr.occorrenze<-unlist(arr.occorrenze)
+    arr.occorrenze<-unlist(as.numeric(arr.occorrenze))
     if(length(arr.occorrenze)>0) {
       for(i in seq(1,max(arr.occorrenze)) ) {
         occorrenza.cum<-c(occorrenza.cum,length(arr.occorrenze[ which(arr.occorrenze<=i) ])	)
@@ -275,8 +283,8 @@ logInspector <- function() {
       axis(4)
       mtext("Cumulative Frequencies",side=4)
     }
-    
-    return(list("arr.occorrenze"=arr.occorrenze,"occorrenza.cum"=occorrenza.cum,"occorrenza.diff"=occorrenza.diff))
+
+    return(list("num.of.patient"=length(aaa),"arr.occorrenze"=arr.occorrenze,"occorrenza.cum"=occorrenza.cum,"occorrenza.diff"=occorrenza.diff))
   }  
   
   #===========================================================

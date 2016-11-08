@@ -203,6 +203,7 @@ cluster_expectationMaximization <- function() {
                 al <- vector(length = length(colnames(cc)))
                 cc <- cbind(cc,al)
                 colnames(cc)[dim(cc)[2]] <- paste(eventType[n])
+                al <- vector(length = length(colnames(cc)))
                 cc <- rbind(cc,al)
                 rownames(cc)[dim(cc)[1]] <- paste(eventType[n])
               }

@@ -23,7 +23,7 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
     costructor();
   }
   #=================================================================================
-  # getData
+  # load.csv
   #=================================================================================  
   load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, view = "main") {
 
@@ -107,8 +107,14 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
   #=================================================================================
   # addDictionary
   #=================================================================================  
-  addDictionary<-function( view,  fileName,  column.event.name , sep =',', dict.name='main'  ) {
+  addDictionary<-function( fileName,  column.event.name , sep =',', dict.name='main', view='main'  ) {
     list.dataLoader[[ view ]]$addDictionary( fileName = fileName , sep = sep, dict.name= dict.name , column.event.name = column.event.name) 
+  }  
+  #=================================================================================
+  # plotTimeline
+  #=================================================================================   
+  plot.Timeline<-function( patID , view='main' ) {
+    list.dataLoader[[ view ]]$plot.Timeline( patID = patID)
   }  
   #=================================================================================
   # addDictionary
@@ -116,10 +122,29 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
   translate<-function( from.view, column.name, to.view='' , build.new.view = TRUE  ) {
     mydata <- list.dataLoader[[ from.view ]]$getTranslation(column.name = column.name)
     if(build.new.view == TRUE ) {
+       # browser()
       altriDati <- list.dataLoader[[ from.view ]]$getData()
+      
+      listaCampi <- names(mydata)
+      listaCampi <- listaCampi[ which( !( listaCampi %in% "pMineR.deltaDate" )) ]
+      mydata <- mydata[,listaCampi]
+      
+#       for(indice in names(altriDati$pat.process)) {
+#         listaCampi<-names(altriDati$pat.process[[ indice ]])
+#         listaCampi <- listaCampi[ which( !( listaCampi %in% "pMineR.deltaDate" )) ]
+#         altriDati$pat.process[[ indice ]]<-altriDati$pat.process[[ indice ]][listaCampi]
+#       }  
+      # browser()
+      # mydata$pat.process <- altriDati
+      
+      # browser()
       createView(view.name = to.view)
       # browser()
       load.data.frame(mydata = mydata,IDName = altriDati$csv.IDName,EVENTName = altriDati$csv.EVENTName, dateColumnName = altriDati$csv.dateColumnName,view = to.view)
+      # ct<- 1
+      # browser()
+      # ct<- 2
+      
     } else return(mydata)
   }   
   #=================================================================================
@@ -140,6 +165,7 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
     "removeEvents"=removeEvents,
     "translate"=translate,
     "addDictionary"=addDictionary,
-    "createView" = createView
+    "createView" = createView,
+    "plot.Timeline"=plot.Timeline
   ))
 }
