@@ -11,7 +11,7 @@
 #'              \item \code{play( ... ) } generates a wished number of sequences
 #'              \item \code{plot() } plots the graph
 #'              \item \code{distanceFrom( ... ) } calculates the distance between two different AA model objects
-#'              }
+#'              } 
 #'              There are two ways to use this class: directly using the methods previously 
 #'              listed or via wrapping functions (called PM.<method name>). In the examples section you will find an example of both.
 #' @param parameters.list a list containing possible parameters to tune the model. At the moment no parameters are admitted for this model: this is implemented for further improvements.

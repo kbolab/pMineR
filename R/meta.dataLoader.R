@@ -1,12 +1,12 @@
 #' provides some more advanced features than dataLoader
 #' 
-#' @description  This class is more abstract than dataLoader and provide some facilities. We strongly suggest to adopt meta.dataLoader for quite complex analysys: netherless a meta.dataLoader object can created in any moment starting from an existend dataLoader object
+#' @description  This class is  more abstract than dataLoader and provide some facilities. We strongly suggest to adopt meta.dataLoader for quite complex analysys: netherless a meta.dataLoader object can created in any moment starting from an existend dataLoader object
 #'              \itemize{
 #'              \item \code{meta.dataLoader() } the costructor
 #'              \item \code{load.csv( ... ) } loads the a csv file into the \code{meta.dataLoader} object
 #'              \item \code{load.data.frame( ... ) } loads the a csv file into the \code{meta.dataLoader} object
 #'              \item \code{getData( ... ) } returns the loaded data
-#'              }
+#'              } 
 #'              There are two ways to use this class: directly using the methods previously 
 #'              listed or via wrapping functions (called LD.<method name>). In the examples section you will find an example of both.
 #' @useDynLib pMineR    

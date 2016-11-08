@@ -9,7 +9,7 @@
 #'                \item \code{getModel() } returns the model (XML or graphical way, via grViz script)
 #'                \item \code{replay( ... )} submits a set of given sequences and returns the fitting (not yet implemented for this algorithm)
 #'                \item \code{play( ... )} generates a wished number of sequences
-#'                \item \code{plot() } plots the graph
+#'                \item \code{plot() } plots the graph 
 #'                \item \code{distanceFrom( ... )} allows to calculate the distance between two different FOMM objects
 #'                \item \code{plot.delta.graph( ... ) } plots a distance graph between two given FOMM objects
 #'                \item \code{get.transition.Prob( ... ) } calculate the probability to reach a state in K transitions at least

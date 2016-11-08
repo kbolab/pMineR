@@ -9,7 +9,7 @@
 #'                \item \code{plotEventStats( ... )} plots event-related stats (takes a custom number of most frequent events it has to plot)
 #'                \item \code{plotProcessStats( ... )} plots process-related stats (takes a custom number of most frequent processes it has to plot)
 #'                \item \code{timeDistribution.stats.plot( ... )} <not yet commented>
-#'
+#' 
 #'                }
 #' @param Parameters for plot methods is: 
 #'   \itemize{

@@ -5,7 +5,7 @@
 #' @export
 #' @examples \dontrun{
 #' 
-#' obj.L<-dataLoader();   # create a Loader
+#' obj.L<-dataLoader();   # create a Loader 
 #' 
 #' # Load a .csv using "DES" and "ID" as column names to indicate events 
 #' # and Patient's ID

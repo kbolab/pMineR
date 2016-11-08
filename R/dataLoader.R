@@ -7,7 +7,7 @@
 #'              \item \code{getData() } returns the loaded data
 #'              \item \code{apply.filter() } apply a filter to logs (es: for denoising issues)
 #'              \item \code{removeEvents() } remove some events from stored logs
-#'              }
+#'              } 
 #'              There are two ways to use this class: directly using the methods previously 
 #'              listed or via wrapping functions (called LD.<method name>). In the examples section you will find an example of both.
 #' @useDynLib pMineR    

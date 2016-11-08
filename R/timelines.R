@@ -7,7 +7,7 @@ plotTimeline.ID.From.CSV<-function( nomeFile,  IDToPlot, IDName, EVENTName, DATA
   
   patientSubList <- datiDaElaborare$pat.process[[as.character(IDToPlot)]]
 
-  matrice<-c()
+  matrice<-c() 
   matrice<-cbind( matrice,  as.character(patientSubList[[DATAName]]), as.character(patientSubList[[EVENTName]])   )
 
   plotTimeline( eventTable = matrice )

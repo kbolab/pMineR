@@ -7,7 +7,7 @@ petriNetworkModel<-function() {
     parseXMLAndAdd(txt = xmlModel, parent = fa )
     XML.model<<-fa
   }
-  getListaXML.link<-function(stringa, listaXML, what2Get) {
+  getListaXML.link<-function(stringa, listaXML, what2Get) { 
     res<-c()
     for( i in seq(1,length(listaXML$xml$graphStructure$links))) {
       if(listaXML$xml$graphStructure$links[[i]][ what2Get ] == stringa )  res<-c(res,i)

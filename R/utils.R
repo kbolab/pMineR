@@ -9,7 +9,7 @@ textObj<-function() {
   }
   get<-function() {
     return(testo)
-  }
+  } 
   costructor<-function() {
     testo<<-'';
   }

@@ -8,7 +8,7 @@
 #'                \item \code{getClusters() } returns a list containing the calculated Clusters.
 #'                \item \code{getClusterStats( ... )} It return a list containing the information about performances of clusters (i.e. clusters support, distances among centroids, mean distance from processes and centroids, standard deviations)
 #'                \item \code{getClusterLog( ... )} Because of the calculateCluster method is an iterative method, it could be of interest for a user to get the logs of eachiteration in order to have an idea of the time needed to converge. For this reason for each iteration an internal attribute calledlogNotes should be updated adding one row and the result should be made available with this method.
-#'
+#' 
 #'                }
 #' @param Parameters for calculateCluster methoda are: 
 #'   \itemize{

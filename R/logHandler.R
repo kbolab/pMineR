@@ -7,7 +7,7 @@ logHandler<-function() {
   #=================================================================================
   sendLog<-function( msg , type="MSG" ) {
     if(length(msg)>1) messaggio<-paste(msg,collapse='')
-    else messaggio<-msg
+    else messaggio<-msg 
     
     what2Do<-behaviourTable[which(behaviourTable[,"msg"]==type),"behaviour"]
     

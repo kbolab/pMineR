@@ -8,7 +8,7 @@
 #'        \item \code{considerAutoLoop } a boolean parameter (default is \code{TRUE}). If \code{FALSE} the arcs outcoming and incoming in the same node will be removed
 #'        } 
 #' @return the wished object
-#' @export
+#' @export 
 #' @examples \dontrun{
 #' # Instantiate a'firstOrderMarkovModel' model
 #' obj<- PM.builder(kindOfObject = "firstOrderMarkovModel")
