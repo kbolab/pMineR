@@ -60,8 +60,8 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
     if( view.name == "main") 
       { obj.logHandler$sendLog( msg ="ERROR: 'main' is not a reserved name ", type="NMI" ); return; }
     # An existent name cannot be used
-    if( view.name %in% names(list.dataLoader) ) 
-      { obj.logHandler$sendLog( msg =c("ERROR: '",view.name,"' already exists"), type="NMI" ); return; }
+#     if( view.name %in% names(list.dataLoader) ) 
+#       { obj.logHandler$sendLog( msg =c("ERROR: '",view.name,"' already exists"), type="NMI" ); return; }
     # An un-existent name is passed as source
     if( !(from.view %in% names(list.dataLoader) ) )
     { obj.logHandler$sendLog( msg =c("ERROR: '",from.view,"' does not exist"), type="NMI" ); return; }
@@ -76,8 +76,8 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
     if( view.name == "main") 
     { obj.logHandler$sendLog( msg ="ERROR: 'main' is not a reserved name ", type="NMI" ); return; }
     # An existent name cannot be used
-    if( view.name %in% names(list.dataLoader) ) 
-    { obj.logHandler$sendLog( msg =c("ERROR: '",view.name,"' already exists"), type="NMI" ); return; }
+#     if( view.name %in% names(list.dataLoader) ) 
+#     { obj.logHandler$sendLog( msg =c("ERROR: '",view.name,"' already exists"), type="NMI" ); return; }
     
     # create the view
     list.dataLoader[[ view.name ]] <<- dataLoader()

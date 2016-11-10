@@ -111,17 +111,20 @@ dataLoader<-function( verbose.mode = TRUE ) {
         aaa<-as.character(pat.process[[idPaz]][[param.EVENTName]])
         # browser()
         # APPLY!
+        # browser()
         bbb<-unlist(lapply(aaa, function(x) { 
           # prendi la voce corrispondente al nome dell'evento
           column.event.name<-list.dict.column.event.name[[ dict.name ]] 
           arrPosizioniTMP<-which(list.dictionary[[ dict.name ]][[ column.event.name ]]==x )
+          if(length(arrPosizioniTMP)>1) stop("ERRORE::: RIGA RIPETUTA NEL DIZIONARIO!")
           # e sostituisci
           # browser()
 #           cat("\n ",x," :: ",length(arrPosizioniTMP))
           if(length(arrPosizioniTMP)==0) return( "" )
           else return(as.character( list.dictionary[[ dict.name ]][[ column.name ]][arrPosizioniTMP])  )
         }  ))   
-        # cat("\n",idPaz)
+        cat("\n",idPaz)
+        # browser()
         matrice[[param.EVENTName]] <- bbb
         # cat("\n",riga, " = ",param.EVENTName)
         matrice <- matrice[  which(matrice[[param.EVENTName]]!="") ,   ]

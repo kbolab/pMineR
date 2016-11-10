@@ -43,10 +43,17 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # loadWorkFlow
   # It allows to load an XML with a WF
   #=================================================================================   
-  loadWorkFlow<-function( WF.fileName ) {
-    WF.xml <<- xmlInternalTreeParse( WF.fileName )
-    WF.xml.fileName <<- WF.fileName
+  loadWorkFlow<-function( WF.fileName=NA, WF.text=NA) {
+    if(is.na(WF.fileName) & is.na(WF.text)) stop("\n\n\n ERRORE: o 'WF.fileName o 'WF.text' deve essere diverso da 'NA'")
     
+    if(!is.na(WF.fileName)){
+      WF.xml <<- xmlInternalTreeParse( WF.fileName )
+      WF.xml.fileName <<- WF.fileName
+    }
+    if(!is.na(WF.text)){
+      WF.xml <<- xmlInternalTreeParse(WF.text, asText=TRUE)
+      WF.xml.fileName <<- ''
+    }    
     # dopo aver caricato l'XML negli attributi, costruisci la struttura in memoria 
     build.Workflow.model()
   }
@@ -584,7 +591,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # kindOfNumber : i numeri: 'relative' o 'absolute'
   #===========================================================   
   plotComputationResult<-function( whatToCount='activations' ,     kindOfNumber='relative', 
-            avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c(), whichPatientID=c("*") ) {
+            avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c(), whichPatientID=c("*"), plot.unfired.Triggers = TRUE ) {
     
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
@@ -592,6 +599,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     stringa.nodo.from<-c()
     stringa.nodo.to<-c()   
     howMany<-list()
+    
     matrice.nodi.from<-c();    matrice.nodi.to<-c()
     # Costruisci subito la lista dei nodi plottabili (cosi' non ci penso piu')
     # Faccio anche la lista dei nodi END
@@ -662,13 +670,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       nome.trigger.pulito <- str_replace_all(string = nome.trigger,pattern = "'",replacement = "")
       aa = giveBackComputationCounts(nomeElemento = nome.trigger.pulito, tipo='trigger', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID )
       howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
-      lista.freq.trigger[[nome.trigger]]<-(aa$howMany  / aa$totalNumber)
-      penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
-      penwidth<- 1
-      colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
-      if(kindOfNumber=='relative') numberToPrint<-str_c(round(as.numeric(howMany),2)," %")
-      else numberToPrint<-str_c("# ",aa$howMany)
-      stringa.trigger <- str_c(stringa.trigger,"\n\t ",nome.trigger," [label = '",nome.trigger.pulito,"\n",numberToPrint,"', penwidth='",penwidth,"', fontcolor='Gray",colore,"']") 
+      if( plot.unfired.Triggers == TRUE | (plot.unfired.Triggers==FALSE & howMany>0)) {
+        lista.freq.trigger[[nome.trigger]]<-(aa$howMany  / aa$totalNumber)
+        penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
+        penwidth<- 1
+        colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
+        if(kindOfNumber=='relative') numberToPrint<-str_c(round(as.numeric(howMany),2)," %")
+        else numberToPrint<-str_c("# ",aa$howMany)
+        stringa.trigger <- str_c(stringa.trigger,"\n\t ",nome.trigger," [label = '",nome.trigger.pulito,"\n",numberToPrint,"', penwidth='",penwidth,"', fontcolor='Gray",colore,"']") 
+      }
     }    
     # STRINGA NODO FROM (ARCO)
     stringa.nodo.from<-"\nedge [arrowsize = 1 ]"
@@ -740,6 +750,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #===========================================================  
   giveBackComputationCounts<-function( nomeElemento, tipo, whatToCount, avoidFinalStates, avoidTransitionOnStates, avoidToFireTrigger , whichPatientID) {
     # Carica l'XML
+    # browser()
     doc <- xmlInternalTreeParse(file = notebook$computationLog,asText = TRUE)
     arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
     totalAmount <- 0 
@@ -846,6 +857,32 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     return;
   }  
   #=================================================================================
+  # play.easy
+  #=================================================================================   
+  play.easy<-function() {
+    stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
+    arr.parole<-get.possible.words.in.WF.easy()
+    browser()
+    # res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], col.eventName = dataLog$csv.EVENTName, col.dateName = dataLog$csv.dateColumnName , IDPaz = indice  )
+    ct <- 1
+  }
+  get.possible.words.in.WF.easy<-function() {
+    stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
+    arr.parole<-c()
+    browser()
+    for(stringa in stringhe) {
+      tmp.1 <- str_sub(string = stringa,start = str_locate(stringa,pattern = "\\$ev.NOW\\$")[2]+1)
+      if(!is.na(tmp.1)) {
+        apici <- str_locate_all(string = tmp.1,pattern = "'")
+        tmp.1 <- str_sub(string = tmp.1,start = apici[[1]][1,1]+1,end = apici[[1]][2,1]-1)
+        if(!is.na(tmp.1)) {
+          if( !(tmp.1 %in% arr.parole)) arr.parole<-c(arr.parole,tmp.1)
+        }
+      }
+    }
+    return(arr.parole)
+  }
+  #=================================================================================
   # costructor
   #=================================================================================  
   costructor<-function( verboseMode ) {
@@ -870,6 +907,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     "getPatientLog"=getPatientLog,
     "plotPatientComputedTimeline" = plotPatientComputedTimeline,
     "getPatientXML"=getPatientXML,
-    "plotPatientEventTimeLine" = plotPatientEventTimeLine
+    "plotPatientEventTimeLine" = plotPatientEventTimeLine,
+    "play.easy"=play.easy
   ))
 }

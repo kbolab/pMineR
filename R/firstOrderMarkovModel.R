@@ -288,6 +288,38 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     return(prob);
   }    
   #=================================================================================
+  # build.PWF
+  # IT builds a Pseudo-Workflow XML file
+  #=================================================================================  
+  build.PWF<-function() {
+    testo <- "<xml>"
+    testo <- str_c(testo,"\n\t<workflow>")
+    
+    # ora i nodi
+    nomeNodi <- colnames(MMatrix)[!(colnames(MMatrix) %in% "BEGIN")]
+    for( i in nomeNodi ) {
+      testo <- str_c(testo,"\n\t<node name=\"",i,"\" />")
+    }
+    # Ora i trigger
+    for(from.node in rownames(MMatrix)) {
+      for(to.node in colnames(MMatrix)) {
+        if(MMatrix[from.node,to.node] >0) {
+          testo <- str_c(testo, "\n\t <trigger name=\"from.",from.node,".to.",to.node,"\">")
+          testo <- str_c(testo, "\n\t\t <condition>")
+          testo <- str_c(testo, "\n\t\t\t","\"",from.node,"\" %in% $st.ACTIVE$ AND $ev.NOW$==\"",to.node,"\"")
+          testo <- str_c(testo, "\n\t\t </condition>")
+          testo <- str_c(testo, "\n\t\t <unset>'",from.node,"'</unset>")
+          testo <- str_c(testo, "\n\t\t <set>'",to.node,"'</set>")
+          testo <- str_c(testo, "\n\t </trigger>")
+        }
+      }
+    }
+    testo <- str_c(testo,"\n\t</workflow>")
+    testo <- str_c(testo,"\n</xml>")
+    
+    return(testo)
+  }
+  #=================================================================================
   # get.transition.Prob
   # It tries to predict the probability to reach a final state (starting from a known starting state)
   # in "at least" K transitions
@@ -418,7 +450,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
       if(i<length(listaNodi)) listaNodiToPrint <- paste( c(listaNodiToPrint," '",listaNodi[i],"';"), collapse=''    )
       else listaNodiToPrint <- paste( c(listaNodiToPrint," '",listaNodi[i],"'"), collapse=''    )
     }
-    
     # now plot it
     a<-paste(c("digraph boxes_and_circles {
              
@@ -621,6 +652,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     "getInstanceClass"=getInstanceClass,
     "plot.delta.graph"=plot.delta.graph,
     "get.transition.Prob"=get.transition.Prob,
-    "get.time.transition.Prob"=get.time.transition.Prob
+    "get.time.transition.Prob"=get.time.transition.Prob,
+    "build.PWF"=build.PWF
   ) )  
 }
