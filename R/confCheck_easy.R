@@ -133,6 +133,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
         # res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
         if(param.verbose == TRUE) cat(str_c("\nBeginning Pat ",indice,"..."))
+        # browser()
         res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], col.eventName = dataLog$csv.EVENTName, col.dateName = dataLog$csv.dateColumnName , IDPaz = indice  )
         if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
         addNote(msg = "\n\t\t<atTheEnd>")
@@ -197,11 +198,17 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     last.fired.trigger<-c()
     ct <- 0; riga <- 0
     error<-""
+    history.hop<-list()
 
     sequenza <- as.array(matriceSequenza[ ,col.eventName ])
     
     # Analizza TUTTI gli eventi della sequenza
-    for( ev.NOW in sequenza ) {
+    for( indice.di.sequenza in seq(1,length(sequenza) )) {
+      # due variabili comode per dopo
+      ev.NOW <- sequenza[indice.di.sequenza]
+      indice.di.sequenza.ch <- as.character(indice.di.sequenza)
+      history.hop[[indice.di.sequenza.ch]]<-list()
+      
       if(param.verbose == TRUE) cat(str_c("\n\t processing:",ev.NOW))
       # costruisco un contatore della riga della tabella in analisi
       riga <- riga + 1
@@ -212,10 +219,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       note.setStep(number = ct)
       note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW)
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
-      
+      # browser()
       # Cerca chi ha soddisfatto le precondizioni
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = FALSE   )
-
+      history.hop[[indice.di.sequenza.ch]]$active.trigger<-newHop$active.trigger
+      history.hop[[indice.di.sequenza.ch]]$ev.NOW<-ev.NOW
+      history.hop[[indice.di.sequenza.ch]]$st.ACTIVE<-newHop$st.ACTIVE
       # Se c'e' un errore, ferma tutto
       if(newHop$error==TRUE) {
         note.set.error(error = newHop$error)
@@ -313,7 +322,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     note.flush()    
     
     # Ritorna
-    return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger, "date" = data.ev.NOW ) );
+    return( list( "st.ACTIVE"=st.ACTIVE,
+                  "error"=error,
+                  "last.fired.trigger" = last.fired.trigger, 
+                  "date" = data.ev.NOW,
+                  "history.hop" = history.hop) );
   }  
   #===========================================================  
   # attiva.trigger
@@ -858,18 +871,140 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   }  
   #=================================================================================
   # play.easy
+  #   number.of.cases : numero di casi da generare
+  #   min.num.of.valid.words : numero minimo di parole valide
+  #   max.word.length : numero massimo di eventi per parola
+  #=================================================================================  
+  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100) {
+    if(is.na(min.num.of.valid.words)) min.num.of.valid.words = as.integer(number.of.cases/2)
+    arr.matching.parola<-c()
+    # Genera un buon numero di parole valide
+    lista.res <- genera.parola.valida(number.of.cases = number.of.cases,
+                                      max.word.length = max.word.length )
+    # Ora prendine la metà e fai uno shuffle
+    quante.da.mescolare <- number.of.cases - min.num.of.valid.words
+    aaa <- lista.res$list.LOGs
+    for(indice.parola in seq(1,quante.da.mescolare)) {
+      cat("\n ",indice.parola)
+      lista.res$list.LOGs[[ indice.parola ]] <- sample(x = lista.res$list.LOGs[[ indice.parola ]] ,
+                                                       size = length(lista.res$list.LOGs[[ indice.parola ]]))
+    }
+    
+    # Ora devo controllare, di quelle che ho "shuffellato", quante sono ancora valide!
+    for(indice.parola in seq(1,quante.da.mescolare)) {
+      # Costruisci la matrice per consentire l'eseguibilità
+      
+      marice.dati<-c()
+      for(index.car in seq(1,length(lista.res$list.LOGs[[ indice.parola ]]))) {
+        sing.car <- lista.res$list.LOGs[[ indice.parola ]][index.car]
+        nuovaRiga<-c("01/01/1921",sing.car)
+        marice.dati <- rbind(marice.dati,nuovaRiga)
+      }
+      colnames(marice.dati)<-c("data","evento")
+      
+      res <- playSingleSequence( matriceSequenza = marice.dati, 
+                                 col.eventName = "evento", 
+                                 col.dateName = "data" , 
+                                 IDPaz = indice.parola  )
+      # scorri tutta la storia alla ricerca di qualche hop che non ha 
+      # scatenato un trigger. Se lo trovi, la parola è sbagliata!
+      parola.corretta <- TRUE
+      for(indice.hops in names(res$history.hop)) {
+        if(length(res$history.hop[[ indice.hops ]]$active.trigger)==0) parola.corretta<-FALSE
+        # tuttavia se quanto analizzato ora è relativo ad un nodo END, non proseguire oltre
+        # (ciò che c'è dopo, ipotizzo che non mi interessi)
+        # browser()
+        arr.nodi.attivati <- res$history.hop[[ indice.hops ]]$st.ACTIVE
+        stop.search.END<-FALSE
+        for( tmp.run in arr.nodi.attivati){
+          tmp.run<-str_replace_all(string = tmp.run,pattern = "'",replacement = "")
+          if(tmp.run!="BEGIN"){
+            if(WF.struct$info$stati[[ tmp.run ]]$type=="END") stop.search.END<-TRUE
+          }
+        }
+        if(stop.search.END==TRUE) break;
+      }
+      arr.matching.parola<-c(arr.matching.parola,parola.corretta)
+    }
+    
+    # dichiara certamente vere quelle iniziali, quelle non shuffellate
+    arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-min.num.of.valid.words))
+    # E mo' ritorna tutto il BOLO!
+    return(list( "lista.parole"=lista.res,
+                 "arr.matching.parola" = arr.matching.parola
+                 ))
+  } 
+  #=================================================================================
+  # genera.parola.valida
   #=================================================================================   
-  play.easy<-function() {
+  genera.parola.valida<-function(number.of.cases, max.word.length=100) {
     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
     arr.parole<-get.possible.words.in.WF.easy()
-    browser()
-    # res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], col.eventName = dataLog$csv.EVENTName, col.dateName = dataLog$csv.dateColumnName , IDPaz = indice  )
-    ct <- 1
+
+    # Inizializza gli array
+    list.LOGs<-list()
+    list.nodes<-list()
+
+    # Genera il numero desiderato di parole
+    for( num.parola in seq(1,number.of.cases)) {
+      # initialization
+      st.LAST<-"";  st.DONE<-c(""); st.ACTIVE<-c("'BEGIN'")
+      last.fired.trigger<-c(); 
+      arr.low.level<-c()
+      list.high.level<-list()
+      terminate.run = FALSE
+      
+      # genera il numero di sequenze desiderate
+      for( indice in seq(1, max.word.length)) {
+        
+        # costruisci l'array delle parole possibili, rimescolato
+        # (per evitare starvation)
+        arr.parole.sampled <- sample(x = arr.parole,size = length(arr.parole))
+  
+        # loopa su tutte la parole disponibili, cercando di uscirne   
+        # ( in realtà loop infiniti sono teoricamente possibili)
+        for( ev.NOW in arr.parole.sampled){
+          # if( ev.NOW == 'CT centratura') browser()
+          newHop <- attiva.trigger( st.LAST = st.LAST, 
+                                    ev.NOW = ev.NOW, 
+                                    st.DONE = st.DONE, 
+                                    st.ACTIVE = st.ACTIVE, 
+                                    EOF = FALSE   )
+          # Se c'e' un errore, ferma tutto
+          if(newHop$error==TRUE) {
+            stop("ERROR: hey, c'è un errore da qualche parte! errorCode = &j0j090j9")
+          }        
+          if( !is.null(newHop$active.trigger )) break;
+        }
+        
+        # ora dovrei avere la nuova parola
+        arr.low.level <- c(arr.low.level,ev.NOW)
+        list.high.level[[ as.character(length(arr.low.level)) ]] <- newHop$st.ACTIVE
+        st.ACTIVE <- newHop$st.ACTIVE
+        st.LAST <- newHop$st.LAST
+        st.DONE <- newHop$st.DONE
+        # Se uno degli stati raggiunti è di END, ferma la corsa 
+        # (la parola è finita)
+        for(nomeStato in st.ACTIVE) {
+          nomeStato<-str_replace_all(string = nomeStato,pattern = "'",replacement = "")
+          if(WF.struct$info$stati[[ nomeStato ]]$type=="END") terminate.run <- TRUE
+        }
+        if(length(arr.low.level)>max.word.length) terminate.run <- TRUE
+        if(terminate.run==TRUE) break;
+      }
+      list.LOGs[[ as.character(num.parola) ]] <- arr.low.level
+      list.nodes[[ as.character(num.parola) ]] <- list.high.level
+    }
+    # restituisci la stringa valida
+    return(  
+      list("list.LOGs"   = list.LOGs,
+           "list.nodes" = list.nodes)
+    )
   }
   get.possible.words.in.WF.easy<-function() {
     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
     arr.parole<-c()
-    browser()
+
     for(stringa in stringhe) {
       tmp.1 <- str_sub(string = stringa,start = str_locate(stringa,pattern = "\\$ev.NOW\\$")[2]+1)
       if(!is.na(tmp.1)) {
