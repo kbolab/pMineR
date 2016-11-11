@@ -120,8 +120,10 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   play<-function(numberOfPlays = 1 ) {
     res<-list()
     for(i in seq(1,numberOfPlays)) {
-      res[[i]]<-play.Single()
+      res[[as.character(i)]]<-play.Single()
     }
+    res <- format.data.for.csv(listaProcessi = res, lista.validi = rep(TRUE,numberOfPlays))
+    res<-as.data.frame(res)
     return(res)
   }
   #=================================================================================
@@ -382,6 +384,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
       statoAttuale<-nuovoStato
     }
     res<-c(res,"END")
+    res<-res[ which( !(res %in%  c('BEGIN','END') ))    ] 
     return(res);
   }  
   #===========================================================

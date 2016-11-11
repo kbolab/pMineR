@@ -878,60 +878,78 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100) {
     if(is.na(min.num.of.valid.words)) min.num.of.valid.words = as.integer(number.of.cases/2)
     arr.matching.parola<-c()
+    
+    # genera l'array dei nodi terminali
+#     arr.nodi.end<-c()
+#     for(nomeStato in names(WF.struct$info$stati)) {
+#       if( WF.struct$info$stati[[nomeStato]]$type == 'END') {
+#         arr.nodi.end<-c(arr.nodi.end,nomeStato)
+#       }      
+#     }
+    
     # Genera un buon numero di parole valide
     lista.res <- genera.parola.valida(number.of.cases = number.of.cases,
                                       max.word.length = max.word.length )
     # Ora prendine la metà e fai uno shuffle
     quante.da.mescolare <- number.of.cases - min.num.of.valid.words
     aaa <- lista.res$list.LOGs
-    for(indice.parola in seq(1,quante.da.mescolare)) {
-      cat("\n ",indice.parola)
-      lista.res$list.LOGs[[ indice.parola ]] <- sample(x = lista.res$list.LOGs[[ indice.parola ]] ,
-                                                       size = length(lista.res$list.LOGs[[ indice.parola ]]))
-    }
     
-    # Ora devo controllare, di quelle che ho "shuffellato", quante sono ancora valide!
-    for(indice.parola in seq(1,quante.da.mescolare)) {
-      # Costruisci la matrice per consentire l'eseguibilità
-      
-      marice.dati<-c()
-      for(index.car in seq(1,length(lista.res$list.LOGs[[ indice.parola ]]))) {
-        sing.car <- lista.res$list.LOGs[[ indice.parola ]][index.car]
-        nuovaRiga<-c("01/01/1921",sing.car)
-        marice.dati <- rbind(marice.dati,nuovaRiga)
+    if(quante.da.mescolare>0) {
+      for(indice.parola in seq(1,quante.da.mescolare)) {
+        cat("\n ",indice.parola)
+        lista.res$list.LOGs[[ indice.parola ]] <- sample(x = lista.res$list.LOGs[[ indice.parola ]] ,
+                                                         size = length(lista.res$list.LOGs[[ indice.parola ]]))
       }
-      colnames(marice.dati)<-c("data","evento")
-      
-      res <- playSingleSequence( matriceSequenza = marice.dati, 
-                                 col.eventName = "evento", 
-                                 col.dateName = "data" , 
-                                 IDPaz = indice.parola  )
-      # scorri tutta la storia alla ricerca di qualche hop che non ha 
-      # scatenato un trigger. Se lo trovi, la parola è sbagliata!
-      parola.corretta <- TRUE
-      for(indice.hops in names(res$history.hop)) {
-        if(length(res$history.hop[[ indice.hops ]]$active.trigger)==0) parola.corretta<-FALSE
-        # tuttavia se quanto analizzato ora è relativo ad un nodo END, non proseguire oltre
-        # (ciò che c'è dopo, ipotizzo che non mi interessi)
-        # browser()
-        arr.nodi.attivati <- res$history.hop[[ indice.hops ]]$st.ACTIVE
-        stop.search.END<-FALSE
-        for( tmp.run in arr.nodi.attivati){
-          tmp.run<-str_replace_all(string = tmp.run,pattern = "'",replacement = "")
-          if(tmp.run!="BEGIN"){
-            if(WF.struct$info$stati[[ tmp.run ]]$type=="END") stop.search.END<-TRUE
-          }
+    
+      # Ora devo controllare, di quelle che ho "shuffellato", quante sono ancora valide!
+      for(indice.parola in seq(1,quante.da.mescolare)) {
+        # Costruisci la matrice per consentire l'eseguibilità
+        
+        marice.dati<-c()
+        for(index.car in seq(1,length(lista.res$list.LOGs[[ indice.parola ]]))) {
+          sing.car <- lista.res$list.LOGs[[ indice.parola ]][index.car]
+          nuovaRiga<-c("01/01/1921",sing.car)
+          marice.dati <- rbind(marice.dati,nuovaRiga)
         }
-        if(stop.search.END==TRUE) break;
+        colnames(marice.dati)<-c("data","evento")
+        
+        res <- playSingleSequence( matriceSequenza = marice.dati, 
+                                   col.eventName = "evento", 
+                                   col.dateName = "data" , 
+                                   IDPaz = indice.parola  )
+        # scorri tutta la storia alla ricerca di qualche hop che non ha 
+        # scatenato un trigger. Se lo trovi, la parola è sbagliata!
+        parola.corretta <- TRUE
+        for(indice.hops in names(res$history.hop)) {
+          if(length(res$history.hop[[ indice.hops ]]$active.trigger)==0) parola.corretta<-FALSE
+          # tuttavia se quanto analizzato ora è relativo ad un nodo END, non proseguire oltre
+          # (ciò che c'è dopo, ipotizzo che non mi interessi)
+          # browser()
+          arr.nodi.attivati <- res$history.hop[[ indice.hops ]]$st.ACTIVE
+          stop.search.END<-FALSE
+          for( tmp.run in arr.nodi.attivati){
+            tmp.run<-str_replace_all(string = tmp.run,pattern = "'",replacement = "")
+            if(tmp.run!="BEGIN"){
+              if(WF.struct$info$stati[[ tmp.run ]]$type=="END") stop.search.END<-TRUE
+            }
+          }
+          if(stop.search.END==TRUE) break;
+        }
+  #       if(parola.corretta == TRUE) browser()
+        arr.matching.parola<-c(arr.matching.parola,parola.corretta)
       }
-      arr.matching.parola<-c(arr.matching.parola,parola.corretta)
     }
-    
     # dichiara certamente vere quelle iniziali, quelle non shuffellate
     arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-min.num.of.valid.words))
+    
+    valid.csv<-format.data.for.csv(listaProcessi = lista.res$list.LOGs,arr.matching.parola)
+    valid.data.frame<-as.data.frame(valid.csv)
+
+
     # E mo' ritorna tutto il BOLO!
     return(list( "lista.parole"=lista.res,
-                 "arr.matching.parola" = arr.matching.parola
+                 "arr.matching.parola" = arr.matching.parola,
+                 "valid.data.frame" = valid.data.frame
                  ))
   } 
   #=================================================================================
@@ -1001,6 +1019,18 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
            "list.nodes" = list.nodes)
     )
   }
+#   format.data.for.csv<-function(listaProcessi, lista.validi) { 
+#     big.csv<-c()
+#     ct <- 1
+#     for(i in names(listaProcessi)) {
+#       numeroElementi<-length(listaProcessi[[i]])
+#       matrice<-cbind(rep(ct,numeroElementi),listaProcessi[[i]],rep("01/01/1999",numeroElementi),rep(as.character(lista.validi[ct]),numeroElementi) )
+#       big.csv<-rbind(big.csv,matrice )
+#       ct <- ct + 1
+#     }
+#     colnames(big.csv)<-c("patID","event","date","valido")
+#     return(big.csv)
+#   }
   get.possible.words.in.WF.easy<-function() {
     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
     arr.parole<-c()

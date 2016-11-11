@@ -33,4 +33,16 @@ is.included<-function( a , b ) {
   if(sum(is.element(a,b)) == length(a)) return(TRUE)
   else return(FALSE)
 }
+format.data.for.csv<-function(listaProcessi, lista.validi) { 
+  big.csv<-c()
+  ct <- 1
+  for(i in names(listaProcessi)) {
+    numeroElementi<-length(listaProcessi[[i]])
+    matrice<-cbind(rep(ct,numeroElementi),listaProcessi[[i]],rep("01/01/1999",numeroElementi),rep(as.character(lista.validi[ct]),numeroElementi) )
+    big.csv<-rbind(big.csv,matrice )
+    ct <- ct + 1
+  }
+  colnames(big.csv)<-c("patID","event","date","valido")
+  return(big.csv)
+}
 
