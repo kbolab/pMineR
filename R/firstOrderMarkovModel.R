@@ -159,8 +159,25 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================
   # replay
   #===========================================================
-  replay<-function( wordSequence.raw ) {
-    cat("\n Not yet implemented for MM models")
+  replay<-function( dataList ) {
+    res<-list()
+    res$words<-list()
+    res$success<-c()
+    for(patId in names(dataList$pat.process)) {
+      parola <- unlist(dataList$pat.process[[patId]][[dataList$csv.EVENTName]])
+      parola <- c("BEGIN",parola)
+      success <- TRUE;
+      path.attuale<-c()
+      for( caratt.i in seq(1,(length(parola)-1)) ) {
+        caratt.s <- parola[ caratt.i  ]
+        jump.prob <- dataList$MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
+        if(jump.prob>0) path.attuale <- c(path.attuale,parola[ caratt.i  ])
+        if(jump.prob==0) { success = FALSE; break; }
+      }
+      res$words[[patId]]<-path.attuale
+      res$success<-c(res$success,success)
+    }
+    return( res )
   }
   #===========================================================
   # convert2XML - future
