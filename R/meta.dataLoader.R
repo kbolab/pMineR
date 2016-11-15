@@ -69,7 +69,7 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
     list.dataLoader[[ view.name ]] <<- list.dataLoader[[ from.view ]] 
   }  
   #=================================================================================
-  # copyView
+  # createView
   #=================================================================================  
   createView<-function( view.name ) {
     # 'main' cannot be used :)

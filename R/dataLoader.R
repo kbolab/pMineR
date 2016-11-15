@@ -123,7 +123,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
           if(length(arrPosizioniTMP)==0) return( "" )
           else return(as.character( list.dictionary[[ dict.name ]][[ column.name ]][arrPosizioniTMP])  )
         }  ))   
-        cat("\n",idPaz)
+        if(param.verbose==TRUE) cat("\n",idPaz)
         # browser()
         matrice[[param.EVENTName]] <- bbb
         # cat("\n",riga, " = ",param.EVENTName)
@@ -282,7 +282,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
     # per ogni paziente
     for(patID in seq(1,length(ID.act.group))) {
-      cat(str_c("\n   ->",patID))
+      if(param.verbose==TRUE)  cat(str_c("\n   ->",patID))
       # su ogni elemento del percorso clinico
       # t e' il "tempo" in senso di "step"
       for(t in seq(1,nrow(ID.act.group[[patID]]))) {
@@ -313,7 +313,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
       }
     }
     quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
-    cat(str_c("\n mean times : ",quanti.da.fare," \n"))
+    if(param.verbose==TRUE) cat(str_c("\n mean times : ",quanti.da.fare," \n"))
     # browser()
     # Calcola la matrice delle medie dei tempi
     # Sarebbe bello avere le density... vabbè. più avanti
@@ -322,7 +322,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
       MM.mean.time[ 1:nrow(MM.mean.time) , 1:ncol(MM.mean.time)   ]<-Inf
       for(state.from in names(MM.den.list))  {
         for(state.to in names(MM.den.list[[state.from]]))  {
-          cat(str_c("."))
+          if(param.verbose==TRUE) cat(str_c("."))
           # if(length(MM.den.list[[ state.from]][[ state.from ]])!=0)
           MM.mean.time[state.from,state.to ]<-mean(MM.den.list[[ state.from]][[ state.to ]])
 #           else 
@@ -332,14 +332,14 @@ dataLoader<-function( verbose.mode = TRUE ) {
     }
     # browser()
     # costruisci una semplice versione, con le parole (come piace tanto a Van der Aalst)
-    cat(str_c("\n simple version: ",length(seq(1,length(ID.act.group))),"\n"))
+    if(param.verbose==TRUE) cat(str_c("\n simple version: ",length(seq(1,length(ID.act.group))),"\n"))
     wordSequence.TMP01<-list();
     for(i in seq(1,length(ID.act.group))) {
-      cat(str_c("*"))
+      if(verbose.mode == TRUE)  cat(str_c("*"))
       IDPat<-names(  ID.act.group)[i]
       wordSequence.TMP01[[IDPat]]<-ID.act.group[[ IDPat ]][[EVENTName]]
     }    
-    cat(str_c("\n End"))
+    if(param.verbose==TRUE) cat(str_c("\n End"))
     # browser()
 #     return(list( "arrayAssociativo" = rownames(MM),
 #                  "footPrint"=buildFootPrintTable(MM),
@@ -450,16 +450,16 @@ dataLoader<-function( verbose.mode = TRUE ) {
     if(!is.na(dateColumnName)) {
       mydata[[dateColumnName]]<-as.character(mydata[[dateColumnName]])
     }
-    cat("\n internal Grouping")
+    if(verbose.mode == TRUE) cat("\n internal Grouping")
     # group the log of the patient in a structure easier to handle
     ID.act.group<-groupPatientLogActivity(mydata, ID.list.names) 
     
-    cat("\n Ordering date:")
+    if(verbose.mode == TRUE) cat("\n Ordering date:")
     # Order the list by the interested date (if exists)
     if(!is.na(dateColumnName)) {
       ID.act.group<-order.list.by.date(listToBeOrdered = ID.act.group, dateColumnName = dateColumnName)
     }
-    cat("\n Building MMatrices and other stuff")
+    if(verbose.mode == TRUE) cat("\n Building MMatrices and other stuff")
     # build the MM matrix and other stuff...
     res<-buildMMMatrices.and.other.structures(mydata = mydata, 
                                               EVENT.list.names = EVENT.list.names, 

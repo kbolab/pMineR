@@ -16,7 +16,6 @@ plotTimeline.ID.From.CSV<-function( nomeFile,  IDToPlot, IDName, EVENTName, DATA
 #' 
 #' @description  kfjvkcvcx
 #' @export
-#' @examples \dontrun{
 plotTimeline<-function( eventTable , dataSep='/', format.date = "%Y/%m/%d" ) {
   
 #     eventTable<-c("2001-01-10","RX torace")

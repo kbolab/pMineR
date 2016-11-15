@@ -151,7 +151,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       }
       
     }
-    # browser()
     # Chiudi l'XML
     addNote(msg = "\n</xml>")
   }   
@@ -228,7 +227,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       note.setStep(number = ct)
       note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW)
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
-      # browser()
+
       # Cerca chi ha soddisfatto le precondizioni
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = FALSE   )
       history.hop[[indice.di.sequenza.ch]]$active.trigger<-newHop$active.trigger
@@ -879,6 +878,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #   max.word.length : numero massimo di eventi per parola
   #=================================================================================  
   play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100) {
+    obj.utils <- utils()
     if(is.na(min.num.of.valid.words)) min.num.of.valid.words = as.integer(number.of.cases/2)
     arr.matching.parola<-c()
     
@@ -944,8 +944,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     }
     # dichiara certamente vere quelle iniziali, quelle non shuffellate
     arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-min.num.of.valid.words))
-    
-    valid.csv<-format.data.for.csv(listaProcessi = lista.res$list.LOGs,arr.matching.parola)
+    valid.csv<-obj.utils$format.data.for.csv(listaProcessi = lista.res$list.LOGs,arr.matching.parola)
     valid.data.frame<-as.data.frame(valid.csv)
     
     
@@ -984,6 +983,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         
         # loopa su tutte la parole disponibili, cercando di uscirne   
         # ( in realtà loop infiniti sono teoricamente possibili)
+        trovato.qualcosa <- FALSE
         for( ev.NOW in arr.parole.sampled){
           # if( ev.NOW == 'CT centratura') browser()
           newHop <- attiva.trigger( st.LAST = st.LAST, 
@@ -992,11 +992,18 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                     st.ACTIVE = st.ACTIVE, 
                                     EOF = FALSE   )
           # Se c'e' un errore, ferma tutto
-          if(newHop$error==TRUE) {
-            stop("ERROR: hey, c'è un errore da qualche parte! errorCode = &j0j090j9")
-          }        
-          if( !is.null(newHop$active.trigger )) break;
+#           if(newHop$error==TRUE) {
+#             stop("ERROR: hey, c'è un errore da qualche parte! errorCode = &j0j090j9")
+#           }        
+          if( !is.null(newHop$active.trigger ) & newHop$error == FALSE) {
+            trovato.qualcosa <- TRUE
+            break;
+          }
         }
+        if(trovato.qualcosa==FALSE){
+          stop("ERROR: non ci sono eventi che consentono di far evolvere la stringa")
+        }        
+        
         
         # ora dovrei avere la nuova parola
         arr.low.level <- c(arr.low.level,ev.NOW)

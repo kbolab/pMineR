@@ -343,8 +343,9 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
     
     counter<-1;
     xl<-list();
+    obj.utils <- utils()
     for(i in seq(1,numberOfDepencencies)) {
-      bw.from<-dectobin(res[[5]][i]); bw.to<-dectobin(res[[6]][i]);
+      bw.from<-obj.utils$dectobin(res[[5]][i]); bw.to<-obj.utils$dectobin(res[[6]][i]);
       bw.from<- c(rep(0,numberOfVariables-length(bw.from)),bw.from)
       bw.to<- c(rep(0,numberOfVariables-length(bw.to)),bw.to)
       pos.from = which(bw.from==1);  pos.to = which(bw.to==1);
@@ -359,12 +360,13 @@ alphaAlgorithm<-function(  parameters.list = NA ) {
   }  
   build.yl<-function(xl) {
     yl<-list();
+    obj.utils <- utils()
     counter<-1
     for( index in seq(1,length(xl))) {
       daScartare<-FALSE;
       for( ii in seq(1,length(xl))) {
-        if(is.included( xl[[index]]$from, xl[[ii]]$from)==TRUE &
-           is.included( xl[[index]]$to, xl[[ii]]$to)==TRUE) {
+        if(obj.utils$is.included( xl[[index]]$from, xl[[ii]]$from)==TRUE &
+           obj.utils$is.included( xl[[index]]$to, xl[[ii]]$to)==TRUE) {
           
           if(setequal(xl[[index]]$from, xl[[ii]]$from) ==TRUE &
              setequal(xl[[index]]$to, xl[[ii]]$to) ==TRUE  &

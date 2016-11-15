@@ -111,6 +111,13 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     MMatrix.mean.time<<-dataList$MM.mean.time
     MMatrix.density.list<<-dataList$MM.density.list
     
+    
+#     if(!is.null(parameters$threshold)) threshold<-parameters$threshold
+#     else threshold<-0
+#     
+#     if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
+#     else considerAutoLoop <- TRUE
+#     
     # dichiara che i dati sono stati caricati
     is.dataLoaded<<-TRUE
   }  
@@ -118,11 +125,12 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # play
   #===========================================================
   play<-function(numberOfPlays = 1 ) {
+    obj.utils <- utils()
     res<-list()
     for(i in seq(1,numberOfPlays)) {
       res[[as.character(i)]]<-play.Single()
     }
-    res <- format.data.for.csv(listaProcessi = res, lista.validi = rep(TRUE,numberOfPlays))
+    res <- obj.utils$format.data.for.csv(listaProcessi = res, lista.validi = rep(TRUE,numberOfPlays))
     res<-as.data.frame(res)
     return(res)
   }
@@ -144,13 +152,23 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     # setta la soglia a zero, cosi' per sport...
     if(!is.null(parameters$threshold)) threshold<-parameters$threshold
     else threshold<-0
-    if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
-    else considerAutoLoop<-TRUE  
-    
-    # copia la tabella delle transizioni in una un po' piu' facile 
+    if(!is.null(parameters$considerAutoLoop)) {
+      considerAutoLoop<-parameters$considerAutoLoop
+    } 
+    else 
+    {
+      considerAutoLoop<-TRUE
+    }
+  
+    # copia la tabella delle  transizioni in una un po' piu' facile 
     # da maneggiare (almeno come nome)
-    if ( considerAutoLoop == TRUE) MM<-MMatrix.perc
-    else MM<-MMatrix.perc.noLoop
+    if ( considerAutoLoop == TRUE) { MM<-MMatrix.perc; }
+    else {
+      diag(MMatrix)<<-0
+      diag(MMatrix.mean.time) <<- Inf
+      diag(MMatrix.perc)<<-0
+      MM <- MMatrix.perc.noLoop
+    }
     
     grafo<-build.graph.from.table( MM = MM, threshold  = threshold)
     
@@ -169,8 +187,10 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
       success <- TRUE;
       path.attuale<-c()
       for( caratt.i in seq(1,(length(parola)-1)) ) {
+        # if( parola[ caratt.i  ] =="RX" & parola[ caratt.i+1 ] =="RX" ) browser()
         caratt.s <- parola[ caratt.i  ]
-        jump.prob <- dataList$MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
+        # jump.prob <- dataList$MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
+        jump.prob <- MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
         if(jump.prob>0) path.attuale <- c(path.attuale,parola[ caratt.i  ])
         if(jump.prob==0) { success = FALSE; break; }
       }
