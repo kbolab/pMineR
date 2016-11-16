@@ -877,7 +877,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #   min.num.of.valid.words : numero minimo di parole valide
   #   max.word.length : numero massimo di eventi per parola
   #=================================================================================  
-  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100) {
+  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, howToBuildBad="resample") {
     obj.utils <- utils()
     if(is.na(min.num.of.valid.words)) min.num.of.valid.words = as.integer(number.of.cases/2)
     arr.matching.parola<-c()
@@ -896,12 +896,23 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # Ora prendine la metà e fai uno shuffle
     quante.da.mescolare <- number.of.cases - min.num.of.valid.words
     aaa <- lista.res$list.LOGs
-    
+ 
     if(quante.da.mescolare>0) {
       for(indice.parola in seq(1,quante.da.mescolare)) {
-        cat("\n ",indice.parola)
-        lista.res$list.LOGs[[ indice.parola ]] <- sample(x = lista.res$list.LOGs[[ indice.parola ]] ,
-                                                         size = length(lista.res$list.LOGs[[ indice.parola ]]))
+        if(param.verbose == TRUE)  cat("\n ",indice.parola)
+          if(howToBuildBad=="resample") {
+            lista.res$list.LOGs[[ indice.parola ]] <- sample(x = lista.res$list.LOGs[[ indice.parola ]] ,
+                                                             size = length(lista.res$list.LOGs[[ indice.parola ]]))
+          }
+        if(howToBuildBad=="subtle") {
+
+          if(length(lista.res$list.LOGs[[ indice.parola ]])>=5){
+            dado <- as.integer(runif(n = 1,min = 2,max = length(lista.res$list.LOGs[[ indice.parola ]])-2))
+            tmp.val<-lista.res$list.LOGs[[ indice.parola ]][ dado ]
+            lista.res$list.LOGs[[ indice.parola ]][ dado ] <- lista.res$list.LOGs[[ indice.parola ]][ dado+1 ]
+            lista.res$list.LOGs[[ indice.parola ]][ dado+1 ] <- tmp.val
+          }
+        }
       }
       
       # Ora devo controllare, di quelle che ho "shuffellato", quante sono ancora valide!
@@ -909,9 +920,13 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         # Costruisci la matrice per consentire l'eseguibilità
         
         marice.dati<-c()
+        numeroGiorno<-1
         for(index.car in seq(1,length(lista.res$list.LOGs[[ indice.parola ]]))) {
           sing.car <- lista.res$list.LOGs[[ indice.parola ]][index.car]
-          nuovaRiga<-c("01/01/1921",sing.car)
+          # nuovaRiga<-c("01/01/1921",sing.car)
+          nuovaDatatmp <- as.character(as.Date("01/01/2000",format="%d/%m/%Y") + numeroGiorno)
+          nuovaRiga<-c(nuovaDatatmp,sing.car)
+          numeroGiorno<-numeroGiorno+1
           marice.dati <- rbind(marice.dati,nuovaRiga)
         }
         colnames(marice.dati)<-c("data","evento")
@@ -942,6 +957,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         arr.matching.parola<-c(arr.matching.parola,parola.corretta)
       }
     }
+
     # dichiara certamente vere quelle iniziali, quelle non shuffellate
     arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-min.num.of.valid.words))
     valid.csv<-obj.utils$format.data.for.csv(listaProcessi = lista.res$list.LOGs,arr.matching.parola)

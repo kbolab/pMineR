@@ -170,6 +170,12 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
       MM <- MMatrix.perc.noLoop
     }
     
+    # sistema la threshold 
+    aa<- MMatrix.perc; bb <- MMatrix
+    aa[ which(aa<=threshold,arr.ind = T) ]<-0
+    bb[ which(bb<=threshold,arr.ind = T) ]<-0
+    MMatrix.perc<<-aa ; MMatrix<<-bb
+    
     grafo<-build.graph.from.table( MM = MM, threshold  = threshold)
     
     model.grViz<<-grafo;
@@ -177,28 +183,78 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================
   # replay
   #===========================================================
-  replay<-function( dataList ) {
+  replay<-function( dataList , debugMode = FALSE, col.toCheckPerformances=NA ) {
     res<-list()
     res$words<-list()
     res$success<-c()
+    declared.correctness<- c()
+    if(debugMode == TRUE) browser()
     for(patId in names(dataList$pat.process)) {
       parola <- unlist(dataList$pat.process[[patId]][[dataList$csv.EVENTName]])
       parola <- c("BEGIN",parola)
       success <- TRUE;
       path.attuale<-c()
+      # if(patId==82) browser()
       for( caratt.i in seq(1,(length(parola)-1)) ) {
         # if( parola[ caratt.i  ] =="RX" & parola[ caratt.i+1 ] =="RX" ) browser()
         caratt.s <- parola[ caratt.i  ]
+        if(!(caratt.s %in% colnames(MMatrix.perc))) { success = FALSE; break; }
+        if(!(parola[ caratt.i +1 ] %in% colnames(MMatrix.perc))) { success = FALSE; break; }
+        
         # jump.prob <- dataList$MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
+        
         jump.prob <- MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
         if(jump.prob>0) path.attuale <- c(path.attuale,parola[ caratt.i  ])
         if(jump.prob==0) { success = FALSE; break; }
+        caratt.s %in% colnames(MMatrix.perc)
       }
       res$words[[patId]]<-path.attuale
       res$success<-c(res$success,success)
+      
+      if( !is.na(col.toCheckPerformances) )  {
+        declared.correctness <- c(declared.correctness,as.character(dataList$pat.process[[patId]][[col.toCheckPerformances]][1]))
+      }
+    }
+    
+    if( !is.na(col.toCheckPerformances) ) {
+      conf.matrix <- table(res$success, declared.correctness)
+      res$performances <- calculate.performances(conf.matrix)
     }
     return( res )
   }
+  #===========================================================
+  # calculate.performances 
+  #===========================================================
+  calculate.performances<-function( conf.matrix  ) {
+    # browser()
+    # calculate accuracy
+    if( "TRUE" %in% rownames(conf.matrix) & "TRUE" %in% colnames(conf.matrix)) {
+      TP <- conf.matrix[ "TRUE","TRUE" ]
+    } else { TP <- 0 }
+    if( "FALSE" %in% rownames(conf.matrix) & "FALSE" %in% colnames(conf.matrix)) {
+      TN <- conf.matrix[ "FALSE","FALSE" ]
+    } else { TN <- 0 }
+    if( "TRUE" %in% rownames(conf.matrix) & "FALSE" %in% colnames(conf.matrix)) {
+      FP <- conf.matrix[ "TRUE","FALSE" ]
+    } else { FP <- 0 }
+    if( "FALSE" %in% rownames(conf.matrix) & "TRUE" %in% colnames(conf.matrix)) {
+      FN <- conf.matrix[ "FALSE","TRUE" ]
+    } else { FN <- 0 }  
+    
+    return(list(
+      "TP" = TP,
+      "TN" = TN,
+      "FP" = FP,
+      "FN" = FN,
+      "accuracy" = (TP + TN)/(TP + TN + FP + FN),
+      "sensitivity" = (TP )/(TP + FN ),
+      "specificity" = (TN )/(FP + TN ),
+      "precision" = (TP )/(TP + FP ),
+      "recall" = (TP )/(TP + FN ),
+      "F1score" = ( 2 * TP )/( 2 * TP + FP + FN ),
+      "conf.matrix"=conf.matrix
+      ))
+  }   
   #===========================================================
   # convert2XML - future
   #===========================================================
