@@ -105,14 +105,12 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     colnames(M.2.Matrix)<-colnames(MMatrix)
     M.2.Matrix.row.index <- mtrTot
     # Ora scorri il pat.xxxx a contare le occorrenze
-    
+    # browser()
     for(patID in names(pat.process)) {
       sequenza <- unlist(  pat.process[[patID]][[csv.EVENTName]]  ) 
+      sequenza<-c("BEGIN","BEGIN",sequenza) #  im
       for(i in seq(1,length(sequenza)-1)) {
-        if(i == 1) {
-          indice <- which(M.2.Matrix.row.index[,1]=="BEGIN" & M.2.Matrix.row.index[,2]=="BEGIN")
-          M.2.Matrix[indice,sequenza[i+1] ]<- M.2.Matrix[indice,sequenza[i+1] ]+1
-        }
+        
         if( i == length(sequenza)-1) { 
           indice <- which(M.2.Matrix.row.index[,1]==sequenza[i] & M.2.Matrix.row.index[,2]==sequenza[i+1])
           M.2.Matrix[indice,"END" ] <- M.2.Matrix[indice,"END" ]+1      
@@ -147,20 +145,122 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
   play.Single<-function() {
     ct<-1;
     res<-c();
-    browser()
+
+    statoPrecedente<-"BEGIN";  # Stato al tempo precedente
+    statoAttuale<-"BEGIN";  # Stato al tempo attuale
     
-    statoAttuale<-"BEGIN"
+    aaa <- MM.2.Matrix.perc$M.2.Matrix
+    bbb <- MM.2.Matrix.perc$M.2.Matrix.row.index
+    
     while( statoAttuale != "END") {
-      sommaCum<-cumsum(MM[statoAttuale,])
-      dado<-runif(n = 1,min = 0,max = 0.99999999999999)
-      posizione<-which( (cumsum(MM[statoAttuale,])-dado)>=0  )[1]
-      nuovoStato<-colnames(MM)[posizione]
+      indice <- which(bbb[,1]==statoPrecedente & bbb[,2]==statoAttuale)
+      
+      sommaCum<-cumsum(aaa[indice,])
+      # if(sum(sommaCum)==0) break;
+      # dado<-runif(n = 1,min = 0,max = 0.99999999999999)
+      dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
+      posizione<-which( (cumsum(aaa[indice,])-dado)>=0  )[1]
+      nuovoStato<-colnames(aaa)[posizione]
       res<-c(res,statoAttuale)
-      statoAttuale<-nuovoStato
+      statoPrecedente <- statoAttuale
+      statoAttuale <- nuovoStato
     }
     res<-c(res,"END")
     res<-res[ which( !(res %in%  c('BEGIN','END') ))    ] 
     return(res);
+  }   
+  #===========================================================
+  # replay
+  #===========================================================
+  replay<-function( dataList , debugMode = FALSE, col.toCheckPerformances=NA ) {
+    res<-list()
+    res$words<-list()
+    res$success<-c()
+    declared.correctness<- c()
+    
+    aaa <- MM.2.Matrix.perc$M.2.Matrix
+    bbb <- MM.2.Matrix.perc$M.2.Matrix.row.index
+    
+    if(debugMode == TRUE) browser()
+    for(patId in names(dataList$pat.process)) {
+      parola <- unlist(dataList$pat.process[[patId]][[dataList$csv.EVENTName]])
+      parola <- c("BEGIN","BEGIN",parola)
+      success <- TRUE;
+      path.attuale<-c()
+      # if(patId==82) browser()
+      for( caratt.i in seq(2,(length(parola)-1)) ) {
+        
+        statoPrecedente <- parola[ caratt.i - 1  ]
+        statoAttuale <- parola[ caratt.i   ]
+        statoFuturo <- parola[ caratt.i +1  ]
+        
+        indice <- which(bbb[,1]==statoPrecedente & bbb[,2]==statoAttuale)
+        
+        # se non l'hai trovato
+        if(length(indice)==0) {
+          success = FALSE; break; 
+        }
+        if(!(statoFuturo %in% colnames(MM.2.Matrix.perc$M.2.Matrix))) { success = FALSE; break; }
+        
+        jump.prob <- aaa[ indice, statoFuturo ]
+        
+#         caratt.s <- parola[ caratt.i  ]
+#         if(!(caratt.s %in% colnames(MMatrix.perc))) { success = FALSE; break; }
+#         if(!(parola[ caratt.i +1 ] %in% colnames(MMatrix.perc))) { success = FALSE; break; }
+        
+        # jump.prob <- dataList$MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
+        
+        # jump.prob <- MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
+        if(jump.prob>0) path.attuale <- c(path.attuale,parola[ caratt.i  ])
+        if(jump.prob==0) { success = FALSE; break; }
+        # caratt.s %in% colnames(MMatrix.perc)
+      }
+      res$words[[patId]]<-path.attuale
+      res$success<-c(res$success,success)
+      
+      if( !is.na(col.toCheckPerformances) )  {
+        declared.correctness <- c(declared.correctness,as.character(dataList$pat.process[[patId]][[col.toCheckPerformances]][1]))
+      }
+    }
+    
+    if( !is.na(col.toCheckPerformances) ) {
+      conf.matrix <- table(res$success, declared.correctness)
+      res$performances <- calculate.performances(conf.matrix)
+    }
+    return( res )
+  }  
+  #===========================================================
+  # calculate.performances 
+  #===========================================================
+  calculate.performances<-function( conf.matrix  ) {
+    # browser()
+    # calculate accuracy
+    if( "TRUE" %in% rownames(conf.matrix) & "TRUE" %in% colnames(conf.matrix)) {
+      TP <- conf.matrix[ "TRUE","TRUE" ]
+    } else { TP <- 0 }
+    if( "FALSE" %in% rownames(conf.matrix) & "FALSE" %in% colnames(conf.matrix)) {
+      TN <- conf.matrix[ "FALSE","FALSE" ]
+    } else { TN <- 0 }
+    if( "TRUE" %in% rownames(conf.matrix) & "FALSE" %in% colnames(conf.matrix)) {
+      FP <- conf.matrix[ "TRUE","FALSE" ]
+    } else { FP <- 0 }
+    if( "FALSE" %in% rownames(conf.matrix) & "TRUE" %in% colnames(conf.matrix)) {
+      FN <- conf.matrix[ "FALSE","TRUE" ]
+    } else { FN <- 0 }  
+    
+    return(list(
+      "TP" = TP,
+      "TN" = TN,
+      "FP" = FP,
+      "FN" = FN,
+      "accuracy" = (TP + TN)/(TP + TN + FP + FN),
+      "sensitivity" = (TP )/(TP + FN ),
+      "specificity" = (TN )/(FP + TN ),
+      "precision" = (TP )/(TP + FP ),
+      "recall" = (TP )/(TP + FN ),
+      "F1score" = ( 2 * TP )/( 2 * TP + FP + FN ),
+      "conf.matrix"=conf.matrix
+    ))
   }   
   #===========================================================
   # setIstanceClass
@@ -193,6 +293,7 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     "trainModel"=trainModel,
     "loadDataset"=loadDataset,
     "play"=play,
+    "replay"=replay,
     "getModel"=getModel
   ) )  
 }

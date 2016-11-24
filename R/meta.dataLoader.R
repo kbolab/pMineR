@@ -71,7 +71,7 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
   #=================================================================================
   # createView
   #=================================================================================  
-  createView<-function( view.name ) {
+  createView<-function( view.name , verbose.mode = TRUE) {
     # 'main' cannot be used :)
     if( view.name == "main") 
     { obj.logHandler$sendLog( msg ="ERROR: 'main' is not a reserved name ", type="NMI" ); return; }
@@ -80,7 +80,7 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
 #     { obj.logHandler$sendLog( msg =c("ERROR: '",view.name,"' already exists"), type="NMI" ); return; }
     
     # create the view
-    list.dataLoader[[ view.name ]] <<- dataLoader()
+    list.dataLoader[[ view.name ]] <<- dataLoader( verbose.mode = verbose.mode)
   }   
   #=================================================================================
   # removeEvents

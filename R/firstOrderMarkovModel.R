@@ -254,6 +254,32 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
       "F1score" = ( 2 * TP )/( 2 * TP + FP + FN ),
       "conf.matrix"=conf.matrix
       ))
+  } 
+  #===========================================================
+  # findReacheableNodes
+  # Funzione 
+  #===========================================================
+  findReacheableNodes<-function( nodoDiPatenza = 'BEGIN'  ) {
+    
+    findReacheableNodes.recursiveLoop(
+      nodoAttuale = nodoDiPatenza,
+      nodi.raggiunti = c(nodoDiPatenza)
+    )
+    
+  }   
+  findReacheableNodes.recursiveLoop<-function( nodoAttuale , nodi.raggiunti  ) {
+    
+    lista.nodi <- colnames(MMatrix.perc)
+    nodi.raggiunti <- unique(c(nodi.raggiunti,nodoAttuale))
+     # browser()
+    for( nodoDestinazione in lista.nodi) {
+      if( !(nodoDestinazione %in% nodi.raggiunti ) & MMatrix.perc[nodoAttuale,nodoDestinazione]>0) {
+        aa <- findReacheableNodes.recursiveLoop( nodoAttuale = nodoDestinazione , 
+                                                 nodi.raggiunti = nodi.raggiunti)
+        nodi.raggiunti <- unique(c(nodi.raggiunti , aa))
+      }
+    }
+    return(nodi.raggiunti)
   }   
   #===========================================================
   # convert2XML - future
@@ -466,15 +492,17 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     # da maneggiare (almeno come nome)
     if ( considerAutoLoop == TRUE) MM<-MMatrix.perc
     else MM<-MMatrix.perc.noLoop
-    
+    # cat("\n iniziato un single play")
     statoAttuale<-"BEGIN"
     while( statoAttuale != "END") {
       sommaCum<-cumsum(MM[statoAttuale,])
-      dado<-runif(n = 1,min = 0,max = 0.99999999999999)
+      # dado<-runif(n = 1,min = 0,max = 0.99999999999999)
+      dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
       posizione<-which( (cumsum(MM[statoAttuale,])-dado)>=0  )[1]
       nuovoStato<-colnames(MM)[posizione]
       res<-c(res,statoAttuale)
       statoAttuale<-nuovoStato
+      # cat("\n ------------------------------------------\n ",res)
     }
     res<-c(res,"END")
     res<-res[ which( !(res %in%  c('BEGIN','END') ))    ] 
@@ -749,6 +777,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     "plot.delta.graph"=plot.delta.graph,
     "get.transition.Prob"=get.transition.Prob,
     "get.time.transition.Prob"=get.time.transition.Prob,
-    "build.PWF"=build.PWF
+    "build.PWF"=build.PWF,
+    "findReacheableNodes"=findReacheableNodes
   ) )  
 }
