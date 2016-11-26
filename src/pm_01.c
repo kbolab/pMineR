@@ -31,9 +31,11 @@ void printBagList() {
   struct bagListStruct *tmpCursor;
   int numOfElement = fp->numOfElement;
   
-  for( struct bagListStruct *nn = bagListFather; nn != NULL; nn = nn->next ) {
-//    if(bagListFather!=nn) printf("\n-%s-",nn->strPunt);
+/*  for( struct bagListStruct *nn = bagListFather; nn != NULL; nn = nn->next ) {
+
   }
+ */
+ 
 }
 
 /*
@@ -73,10 +75,7 @@ void addStringToBag( char *stringa) {
   for(int i=0; i < numOfElement; i++) *(blCursor->next->strPunt + i) = *(stringa + i);
   
   blCursor = blCursor->next;
-//  printf("\n");
-//  for( struct bagListStruct *nn = bagListFather; nn->next!=NULL; nn = nn->next ) {
-//    printf("%s,",nn->strPunt);
-//  }
+
 }
 
 /*
@@ -87,21 +86,16 @@ void addStringToBag( char *stringa) {
 int checkWord( char *stringa ) {
   char valore;
   int pos = strlen(stringa);
-//  printf("\n-------------------");
-//  printf("\nstringa = %s",stringa);
   for( int first = 0; first < pos; first++ ) {
     if( *(stringa+first)=='1'  ) {
       for( int second = first; second < pos; second++ ) {
         if( *(stringa+second)=='1'  ) {
           valore = fp->footPrint[   first*(fp->numOfElement) + second    ];
-//          printf("\n first=%d, second=%d, numOfElement=%d",first,second,pos);
-//          printf("\n-%s- valore='%d'",stringa,valore);
           if(valore!=4) return(-1);  // se il valore è != da '#'
         }
       }
     }
   }
-//  printf("\n-------------------");
   return(0);
 }
 
@@ -131,8 +125,7 @@ void buildWords( char *stringa) {
       return;
     }
   }
-//  if( checkWord( stringa ) == -1 ) printf("\nFAIL!");
-  
+
   // caso noto: la lunghezza della parola è giunta al massimo
   if( pos == (numOfElement) ) {
 
@@ -148,7 +141,6 @@ void buildWords( char *stringa) {
 
     // se non è uscito è perchè la parola contiene almeno un '1', quindi è da aggiungere
     addStringToBag( stringa );
-//    printf("\n Stringa=%s",stringa);
     deepLevel--;
     return;
   }
@@ -164,7 +156,6 @@ void buildWords( char *stringa) {
   *(stringa+pos) = '0';
   buildWords(  stringa  );
   *(stringa+pos) = '\0';
-//  if(deepLevel<=2) printf("\n stringa=%s (%d)",stringa,deepLevel);
   deepLevel--;
 }
 /*
@@ -243,7 +234,6 @@ void findDependences( ) {
       // se puoi, aggiungile nella lista delle associazioni papabili
       if(mismatch==0) {
         addAssociationToBag( possPre->strPunt , possPost->strPunt );
-//        printf("\nchk: %s vs %s   =  ",possPre->strPunt,possPost->strPunt);
       }      
     }
   }
