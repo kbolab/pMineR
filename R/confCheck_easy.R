@@ -871,13 +871,61 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     notebook[[notebook.name]]<<-str_c(notebook[[notebook.name]],msg)
     return;
   }  
+
+  
+  
   #=================================================================================
   # play.easy
   #   number.of.cases : numero di casi da generare
   #   min.num.of.valid.words : numero minimo di parole valide
   #   max.word.length : numero massimo di eventi per parola
   #=================================================================================  
-  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, howToBuildBad="resample") {
+  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, howToBuildBad="resample", debug.mode = FALSE) {
+    if(is.na(min.num.of.valid.words)) min.num.of.valid.words = number.of.cases
+    quante.da.sbagliare <- number.of.cases - min.num.of.valid.words
+
+    if(debug.mode==TRUE) cat("\nB")
+    if(min.num.of.valid.words>0) {
+      a <- play.easy.impreciso(number.of.cases = min.num.of.valid.words,min.num.of.valid.words = min.num.of.valid.words,
+                               max.word.length = max.word.length, howToBuildBad = howToBuildBad)
+    }
+    
+    if(quante.da.sbagliare>0) {
+      totalizzati = 0
+      while(totalizzati < quante.da.sbagliare) {
+        b <- play.easy.impreciso(number.of.cases = 1,min.num.of.valid.words = 0,
+                                 max.word.length = max.word.length, howToBuildBad = howToBuildBad)
+        if(b$arr.matching.parola==FALSE) {
+          if(debug.mode==TRUE) cat("+")
+          if(min.num.of.valid.words==0 & totalizzati==0) {a <- b}
+          else  {
+            a <- join.giving.new.ID(a,b)
+          }
+          totalizzati <- totalizzati + 1
+        }
+        else{
+          if(debug.mode==TRUE)  cat(".")
+        }
+                                 
+      }
+    }
+    if(debug.mode==TRUE) cat("\nE")
+    return(a)
+    
+  }
+  join.giving.new.ID<-function( a , b ) {
+    new.b <- as.character(max(as.numeric(names(a$lista.parole$list.nodes)))+1)
+    attuale.b<- names(b$lista.parole$list.LOGs)
+    
+    a$lista.parole$list.LOGs[[new.b]] <- b$lista.parole$list.LOGs[[attuale.b]]
+    a$lista.parole$list.nodes[[new.b]] <- b$lista.parole$list.nodes[[attuale.b]]
+    a$arr.matching.parola <- c(a$arr.matching.parola,b$arr.matching.parola)
+    b$valid.data.frame$patID <- rep(new.b,length(b$valid.data.frame$patID))
+    a$valid.data.frame<-rbind(a$valid.data.frame,b$valid.data.frame)    
+    
+    return(a)
+  }
+  play.easy.impreciso<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, howToBuildBad="resample") {
     obj.utils <- utils()
     if(is.na(min.num.of.valid.words)) min.num.of.valid.words = as.integer(number.of.cases/2)
     arr.matching.parola<-c()
@@ -976,7 +1024,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #=================================================================================
   # genera.parola.valida
   #=================================================================================   
-  genera.parola.valida<-function(number.of.cases, max.word.length=100) {
+  genera.parola.valida<-function(number.of.cases, max.word.length=100, parola.valida = TRUE) {
     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
     arr.parole<-get.possible.words.in.WF.easy()
     
@@ -1010,10 +1058,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                     st.DONE = st.DONE, 
                                     st.ACTIVE = st.ACTIVE, 
                                     EOF = FALSE   )
-          # Se c'e' un errore, ferma tutto
-#           if(newHop$error==TRUE) {
-#             stop("ERROR: hey, c'è un errore da qualche parte! errorCode = &j0j090j9")
-#           }        
           if( !is.null(newHop$active.trigger ) & newHop$error == FALSE) {
             trovato.qualcosa <- TRUE
             break;
@@ -1022,8 +1066,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         if(trovato.qualcosa==FALSE){
           stop("ERROR: non ci sono eventi che consentono di far evolvere la stringa")
         }        
-        
-        
+
         # ora dovrei avere la nuova parola
         arr.low.level <- c(arr.low.level,ev.NOW)
         list.high.level[[ as.character(length(arr.low.level)) ]] <- newHop$st.ACTIVE
