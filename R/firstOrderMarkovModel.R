@@ -483,10 +483,15 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # play.Single
   #===========================================================  
   play.Single<-function() {
+    
     ct<-1;
     res<-c();
     if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
     else considerAutoLoop<-TRUE  
+
+    if ( !("END" %in% findReacheableNodes(nodoDiPatenza = "BEGIN") )) {
+      return(c() ) ;
+    }
     
     # copia la tabella delle transizioni in una un po' piu' facile 
     # da maneggiare (almeno come nome)
@@ -495,13 +500,18 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     # cat("\n iniziato un single play")
     statoAttuale<-"BEGIN"
     while( statoAttuale != "END") {
+      # print(statoAttuale)
       sommaCum<-cumsum(MM[statoAttuale,])
       # dado<-runif(n = 1,min = 0,max = 0.99999999999999)
       dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
       posizione<-which( (cumsum(MM[statoAttuale,])-dado)>=0  )[1]
       nuovoStato<-colnames(MM)[posizione]
-      res<-c(res,statoAttuale)
-      statoAttuale<-nuovoStato
+      if ( ("END" %in% findReacheableNodes(nodoDiPatenza = nuovoStato) )) {
+        res<-c(res,statoAttuale)
+        statoAttuale<-nuovoStato
+      }
+      
+
       # cat("\n ------------------------------------------\n ",res)
     }
     res<-c(res,"END")

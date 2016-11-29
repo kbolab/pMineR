@@ -9,6 +9,10 @@
 #' @export
 secondOrderMarkovModel<-function( parameters.list = list() ) {
   MMatrix<-''
+  MMatrix.perc<-''
+  MMatrix.perc.noLoop<-''
+  MMatrix.density.list<-''
+  MMatrix.mean.time<-''
   MM.2.Matrix<-list()
   MM.2.Matrix.perc<-list()
   is.dataLoaded<-FALSE  
@@ -161,9 +165,11 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
       dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
       posizione<-which( (cumsum(aaa[indice,])-dado)>=0  )[1]
       nuovoStato<-colnames(aaa)[posizione]
-      res<-c(res,statoAttuale)
-      statoPrecedente <- statoAttuale
-      statoAttuale <- nuovoStato
+      if ( ("END" %in% findReacheableNodes(nodoDiPatenza = nuovoStato) )) {
+        res<-c(res,statoAttuale)
+        statoPrecedente <- statoAttuale
+        statoAttuale <- nuovoStato
+      }
     }
     res<-c(res,"END")
     res<-res[ which( !(res %in%  c('BEGIN','END') ))    ] 
@@ -274,8 +280,12 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================
   costructor<-function( parametersFromInput = list() ) {
     MMatrix<<-''
+    MMatrix.perc<<-''
+    MMatrix.perc.noLoop<<-''
     MM.2.Matrix<<-list()
     MM.2.Matrix.perc<<-list()
+    MMatrix.density.list<<-list()
+    MMatrix.mean.time<-''    
     is.dataLoaded<<-FALSE
     parameters<<-parametersFromInput
     obj.log<<-logHandler();

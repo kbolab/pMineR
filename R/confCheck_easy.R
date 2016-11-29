@@ -137,7 +137,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
         # res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
         if(param.verbose == TRUE) cat(str_c("\nBeginning Pat ",indice,"..."))
-        # browser()
+         # browser()
         res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], col.eventName = dataLog$csv.EVENTName, col.dateName = dataLog$csv.dateColumnName , IDPaz = indice  )
         if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
         addNote(msg = "\n\t\t<atTheEnd>")
@@ -959,7 +959,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     }
 
     # dichiara certamente vere quelle iniziali, quelle non shuffellate
-    arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-min.num.of.valid.words))
+
+    # if(length(arr.matching.parola)==0) {
+      arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-quante.da.mescolare))
+    # }
     valid.csv<-obj.utils$format.data.for.csv(listaProcessi = lista.res$list.LOGs,arr.matching.parola)
     valid.data.frame<-as.data.frame(valid.csv)
     
