@@ -130,6 +130,15 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     ))
     
   }  
+  #=================================================================================
+  # play.easy
+  #   number.of.cases : numero di casi da generare
+  #   min.num.of.valid.words : numero minimo di parole valide
+  #   max.word.length : numero massimo di eventi per parola
+  #=================================================================================  
+  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, 
+                      howToBuildBad="resample", debug.mode = FALSE) {
+  }  
   #===========================================================
   # play
   #===========================================================

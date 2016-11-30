@@ -160,8 +160,18 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #===========================================================      
   getPlayedSequencesStat.00<-function( ) {
     list.fired.trigger<-list()
-    list.final.states<-list()  
+    list.final.states<-list() 
+    termination.END.states<-list()
+    arr.nodi.end<-c()
 
+    # Costruisci subito la lista dei nodi plottabili (cosi' non ci penso piu')
+    # Faccio anche la lista dei nodi END
+    for(nomeStato in names(WF.struct$info$stati)) {
+      if( WF.struct$info$stati[[nomeStato]]$type == 'END') {
+        arr.nodi.end<-c(arr.nodi.end,str_c(nomeStato))
+      }      
+    }
+    
     doc <- xmlInternalTreeParse(file = getXML(),asText = TRUE)
     arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
     array.fired.trigger<-c()
@@ -185,11 +195,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       list.fired.trigger[[i]] <-array.fired.trigger
       list.final.states[[i]] <- final.states
       
+      if(sum(final.states %in% arr.nodi.end)>0) { termination.END.states[[i]] <- TRUE }
+      else { termination.END.states[[i]] <- FALSE }
+      
     }
     
     return(list(
       "list.fired.trigger"=list.fired.trigger,
-      "list.final.states"=list.final.states
+      "list.final.states"=list.final.states,
+      "termination.END.states"=termination.END.states
     ))
   }
   #===========================================================  
