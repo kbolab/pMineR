@@ -124,13 +124,42 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================
   # play
   #===========================================================
-  play<-function(numberOfPlays = 1 ) {
+  play<-function(numberOfPlays = 1, min.num.of.valid.words = NA) {
     obj.utils <- utils()
     res<-list()
     for(i in seq(1,numberOfPlays)) {
       res[[as.character(i)]]<-play.Single()
     }
+    
+    # kkk
+    # Se devi generare alcune sequenze invalida, provvedi
+    arr.quanti.invalidi <- c()
+    if(!is.na(min.num.of.valid.words)) {
+      
+      sequenze.da.invalidare <- numberOfPlays - min.num.of.valid.words
+      if(sequenze.da.invalidare>0) {
+        
+        sottomatrice <- MMatrix[ !(colnames(MMatrix) %in% c("BEGIN","END")), !(rownames(MMatrix) %in% c("BEGIN","END"))  ]
+        posizione.zeri <- which(sottomatrice==0,arr.ind = TRUE)
+        
+        # for( i in names(res))  {
+        for( i in seq(1,sequenze.da.invalidare))  {
+          if( length(res[[i]])>1 ) {
+            dado.innesto <- as.integer(runif(1,min=1,max =length(res[[i]])))
+            dato.righe.matrice <- as.integer(runif(1,min=1,max = nrow(posizione.zeri)))
+            res[[i]][dado.innesto] <- rownames(sottomatrice)[posizione.zeri[ dato.righe.matrice,1 ]]  
+            res[[i]][dado.innesto+1] <- colnames(sottomatrice)[ posizione.zeri[ dato.righe.matrice,2 ]]
+          }
+          arr.quanti.invalidi<-c(arr.quanti.invalidi,rep(FALSE,length(res[[i]])))
+        }
+      }
+    }
+    # kkk
+ # browser()      
     res <- obj.utils$format.data.for.csv(listaProcessi = res, lista.validi = rep(TRUE,numberOfPlays))
+    if(length(arr.quanti.invalidi)>=0) res[,"valido"][1:length(arr.quanti.invalidi)]<-arr.quanti.invalidi
+    
+        
     res<-as.data.frame(res)
     return(res)
   }
