@@ -84,6 +84,7 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     # sistema la threshold
     aa<- MM.2.Matrix.perc$M.2.Matrix
     aa[ which(aa<=threshold,arr.ind = T) ]<-0
+    for( i in seq( 1 , nrow(aa)) ) {if(sum(aa[i,])>0)  {aa[i,]<-aa[i,]/sum(aa[i,]);} } 
     MM.2.Matrix.perc$M.2.Matrix<<-aa
   }
   #===========================================================

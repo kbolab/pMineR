@@ -116,7 +116,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # playLoadedData
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================    
-  playLoadedData<-function( number.perc = 1) {
+  playLoadedData<-function( number.perc = 1 , event.interpretation = "soft") {
     
     # Chiama addNote, che via via popola una stringa 
     # che alla fine conterrà l'intero XML
@@ -138,7 +138,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         # res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
         if(param.verbose == TRUE) cat(str_c("\nBeginning Pat ",indice,"..."))
          # browser()
-        res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], col.eventName = dataLog$csv.EVENTName, col.dateName = dataLog$csv.dateColumnName , IDPaz = indice  )
+        res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], 
+                                   col.eventName = dataLog$csv.EVENTName, 
+                                   col.dateName = dataLog$csv.dateColumnName , 
+                                   IDPaz = indice,
+                                   event.interpretation = event.interpretation)
         if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
         addNote(msg = "\n\t\t<atTheEnd>")
         for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
@@ -211,7 +215,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # esegue il conformanche checking con una specifica sequenza 
   # di LOG (di un paziente)
   #===========================================================     
-  playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz) {
+  playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz, 
+                                event.interpretation="soft") {
     
     # Cerca lo stato che viene triggerato dal BEGIN
     st.LAST<-""
@@ -220,6 +225,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     last.fired.trigger<-c()
     ct <- 0; riga <- 0
     error<-""
+    computation.result<-"normally terminated"
     history.hop<-list()
     
     sequenza <- as.array(matriceSequenza[ ,col.eventName ])
@@ -230,6 +236,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       ev.NOW <- sequenza[indice.di.sequenza]
       indice.di.sequenza.ch <- as.character(indice.di.sequenza)
       history.hop[[indice.di.sequenza.ch]]<-list()
+      fired.trigger.in.this.iteration <- FALSE
       
       if(param.verbose == TRUE) cat(str_c("\n\t processing:",ev.NOW))
       # costruisco un contatore della riga della tabella in analisi
@@ -260,6 +267,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
         st.ACTIVE <- newHop$st.ACTIVE
         last.fired.trigger<-newHop$active.trigger
+        fired.trigger.in.this.iteration <- TRUE
       } else { 
         # altrimenti segnala che NON ci sono trigger attivi
         note.set.fired.trigger(array.fired.trigger = '')
@@ -308,6 +316,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         # altrimenti (se non ci sono stati trigger, vedi di uscire dal loop)
         else devo.restare.in.trigger.loop<-FALSE
       }
+#       Se i vincoli di interpretazione degli event log sono "hard" allora non posso accettare
+#       di passare ad un altro evento, se un evento non ha scatenato trigger!
+      if(event.interpretation == "hard" & fired.trigger.in.this.iteration == FALSE)  {
+        computation.result <- "event not predicted in hard checking"
+      }
     }
     
     # Now process the EOF !!
@@ -348,7 +361,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                   "error"=error,
                   "last.fired.trigger" = last.fired.trigger, 
                   "date" = data.ev.NOW,
-                  "history.hop" = history.hop) );
+                  "history.hop" = history.hop,
+                  "computation.result" = computation.result) );
   }  
   #===========================================================  
   # attiva.trigger

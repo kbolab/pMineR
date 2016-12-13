@@ -157,10 +157,12 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     # kkk
  # browser()      
     res <- obj.utils$format.data.for.csv(listaProcessi = res, lista.validi = rep(TRUE,numberOfPlays))
-    if(length(arr.quanti.invalidi)>=0) res[,"valido"][1:length(arr.quanti.invalidi)]<-arr.quanti.invalidi
+    # if(is.null(dim(res))) browser()
+    # browser()
+    if(length(arr.quanti.invalidi)>=0 & !is.null(arr.quanti.invalidi)) res[,"valido"][1:length(arr.quanti.invalidi)]<-arr.quanti.invalidi
     
         
-    res<-as.data.frame(res)
+    if(!is.null(dim(res))) res<-as.data.frame(res)
     return(res)
   }
   #=================================================================================
@@ -177,7 +179,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================
   # trainModel
   #===========================================================
-  trainModel<-function() {
+  trainModel<-function(debug.mode = FALSE) {
     # setta la soglia a zero, cosi' per sport...
     if(!is.null(parameters$threshold)) threshold<-parameters$threshold
     else threshold<-0
@@ -188,7 +190,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     {
       considerAutoLoop<-TRUE
     }
-  
+  if(debug.mode==TRUE) browser()
     # copia la tabella delle  transizioni in una un po' piu' facile 
     # da maneggiare (almeno come nome)
     if ( considerAutoLoop == TRUE) { MM<-MMatrix.perc; }
@@ -203,6 +205,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     aa<- MMatrix.perc; bb <- MMatrix
     aa[ which(aa<=threshold,arr.ind = T) ]<-0
     bb[ which(bb<=threshold,arr.ind = T) ]<-0
+    for( i in seq( 1 , nrow(aa)) ) {if(sum(aa[i,])>0)  {aa[i,]<-aa[i,]/sum(aa[i,]);} } 
     MMatrix.perc<<-aa ; MMatrix<<-bb
     
     grafo<-build.graph.from.table( MM = MM, threshold  = threshold)
@@ -531,10 +534,12 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     while( statoAttuale != "END") {
       # print(statoAttuale)
       sommaCum<-cumsum(MM[statoAttuale,])
-      # dado<-runif(n = 1,min = 0,max = 0.99999999999999)
-      dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
+      dado<-runif(n = 1,min = 0,max = 0.99999999999999)
+      # dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
       posizione<-which( (cumsum(MM[statoAttuale,])-dado)>=0  )[1]
       nuovoStato<-colnames(MM)[posizione]
+      # cat("\n",nuovoStato)
+      if(is.na(nuovoStato)) browser()
       if ( ("END" %in% findReacheableNodes(nodoDiPatenza = nuovoStato) )) {
         res<-c(res,statoAttuale)
         statoAttuale<-nuovoStato

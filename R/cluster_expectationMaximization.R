@@ -27,7 +27,7 @@
 #' # Load a .csv using "DES" and "ID" as column names to indicate events 
 #' # and Patient's ID
 #' obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",
-#' IDName = "ID",EVENTName = "DES")
+#' IDName = "ID",EVENTName = "DES", dateColumnName = "DATA")
 #' 
 #' # now create an object cluster_expectationMaximization
 #' obj.clEM<- cluster_expectationMaximization();    
@@ -36,7 +36,7 @@
 #' obj.clEM$loadDataset( obj.L$getData() );  
 #' 
 #' # perform clustering computation
-#' obj.clEM$calculateClusters();  
+#' obj.clEM$calculateClusters(num = 2, typeOfModel = "firstOrderMarkovModel");  
 #' 
 #' # get calculated clusters 
 #' obj.clEM$getClusters(); 

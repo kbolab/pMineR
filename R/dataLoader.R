@@ -265,136 +265,43 @@ dataLoader<-function( verbose.mode = TRUE ) {
     }    
     return(ID.act.group)
   }
-  #=================================================================================
-  # buildMMMatrices.and.other.structures
-  # costruisce la MM matrix ed anche altra robaccia
-  #=================================================================================    
-  buildMMMatrices.and.other.structures<-function(mydata, EVENT.list.names, EVENTName, ID.act.group) {
-    # costruisci la matrice
-    MM<-matrix(0, ncol=length(unique(mydata[[EVENT.list.names]]))+2, nrow=length(unique(mydata[[EVENT.list.names]]))+2 )
-    colnames(MM)<-c("BEGIN","END",unique(as.character(mydata[[EVENT.list.names]])))
-    rownames(MM)<-colnames(MM)
-    # Creiamo anche la matrice con le density dei tempi di transizione
-    # (ma solo se c'è un campo DATA TIME)
-    MM.den.list<-list()
-    # ID.act.group[[1]][EVENT.list.names]<-as.character(ID.act.group[[1]][EVENT.list.names])
-    # browser()
-    # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
-    # per ogni paziente
-    for(patID in seq(1,length(ID.act.group))) {
-      if(param.verbose==TRUE)  cat(str_c("\n   ->",patID))
-      # su ogni elemento del percorso clinico
-      # t e' il "tempo" in senso di "step"
-      for(t in seq(1,nrow(ID.act.group[[patID]]))) {
-        # vedi se devi legare il BEGIN
-        if( t == 1) {
-          valore<-MM[ "BEGIN", ID.act.group[[patID]][ t ,EVENT.list.names] ]
-          #MM[ "BEGIN", ID.act.group[[patID]][ t ,ID.list.names] ]<-valore+1
-          MM[ "BEGIN", ID.act.group[[patID]][ t ,EVENT.list.names] ]<-valore+1
-        }
-        # vedi se devi legare l'END   
-        if( t == nrow(ID.act.group[[patID]])) {
-          nomeCampo<-ID.act.group[[patID]][t,EVENT.list.names]
-          MM[nomeCampo,"END"]<-MM[nomeCampo,"END"]+1
-        }
-        # tutti gli altri
-        if( t < nrow(ID.act.group[[patID]])) {
-          
-          nomeCampo.pre<-ID.act.group[[patID]][t,EVENT.list.names]
-          nomeCampo.post<-ID.act.group[[patID]][t+1,EVENT.list.names]
-          MM[ nomeCampo.pre, nomeCampo.post ]<-MM[ nomeCampo.pre, nomeCampo.post ]+1
-          if(param.dateColumnName!='' & ! is.na(param.dateColumnName)){
-            delta.date<-as.numeric(difftime(as.POSIXct(ID.act.group[[patID]][t+1,param.dateColumnName], format = "%d/%m/%Y"),as.POSIXct(ID.act.group[[patID]][t,param.dateColumnName], format = "%d/%m/%Y"),units = 'days'))
-            if(length(MM.den.list[[ nomeCampo.pre]])==0) MM.den.list[[ nomeCampo.pre]]<-list()
-            if(length(MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]])==0) MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c()
-            MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c(MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]],delta.date)
-          }
-        }    
-      }
-    }
-    quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
-    if(param.verbose==TRUE) cat(str_c("\n mean times : ",quanti.da.fare," \n"))
-    # browser()
-    # Calcola la matrice delle medie dei tempi
-    # Sarebbe bello avere le density... vabbè. più avanti
-    if(param.dateColumnName!='' & !is.na(param.dateColumnName)){
-      MM.mean.time<-MM
-      MM.mean.time[ 1:nrow(MM.mean.time) , 1:ncol(MM.mean.time)   ]<-Inf
-      for(state.from in names(MM.den.list))  {
-        for(state.to in names(MM.den.list[[state.from]]))  {
-          if(param.verbose==TRUE) cat(str_c("."))
-          # if(length(MM.den.list[[ state.from]][[ state.from ]])!=0)
-          MM.mean.time[state.from,state.to ]<-mean(MM.den.list[[ state.from]][[ state.to ]])
-#           else 
-#             MM.density[state.from,state.from ]<-Inf
-        }        
-      }
-    }
-    # browser()
-    # costruisci una semplice versione, con le parole (come piace tanto a Van der Aalst)
-    if(param.verbose==TRUE) cat(str_c("\n simple version: ",length(seq(1,length(ID.act.group))),"\n"))
-    wordSequence.TMP01<-list();
-    for(i in seq(1,length(ID.act.group))) {
-      if(verbose.mode == TRUE)  cat(str_c("*"))
-      IDPat<-names(  ID.act.group)[i]
-      wordSequence.TMP01[[IDPat]]<-ID.act.group[[ IDPat ]][[EVENTName]]
-    }    
-    if(param.verbose==TRUE) cat(str_c("\n End"))
-    # browser()
-#     return(list( "arrayAssociativo" = rownames(MM),
-#                  "footPrint"=buildFootPrintTable(MM),
-# #                 "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
-#                  "MMatrix"=MM,
-#                  "MM.mean.time"=MM.mean.time,
-#                  "MM.density.list"=MM.den.list,
-#                  "pat.process"=ID.act.group,
-#                  "wordSequence.raw"=wordSequence.TMP01) )
-    return(list( "arrayAssociativo" = rownames(MM),
-                 "footPrint"="",
-                                  # "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
-                 "MMatrix"=MM,
-                 "MM.mean.time"=MM.mean.time,
-                 "MM.density.list"=MM.den.list,
-                 "pat.process"=ID.act.group,
-                 "wordSequence.raw"=wordSequence.TMP01) )    
-  }
-  #=================================================================================
-  # buildSplittedLoader
-  #=================================================================================    
-  buildSplittedLoaderDataAndTables<-function( nomeFile, IDName, EVENTName,quote="\"",sep = ",", splitDataSet = c(.5,.5)) {
-    objLoaders<-list();
-    ID.list.names<-IDName
-    EVENT.list.names<-EVENTName    
-    # carica il file
-    mydata = read.table(file=nomeFile,sep = sep,header = T,quote=quote)
-    mydata[[EVENT.list.names]]<-as.character(mydata[[EVENT.list.names]])
-    mydata[[ID.list.names]]<-as.character(mydata[[ID.list.names]])   
-    
-    # group the log of the patient in a structure easier to be handler
-    total.ID.act<-groupPatientLogActivity(mydata,ID.list.names) 
-    
-    # split the 'total.ID.act in order to separate populations
-    arrPositions<-c(1,cumsum(splitDataSet) *  length(total.ID.act))
-    partial.ID<-list();
-    for( i in seq(1,length(splitDataSet))) {
-      partial.ID[[i]]<-total.ID.act[ seq( arrPositions[i], arrPositions[i+1]) ] 
-    }
-  
-    res<-list();
-    
-    # now loop and populate the different loaders
-    for( i in seq(1,length(splitDataSet))) {
-      # build a data loader for each slitted dataset
-#      objLoaders[[i]]<-dataLoader()
-      browser()
-      # build the MM matrix and other stuff...
-      res[[i]]<-buildMMMatrices.and.other.structures(mydata = mydata, 
-                                                EVENT.list.names = EVENT.list.names, 
-                                                EVENTName = EVENTName, 
-                                                ID.act.group = partial.ID[[i]])
-    }
-    return(res)
-  }  
+#   #=================================================================================
+#   # buildSplittedLoader
+#   #=================================================================================    
+#   buildSplittedLoaderDataAndTables<-function( nomeFile, IDName, EVENTName,quote="\"",sep = ",", splitDataSet = c(.5,.5)) {
+#     objLoaders<-list();
+#     ID.list.names<-IDName
+#     EVENT.list.names<-EVENTName    
+#     # carica il file
+#     mydata = read.table(file=nomeFile,sep = sep,header = T,quote=quote)
+#     mydata[[EVENT.list.names]]<-as.character(mydata[[EVENT.list.names]])
+#     mydata[[ID.list.names]]<-as.character(mydata[[ID.list.names]])   
+#     
+#     # group the log of the patient in a structure easier to be handler
+#     total.ID.act<-groupPatientLogActivity(mydata,ID.list.names) 
+#     
+#     # split the 'total.ID.act in order to separate populations
+#     arrPositions<-c(1,cumsum(splitDataSet) *  length(total.ID.act))
+#     partial.ID<-list();
+#     for( i in seq(1,length(splitDataSet))) {
+#       partial.ID[[i]]<-total.ID.act[ seq( arrPositions[i], arrPositions[i+1]) ] 
+#     }
+#   
+#     res<-list();
+#     
+#     # now loop and populate the different loaders
+#     for( i in seq(1,length(splitDataSet))) {
+#       # build a data loader for each slitted dataset
+# #      objLoaders[[i]]<-dataLoader()
+#       browser()
+#       # build the MM matrix and other stuff...
+#       res[[i]]<-buildMMMatrices.and.other.structures(mydata = mydata, 
+#                                                 EVENT.list.names = EVENT.list.names, 
+#                                                 EVENTName = EVENTName, 
+#                                                 ID.act.group = partial.ID[[i]])
+#     }
+#     return(res)
+#   }  
   setData<-function(   dataToSet  ) {
     # set the desired attribute (the ones passed as !is.na() )
     nomiAttributi<-names(dataToSet)
@@ -432,6 +339,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # clear all the attributes
     clearAttributes( );
     
+    obj.dataProcessor <- dataProcessor()
+    
     # Add an internal ID attribute to myData (to uniquely identify Logs)
     if(!("pMineR.internal.ID.Evt" %in% colnames(mydata) ))
       { mydata <- cbind("pMineR.internal.ID.Evt"=seq(1,nrow(mydata)),mydata ) }
@@ -461,10 +370,15 @@ dataLoader<-function( verbose.mode = TRUE ) {
     }
     if(verbose.mode == TRUE) cat("\n Building MMatrices and other stuff")
     # build the MM matrix and other stuff...
-    res<-buildMMMatrices.and.other.structures(mydata = mydata, 
-                                              EVENT.list.names = EVENT.list.names, 
-                                              EVENTName = EVENTName, 
-                                              ID.act.group = ID.act.group)
+    res <- obj.dataProcessor$buildMMMatrices.and.other.structures(mydata = mydata, 
+                                                                  EVENT.list.names = EVENT.list.names, 
+                                                                  EVENTName = EVENTName,
+                                                                  EVENTDateColumnName = param.dateColumnName,
+                                                                  ID.act.group = ID.act.group)
+#     res<-buildMMMatrices.and.other.structures(mydata = mydata, 
+#                                               EVENT.list.names = EVENT.list.names, 
+#                                               EVENTName = EVENTName, 
+#                                               ID.act.group = ID.act.group)
     #populate the internal attributes
     
     
@@ -485,45 +399,6 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # Now "load" the data.frame
     load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName, dateColumnName = dateColumnName )
   }
-  #=================================================================================
-  # load.listOfWords
-  #=================================================================================  
-  load.listOfSimpleWords<-function( load.listOfSimpleWords , IDName="ID1", EVENTName="Event") {
-    cat("\n ==================\n NOT MORE SUPPORTED \n =====================")
-    stop("Not more supported")
-    clearAttributes( );
-    ID.list.names<-IDName
-    EVENT.list.names<-EVENTName
-    
-    grossaMatrice<-c()
-    for(i in seq(1,length(load.listOfSimpleWords))) {
-      for( singEv in seq(1,length(load.listOfSimpleWords[[i]]))) {
-        grossaMatrice<-rbind( grossaMatrice , c(  as.character(i), load.listOfSimpleWords[[i]][singEv] )  )
-      }
-    }
-    colnames(grossaMatrice)<-c(IDName,EVENTName)
-    
-    aaa<-as.data.frame(grossaMatrice)
-    aaa[[EVENTName]]<-as.character(aaa[[EVENTName]])
-    aaa[[IDName]]<-as.character(aaa[[IDName]])
-    
-    # group the log of the patient in a structure easier to be handler
-    ID.act.group<-groupPatientLogActivity(as.data.frame(aaa),IDName) 
-    
-    # build the MM matrix and other stuff...
-    res<-buildMMMatrices.and.other.structures(mydata = aaa, 
-                                              EVENT.list.names = EVENT.list.names, 
-                                              EVENTName = EVENTName, 
-                                              ID.act.group = ID.act.group)
-
-    #populate the internal attributes
-    arrayAssociativo<<-res$arrayAssociativo
-    footPrint<<-res$footPrint
-    MMatrix<<-res$MMatrix
-    pat.process<<-res$pat.process
-    wordSequence.raw<<-res$wordSequence.raw
-  }  
-  
   #=================================================================================
   # apply.filter
   #=================================================================================  
@@ -612,7 +487,6 @@ dataLoader<-function( verbose.mode = TRUE ) {
   return(list(
     "load.csv"=load.csv,
     "load.data.frame"=load.data.frame,
-    "load.listOfSimpleWords"=load.listOfSimpleWords,
     "getData"=getData,
     "removeEvents"=removeEvents,
     "keepOnlyEvents"=keepOnlyEvents,
