@@ -70,12 +70,14 @@ cluster_hierarchicalTree <- function() {
   #===========================================================  
   calculateClusters<-function(num,typeOfModel = "firstOrderMarkovModel") {
     x <- sapply(processInstances,unlist)
-    xx <- sapply(x,unique)
-    #xx <- as.data.frame(t(x))
-    trans <- as(xx, "transactions")
-    dd <- dissimilarity(trans, method = "phi", which = "processID")
-    dd[is.na(dd)] <- 1 # get rid of missing values
-    processToCluster <- cutree(hclust(dd), k = num)
+    #create data.frame from list 
+    max.length <- max(sapply(x, length))
+    x <- lapply(x, function(v) { c(v, rep("NA", max.length-length(v)))})
+    xx <- do.call(rbind, x)
+    xx <- as.data.frame(xx)
+    #compute distance matrix
+    d <- daisy(xx)
+    processToCluster <- cutree(hclust(d), k = num)
     if(typeOfModel == "firstOrderMarkovModel"){
     clusters <<- list("clusters"=computeClusterTransitionMatrix(processToCluster) ,"PtoClust"=processToCluster)
     }
@@ -96,7 +98,10 @@ cluster_hierarchicalTree <- function() {
         }
         num.el <- sapply(subLog[[i]], length)
         res <- cbind(unlist(subLog[[i]]), rep(1:length(subLog[[i]]), num.el))
-        cc <- createSequenceMatrix(res[,1], toRowProbs = TRUE)
+        obj <- dataProcessor()
+        a <- obj$createSequenceMatrix(res[,1])
+        cc <- a$transitionCountMatrix
+        cc <- cc/sum(cc)
         for (n in 1:length(eventType)){
           if (!eventType[n] %in% colnames(cc)) {
             al <- vector(length = length(colnames(cc)))

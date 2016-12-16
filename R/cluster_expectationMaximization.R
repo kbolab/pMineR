@@ -17,7 +17,6 @@
 #'   }
 #' @useDynLib pMineR    
 #' @export
-#' @import markovchain arules
 #' @examples \dontrun{
 #' # ----------------------------------------------- 
 #' #  USING THE METHODS of the class
@@ -155,7 +154,9 @@ cluster_expectationMaximization <- function() {
             BprocessInstancesE <- c("BEGIN",processInstances[[p]],"END")
             }
             else{BprocessInstancesE <- processInstances[[p]]}
-            transitionCountMatrix <- createSequenceMatrix(BprocessInstancesE, toRowProbs = FALSE)
+            obj <- dataProcessor()
+            a <- obj$createSequenceMatrix(BprocessInstancesE)
+            transitionCountMatrix <- a$transitionCountMatrix
             rowNames <- row.names(transitionCountMatrix)
               for(i in 1:length(rowNames)){
                 for(j in 1:length(rowNames)){
@@ -197,7 +198,10 @@ cluster_expectationMaximization <- function() {
               }
           num.el <- sapply(subLog[[i]], length)
           res <- cbind(unlist(subLog[[i]]), rep(1:length(subLog[[i]]), num.el))
-          cc <- createSequenceMatrix(res[,1], toRowProbs = TRUE)
+          obj <- dataProcessor()
+          a <- obj$createSequenceMatrix(res[,1])
+          cc <- a$transitionCountMatrix
+          cc <- cc/sum(cc)
             for (n in 1:length(eventType)){
               if (!eventType[n] %in% colnames(cc)) {
                 al <- vector(length = length(colnames(cc)))
@@ -263,7 +267,10 @@ cluster_expectationMaximization <- function() {
     transitionMatrix <- list()
       for (k in 1:length(processInstances)){
         BprocessInstancesE[[k]] <- c("BEGIN",processInstances[[k]],"END")
-        transitionMatrix[[k]] <- createSequenceMatrix(BprocessInstancesE[[k]], toRowProbs = TRUE)
+        obj <- dataProcessor()
+        a <- obj$createSequenceMatrix(BprocessInstancesE[[k]])
+        TCM <- a$transitionCountMatrix
+        transitionMatrix[[k]] <- TCM/sum(TCM)
         processFOMM[[k]] <-firstOrderMarkovModel( parameters.list=list("considerAutoLoop"=TRUE,"threshold"=0.1)  )
         processFOMM[[k]]$loadDataset(dataList = list("MMatrix"=transitionMatrix[[k]]))
       }
@@ -280,7 +287,7 @@ cluster_expectationMaximization <- function() {
       minDistWithin = min(tmp,na.rm = TRUE)
       maxDistWithin = max(tmp,na.rm = TRUE)
       sdDistWithin = sd(tmp,na.rm = TRUE)
-      DistWithin[[i]] = list("mean distance"=meanDistWithin, "min distance"=minDistWithin,"max distance"=maxDistWithin,"standard deviation"=sdDistWithin, "allDistances"=tmp)
+      DistWithin[[i]] = list("mean distance"=meanDistWithin, "min distance"=minDistWithin,"max distance"=maxDistWithin,"standard deviation"=sdDistWithin)
     }
     
     stats <- list("support"=supportC, "between-cluster distance"=Dist, "within-cluster distance"=DistWithin)

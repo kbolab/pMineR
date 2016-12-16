@@ -17,6 +17,7 @@
 #'   }
 #' @useDynLib pMineR    
 #' @export
+#' @import cluster
 #' @examples \dontrun{
 #' # ----------------------------------------------- 
 #' #  USING THE METHODS of the class
@@ -70,22 +71,26 @@ cluster_partitionAroundMedoids <- function() {
     clusters_tmp <- list()
     transitionCountMatrix <-list()
     x <- sapply(processInstances,unlist)
-    xx <- sapply(x,unique)
-    #xx <- as.data.frame(t(x))
-    trans <- as(xx, "transactions")
-    d <- dissimilarity(trans, method = "Jaccard")
+    #create data.frame from list 
+    max.length <- max(sapply(x, length))
+    x <- lapply(x, function(v) { c(v, rep("NA", max.length-length(v)))})
+    xx <- do.call(rbind, x)
+    xx <- as.data.frame(xx)
+    #compute distance matrix
+    d <- daisy(xx)
     start.time <- Sys.time()
     clustering <<- pam(d, k = num)
     end.time <- Sys.time()
-    #allLabels <- predict(trans[clustering$id.med], trans, method = "Jaccard")
-    #clusters <- split(trans, allLabels)
+
     for(i in 1:length(clustering$medoids)){
-      clusters_tmp[[i]] <- processInstances[[as.numeric(clustering$medoids[i])]]
-       #clusters_tmp[[i]] <- append("BEGIN",clusters_tmp[[i]])
-       #clusters_tmp[[i]] <- append(clusters_tmp[[i]],"END")
-      
+      clusters_tmp[[i]] <- processInstances[[clustering$medoids[i]]]
+       clusters_tmp[[i]] <- append("BEGIN",clusters_tmp[[i]])
+       clusters_tmp[[i]] <- append(clusters_tmp[[i]],"END")
       if(typeOfModel=="firstOrderMarkovModel"){
-        transitionCountMatrix[[i]] <- createSequenceMatrix(clusters_tmp[[i]], toRowProbs = FALSE)
+        obj <- dataProcessor()
+        a <- obj$createSequenceMatrix(clusters_tmp[[i]])
+        TCM <- a$transitionCountMatrix
+        transitionCountMatrix[[i]] <- TCM/sum(TCM)
       }
       clusters <<- list("clusters"=transitionCountMatrix ,"PtoClust"=clustering$clustering,"clustering"=clustering, "dissimilarity"=d, "data"=x)
     }
