@@ -23,6 +23,7 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
   csv.IDName<-''
   csv.EVENTName<-''
   csv.dateColumnName<-''
+  cache.findReacheableNodes<-list()
   
   # ***************************************************************************************************
   # WRAPPING METHODS
@@ -160,23 +161,27 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     ct<-1;
     res<-c();
 
-    statoPrecedente<-"BEGIN";  # Stato al tempo precedente
-    statoAttuale<-"BEGIN";  # Stato al tempo attuale
+    # statoPrecedente<-c("BEGIN","BEGIN");  # Stato al tempo precedente
+    statoAttuale<-c("BEGIN","BEGIN");  # Stato al tempo attuale
     
     aaa <- MM.2.Matrix.perc$M.2.Matrix
     bbb <- MM.2.Matrix.perc$M.2.Matrix.row.index
-    
-    while( statoAttuale != "END") {
-      indice <- which(bbb[,1]==statoPrecedente & bbb[,2]==statoAttuale)
+     
+    while( statoAttuale[2] != "END") {
+      # indice <- which(bbb[,1]==statoPrecedente & bbb[,2]==statoAttuale)
+      indice <- which( bbb[,1]==statoAttuale[1] & bbb[,2]==statoAttuale[2])
       
       sommaCum<-cumsum(aaa[indice,])
+      
+      # browser()
       # if(sum(sommaCum)==0) break;
-      # dado<-runif(n = 1,min = 0,max = 0.99999999999999)
-      dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
+      dado<-runif(n = 1,min = 0,max = 0.99999999999999)
+      # dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
       posizione<-which( (cumsum(aaa[indice,])-dado)>=0  )[1]
-      nuovoStato<-colnames(aaa)[posizione]
+      nuovoStato<-c(statoAttuale[2],colnames(aaa)[posizione])
+      # browser()
       if ( ("END" %in% findReacheableNodes(nodoDiPatenza = nuovoStato) )) {
-        res<-c(res,statoAttuale)
+        res<-c(res,statoAttuale[2])
         statoPrecedente <- statoAttuale
         statoAttuale <- nuovoStato
       }
@@ -185,6 +190,74 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     res<-res[ which( !(res %in%  c('BEGIN','END') ))    ] 
     return(res);
   }   
+  get.from.cache<-function( what , index) {
+    if(what=="findReacheableNodes") {
+      if( index[1] %in% names(cache.findReacheableNodes)) {
+        if( index[2] %in% names(cache.findReacheableNodes[[index[1]]])) {
+          return(list("inCache"=TRUE, "value"=cache.findReacheableNodes[[index[1]]][[index[2]]]))
+        }
+      }
+      return( list("inCache"=FALSE,"value"=NA))
+    }
+    stop("ERROR: #jdf89d8f oggetto non previsto in cache")
+  }
+  store.to.cache<-function(what , index   , value ) {
+    if(what=="findReacheableNodes") {
+      if( !(index[1] %in% names(cache.findReacheableNodes)) ) {
+        cache.findReacheableNodes[[index[1]]]<<-list()
+      }
+      cache.findReacheableNodes[[index[1]]][[index[2]]]<<-value
+      return();
+    }
+    stop("ERROR: #jdf89d8f oggetto non previsto in cache")    
+  }
+  #===========================================================
+  # findReacheableNodes
+  # Funzione 
+  #===========================================================
+  findReacheableNodes<-function( nodoDiPatenza = c('BEGIN','BEGIN')  ) {
+    
+    valore.in.cache <- get.from.cache(what = "findReacheableNodes", index = nodoDiPatenza ) 
+    if(valore.in.cache$inCache == TRUE ) return(valore.in.cache$value);
+    
+    # browser()
+    tabellaNodiRaggiunti <- findReacheableNodes.recursiveLoop(
+      nodoAttuale = nodoDiPatenza,
+      nodi.raggiunti = rbind(c(),nodoDiPatenza)
+    )
+    arrayStati <- unique(c(tabellaNodiRaggiunti[,1],tabellaNodiRaggiunti[,2]))
+    store.to.cache( what = "findReacheableNodes", index = nodoDiPatenza  , value = arrayStati)
+    return(arrayStati)
+  }  
+  findReacheableNodes.recursiveLoop<-function( nodoAttuale , nodi.raggiunti  ) {
+    
+    # caso noto
+    if(nodoAttuale[2]=="END") return(nodi.raggiunti)
+    
+    lista.nodi.raggiungibili <- colnames(MM.2.Matrix.perc$M.2.Matrix)
+    nodi.raggiunti <- unique(nodi.raggiunti)
+    
+    aaa <- MM.2.Matrix.perc$M.2.Matrix
+    bbb <- MM.2.Matrix.perc$M.2.Matrix.row.index    
+
+    for( nodoDestinazione in lista.nodi.raggiungibili) {
+      
+      coppia.possibile <- c(nodoAttuale[2],nodoDestinazione)
+     
+      gia.presente <- which(nodi.raggiunti[,1]==coppia.possibile[1] & nodi.raggiunti[,2]==coppia.possibile[2])
+      indice.nodo.attuale <- which( bbb[,1]==nodoAttuale[1] & bbb[,2]==nodoAttuale[2])
+      
+      if( length(gia.presente)==0 & aaa[indice.nodo.attuale,nodoDestinazione]>0) {
+        
+        nuovo.stato.iniziale <- c(nodoAttuale[2],nodoDestinazione)
+        aa <- findReacheableNodes.recursiveLoop( nodoAttuale = nuovo.stato.iniziale , 
+                                                 nodi.raggiunti = rbind(nodi.raggiunti,c(nodoAttuale[2],nodoDestinazione)))
+        
+        nodi.raggiunti <- unique(rbind(nodi.raggiunti,aa))
+      }
+    }
+    return(nodi.raggiunti)
+  }     
   #===========================================================
   # replay
   #===========================================================
@@ -305,6 +378,7 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     csv.IDName<<-''
     csv.EVENTName<<-''
     csv.dateColumnName<<-''    
+    cache.findReacheableNodes<<-list()
   }
   #===========================================================
   costructor( parametersFromInput = parameters.list);
