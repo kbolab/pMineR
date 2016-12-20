@@ -34,8 +34,11 @@ utils<-function() {
       ct <- ct + 1
     }
     # cat("\n",dim(big.csv))
-    if(!is.null(dim(big.csv)))
+    if(!is.null(dim(big.csv))) {
+      # cat("\n DIM(big.csv)=",dim(big.csv))
+      # if(dim(big.csv)[2]==1) browser()
       colnames(big.csv)<-c("patID","event","date","valido")
+    }
     return(big.csv)
   }
   return(list(

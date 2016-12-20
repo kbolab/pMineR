@@ -148,10 +148,19 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     obj.utils <- utils()
     res<-list()
     for(i in seq(1,numberOfPlays)) {
+      # cat("\nb - Caso: ",i)
       res[[as.character(i)]]<-play.Single()
+      # cat("\ne - Caso: ",i)
+      # if(length(res$`1`)==0) browser()
     }
-    res <- obj.utils$format.data.for.csv(listaProcessi = res, lista.validi = rep(TRUE,numberOfPlays))
-    res<-as.data.frame(res)
+    # if(length(res[[1]])==0) browser()
+    # cat("\n finale calcolo per ",i)
+    if(length(res)>0 & length(unlist(res))>0  ) {
+#         cat("\n RES (length)=",length(res))
+#         cat("\n RES (length unlist)=",length( unlist(res)))
+        res <- obj.utils$format.data.for.csv(listaProcessi = res, lista.validi = rep(TRUE,numberOfPlays))
+        res<-as.data.frame(res)
+    } else return(list())
     return(res)
   }  
   #===========================================================
@@ -163,28 +172,40 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
 
     # statoPrecedente<-c("BEGIN","BEGIN");  # Stato al tempo precedente
     statoAttuale<-c("BEGIN","BEGIN");  # Stato al tempo attuale
-    
+    statoPrecedente <- c("BEGIN","BEGIN")
+    # cat(".")
     aaa <- MM.2.Matrix.perc$M.2.Matrix
     bbb <- MM.2.Matrix.perc$M.2.Matrix.row.index
-     
+     iter <- 1
+     # cat("\n ===============================")
     while( statoAttuale[2] != "END") {
+      
+      if ( iter > 1 & !("END" %in% findReacheableNodes(nodoDiPatenza = statoAttuale) )) {
+        return(c() ) ;
+      }
+      
       # indice <- which(bbb[,1]==statoPrecedente & bbb[,2]==statoAttuale)
       indice <- which( bbb[,1]==statoAttuale[1] & bbb[,2]==statoAttuale[2])
       
       sommaCum<-cumsum(aaa[indice,])
       
-      # browser()
+      if(sum(sommaCum)==0) break;
+
+            # browser()
       # if(sum(sommaCum)==0) break;
       dado<-runif(n = 1,min = 0,max = 0.99999999999999)
       # dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
       posizione<-which( (cumsum(aaa[indice,])-dado)>=0  )[1]
       nuovoStato<-c(statoAttuale[2],colnames(aaa)[posizione])
+      if( is.na(nuovoStato[2]) ) browser()
       # browser()
       if ( ("END" %in% findReacheableNodes(nodoDiPatenza = nuovoStato) )) {
         res<-c(res,statoAttuale[2])
         statoPrecedente <- statoAttuale
         statoAttuale <- nuovoStato
       }
+      iter <- iter + 1
+
     }
     res<-c(res,"END")
     res<-res[ which( !(res %in%  c('BEGIN','END') ))    ] 
@@ -220,6 +241,7 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     valore.in.cache <- get.from.cache(what = "findReacheableNodes", index = nodoDiPatenza ) 
     if(valore.in.cache$inCache == TRUE ) return(valore.in.cache$value);
     
+    # cat("\n", nodoDiPatenza)
     # browser()
     tabellaNodiRaggiunti <- findReacheableNodes.recursiveLoop(
       nodoAttuale = nodoDiPatenza,
@@ -233,6 +255,8 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     
     # caso noto
     if(nodoAttuale[2]=="END") return(nodi.raggiunti)
+    # if(nodoAttuale[2]==NA) return(nodi.raggiunti)
+    
     
     lista.nodi.raggiungibili <- colnames(MM.2.Matrix.perc$M.2.Matrix)
     nodi.raggiunti <- unique(nodi.raggiunti)

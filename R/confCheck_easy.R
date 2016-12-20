@@ -1062,6 +1062,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     # Genera il numero desiderato di parole
     for( num.parola in seq(1,number.of.cases)) {
+      # cat("_")
       # initialization
       st.LAST<-"";  st.DONE<-c(""); st.ACTIVE<-c("'BEGIN'")
       last.fired.trigger<-c(); 
