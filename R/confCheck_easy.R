@@ -229,6 +229,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     history.hop<-list()
     
     sequenza <- as.array(matriceSequenza[ ,col.eventName ])
+    stop.computation <- FALSE
     
     # Analizza TUTTI gli eventi della sequenza
     for( indice.di.sequenza in seq(1,length(sequenza) )) {
@@ -246,7 +247,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # gestisci il log
       newNote();
       note.setStep(number = ct)
-      note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW)
+      note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW , pMineR.internal.ID.Evt = matriceSequenza[riga,"pMineR.internal.ID.Evt"])
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
 
       # Cerca chi ha soddisfatto le precondizioni
@@ -291,7 +292,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           ct <- ct + 1
           newNote();
           note.setStep(number = ct)
-          note.setEvent(eventType = '', eventDate = data.ev.NOW)
+          note.setEvent(eventType = '', eventDate = data.ev.NOW, pMineR.internal.ID.Evt = '')
           note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
         }
         
@@ -304,7 +305,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         
         # Se hai rilevato qualche trigger attivo
         if(length(newHop$active.trigger)!=0)  {
-          note.setEvent(eventType = '', eventDate = data.ev.NOW)
+          note.setEvent(eventType = '', eventDate = data.ev.NOW, pMineR.internal.ID.Evt = '' )
           note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
           note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
           note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
@@ -320,41 +321,46 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
 #       di passare ad un altro evento, se un evento non ha scatenato trigger!
       if(event.interpretation == "hard" & fired.trigger.in.this.iteration == FALSE)  {
         computation.result <- "event not predicted in hard checking"
+        stop.computation <- TRUE
+        break;
       }
     }
     
-    # Now process the EOF !!
-    ct <- ct + 1
-    # gestisci il log
-    newNote();
-    note.setStep(number = ct)
-    note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW)
-    note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
-    
-    # Cerca chi ha soddisfatto le precondizioni
-    newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = TRUE  )
-    
-    # Se c'e' un errore, ferma tutto
-    if(newHop$error==TRUE) {
-      note.set.error(error = newHop$error)
-      note.flush()
-      return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger , "date" = data.ev.NOW ) );
+    # Se la computazione non è, per qualche motivo, interrotta
+    if( stop.computation == FALSE ) {
+      # Now process the EOF !!
+      ct <- ct + 1
+      # gestisci il log
+      newNote();
+      note.setStep(number = ct)
+      note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW , pMineR.internal.ID.Evt = 'EOF')
+      note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
+      
+      # Cerca chi ha soddisfatto le precondizioni
+      newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = TRUE  )
+      
+      # Se c'e' un errore, ferma tutto
+      if(newHop$error==TRUE) {
+        note.set.error(error = newHop$error)
+        note.flush()
+        return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger , "date" = data.ev.NOW ) );
+      }
+      
+      # Se hai rilevato dei trigger attivi
+      if(length(newHop$active.trigger)!=0) {
+        note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
+        note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
+        st.ACTIVE <- newHop$st.ACTIVE
+        last.fired.trigger<-newHop$active.trigger
+      } else { 
+        # altrimenti segnala che NON ci sono trigger attivi
+        note.set.fired.trigger(array.fired.trigger = '')
+        # E i nuovi stati validi sono esattamente i vecchi
+        note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = st.ACTIVE)
+      }
+      # Fai il flush 
+      note.flush()    
     }
-    
-    # Se hai rilevato dei trigger attivi
-    if(length(newHop$active.trigger)!=0) {
-      note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
-      note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
-      st.ACTIVE <- newHop$st.ACTIVE
-      last.fired.trigger<-newHop$active.trigger
-    } else { 
-      # altrimenti segnala che NON ci sono trigger attivi
-      note.set.fired.trigger(array.fired.trigger = '')
-      # E i nuovi stati validi sono esattamente i vecchi
-      note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = st.ACTIVE)
-    }
-    # Fai il flush 
-    note.flush()    
     
     # Ritorna
     return( list( "st.ACTIVE"=st.ACTIVE,
@@ -863,9 +869,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   note.setStep<-function( number ){
     tmpAttr$stepNumber <<- number
   }  
-  note.setEvent<-function( eventType , eventDate){
+  note.setEvent<-function( eventType , eventDate , pMineR.internal.ID.Evt){
     tmpAttr$event <<- eventType
     tmpAttr$event.date <<- eventDate
+    tmpAttr$pMineR.internal.ID.Evt <<- pMineR.internal.ID.Evt
   }
   note.set.st.ACTIVE.PRE<-function( array.st.ACTIVE.PRE ){
     tmpAttr$st.ACTIVE.PRE <<- array.st.ACTIVE.PRE   
@@ -882,7 +889,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     tmpAttr$error <<- error   
   }   
   note.flush<-function( ){
-    testo<-str_c("\n\t\t<step n='",tmpAttr$stepNumber,"' trg='",tmpAttr$boolean.fired.trigger,"' evt='",tmpAttr$event,"' date='",tmpAttr$event.date,"'>")
+    testo<-str_c("\n\t\t<step n='",tmpAttr$stepNumber,"' trg='",tmpAttr$boolean.fired.trigger,"' evt='",tmpAttr$event,"' date='",tmpAttr$event.date,"' pMineR.internal.ID.Evt='",tmpAttr$pMineR.internal.ID.Evt,"'>")
     if(tmpAttr$boolean.fired.trigger==TRUE)  {
       for(i in tmpAttr$st.ACTIVE.PRE) testo<-str_c(testo,"\n\t\t\t<st.ACTIVE.PRE name=",i,"></st.ACTIVE.PRE>")
       for(i in tmpAttr$fired.trigger) testo<-str_c(testo,"\n\t\t\t<fired.trigger name='",i,"'></fired.trigger>")
