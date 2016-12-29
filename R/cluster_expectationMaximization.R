@@ -15,7 +15,6 @@
 #'    \item \code{num } the number of clusters it has to generate
 #'    \item \code{typeOfModel } the name of the Process Mining model it has to use to generate the space (i.e. "firstOrdermarkovModel", "alphaAlgorithm", ...)
 #'   }
-#' @useDynLib pMineR    
 #' @export
 #' @examples \dontrun{
 #' # ----------------------------------------------- 

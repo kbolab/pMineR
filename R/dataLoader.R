@@ -10,7 +10,6 @@
 #'              } 
 #'              There are two ways to use this class: directly using the methods previously 
 #'              listed or via wrapping functions (called LD.<method name>). In the examples section you will find an example of both.
-#' @useDynLib pMineR    
 #' @import stringr utils stats           
 #' @export
 #' @examples \dontrun{
@@ -314,7 +313,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
 
   }
   order.list.by.date<-function(   listToBeOrdered, dateColumnName, deltaDate.column.name='pMineR.deltaDate', format.column.date="%d/%m/%Y"  ) {
-    
+    # if(length(listToBeOrdered)==0) return(listToBeOrdered);
     if(format.column.date!="%d/%m/%Y") stop("Not Yet Implemented (ErrCod: #89h89h8h")
     # Cicla per ogni paziente
     # browser()
@@ -366,6 +365,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     if(verbose.mode == TRUE) cat("\n Ordering date:")
     # Order the list by the interested date (if exists)
     if(!is.na(dateColumnName)) {
+      if(length(ID.act.group)==0) browser()
       ID.act.group<-order.list.by.date(listToBeOrdered = ID.act.group, dateColumnName = dateColumnName)
     }
     if(verbose.mode == TRUE) cat("\n Building MMatrices and other stuff")

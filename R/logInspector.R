@@ -15,7 +15,6 @@
 #'   \itemize{
 #'    \item \code{num } the number of most frequent events/processes to plot
 #'   }
-#' @useDynLib pMineR    
 #' @export
 #' @examples \dontrun{
 #' # ----------------------------------------------- 

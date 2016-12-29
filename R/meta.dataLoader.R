@@ -9,7 +9,6 @@
 #'              } 
 #'              There are two ways to use this class: directly using the methods previously 
 #'              listed or via wrapping functions (called LD.<method name>). In the examples section you will find an example of both.
-#' @useDynLib pMineR    
 #' @import stringr utils stats           
 #' @export
 meta.dataLoader<-function( verbose.mode = TRUE ) {

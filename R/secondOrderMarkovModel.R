@@ -5,7 +5,6 @@
 #'              There are two ways to use this class: directly using the methods previously 
 #'              listed or via wrapping functions (called PM.<method name>). In the examples section you will find an example of both.
 #' @param parameters.list a list containing possible parameters to tune the model. The admitted element of the input list are:
-#' @useDynLib pMineR    
 #' @export
 secondOrderMarkovModel<-function( parameters.list = list() ) {
   MMatrix<-''

@@ -22,7 +22,6 @@
 #'    \item \code{threshold } a number between 0 and 1 (default is 0). In the graph, arcs with a probability under the threshold will be removed;
 #'    \item \code{considerAutoLoop } a boolean parameter (default is \code{TRUE}). If \code{FALSE} the arcs outcoming and incoming in the same node will be removed.
 #'   }
-#' @useDynLib pMineR    
 #' @export
 #' @examples \dontrun{
 #' # ----------------------------------------------- 
