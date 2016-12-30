@@ -138,8 +138,6 @@ dataProcessor<-function() {
 
     return(list( "arrayAssociativo" = rownames(MM),
                  "footPrint"="",
-                 # "footPrint"=buildFootPrintTable(MM),
-                 # "footPrint.plus"=buildFootPrintTable.plus(MM = MM, wordsSeq = wordSequence.TMP01),
                  "MMatrix"=MM,
                  "MM.mean.time"=MM.mean.time,
                  "MM.density.list"=MM.den.list,
