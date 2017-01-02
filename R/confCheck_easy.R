@@ -317,8 +317,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         # altrimenti (se non ci sono stati trigger, vedi di uscire dal loop)
         else devo.restare.in.trigger.loop<-FALSE
       }
-#       Se i vincoli di interpretazione degli event log sono "hard" allora non posso accettare
-#       di passare ad un altro evento, se un evento non ha scatenato trigger!
+      # Se i vincoli di interpretazione degli event log sono "hard" allora non posso accettare
+      # di passare ad un altro evento, se un evento non ha scatenato trigger!
       if(event.interpretation == "hard" & fired.trigger.in.this.iteration == FALSE)  {
         computation.result <- "event not predicted in hard checking"
         stop.computation <- TRUE

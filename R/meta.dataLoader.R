@@ -17,50 +17,52 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
   obj.logHandler<-c()
   #=================================================================================
   # clearAttributes
+  # this method clear all the attributes in order to make the object re-useable
+  # for other issues ( dirty variables could have dramatic effetcs! )  
   #=================================================================================    
   clearAttributes<-function() {
     costructor();
   }
   #=================================================================================
   # load.csv
+  # a method to load CSV files. This is a wrapper of the same method of the 
+  # dataLoader class
   #=================================================================================  
   load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, view = "main") {
-
-    # if not exist, error
+    # if the view does not exist, error
     if( !(view %in% names(list.dataLoader) ) )
       { obj.logHandler$sendLog( msg =c("ERROR: '",view,"' does not exist"), type="NMI" ); return; }
     # ok, load data
     list.dataLoader[[ view ]]$load.csv( nomeFile = nomeFile, IDName = IDName, EVENTName = EVENTName, quote = quote, sep = sep, dateColumnName = dateColumnName)
-  
   }
   #=================================================================================
   # load.data.frame
+  # a method to load data.frame. This is a wrapper of the same method of the 
+  # dataLoader class  
   #=================================================================================  
   load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, view = "main") {
-    # Carica i dati nell'oggetto main.dataLoader interno
-    # if not exist, error
+    # if the view does not exist, error
     if( !(view %in% names(list.dataLoader) ) )
       { obj.logHandler$sendLog( msg =c("ERROR: '",view,"' does not exist"), type="NMI" ); return; }
     # ok, load data
     list.dataLoader[[ view ]]$load.data.frame(  mydata = mydata, IDName = IDName, EVENTName = EVENTName, dateColumnName = dateColumnName)
-
   }  
   #=================================================================================
   # getData
+  # applies the ::getData() methods to the chosen view.
   #=================================================================================  
   getData<-function( view = "main") {
     return(  list.dataLoader[[ view ]]$getData()  )
   }
   #=================================================================================
   # copyView
+  # it makes a copy of a view
   #=================================================================================  
   copyView<-function( view.name , from.view = "main" ) {
     # 'main' cannot be used :)
     if( view.name == "main") 
       { obj.logHandler$sendLog( msg ="ERROR: 'main' is not a reserved name ", type="NMI" ); return; }
     # An existent name cannot be used
-#     if( view.name %in% names(list.dataLoader) ) 
-#       { obj.logHandler$sendLog( msg =c("ERROR: '",view.name,"' already exists"), type="NMI" ); return; }
     # An un-existent name is passed as source
     if( !(from.view %in% names(list.dataLoader) ) )
     { obj.logHandler$sendLog( msg =c("ERROR: '",from.view,"' does not exist"), type="NMI" ); return; }
@@ -69,20 +71,18 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
   }  
   #=================================================================================
   # createView
+  # creates a new, empty, view: if an existent one is specified, the one is overridden
   #=================================================================================  
   createView<-function( view.name , verbose.mode = TRUE) {
     # 'main' cannot be used :)
     if( view.name == "main") 
     { obj.logHandler$sendLog( msg ="ERROR: 'main' is not a reserved name ", type="NMI" ); return; }
-    # An existent name cannot be used
-#     if( view.name %in% names(list.dataLoader) ) 
-#     { obj.logHandler$sendLog( msg =c("ERROR: '",view.name,"' already exists"), type="NMI" ); return; }
-    
     # create the view
     list.dataLoader[[ view.name ]] <<- dataLoader( verbose.mode = verbose.mode)
   }   
   #=================================================================================
   # removeEvents
+  # applies the 'removeEvents' method of the dataLoader class, applied to the chosen view
   #=================================================================================    
   removeEvents<-function( array.events=NA, view='main') {  
     # Check if it exists
@@ -93,7 +93,8 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
     list.dataLoader[[ view ]]$removeEvents( array.events = array.events)
   }
   #=================================================================================
-  # removeEvents
+  # keepOnlyEvents
+  # applies the 'keepOnlyEvents' method of the dataLoader class, applied to the chosen view  
   #=================================================================================    
   keepOnlyEvents<-function( array.events=NA, view='main') {  
     # Check if it exists
@@ -105,45 +106,34 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
   }  
   #=================================================================================
   # addDictionary
+  # adds a dictionary to a given view
   #=================================================================================  
   addDictionary<-function( fileName,  column.event.name , sep =',', dict.name='main', view='main'  ) {
     list.dataLoader[[ view ]]$addDictionary( fileName = fileName , sep = sep, dict.name= dict.name , column.event.name = column.event.name) 
   }  
   #=================================================================================
-  # plotTimeline
+  # plot.Timeline
+  # plots the event log timeline for the specified patientID
   #=================================================================================   
   plot.Timeline<-function( patID , view='main' ) {
     list.dataLoader[[ view ]]$plot.Timeline( patID = patID)
   }  
   #=================================================================================
-  # addDictionary
+  # translate
+  # translate eventLog names according to a pre-loaded dictionary, eventually creating
+  # a new view
   #=================================================================================  
   translate<-function( from.view, column.name, to.view='' , build.new.view = TRUE  ) {
     mydata <- list.dataLoader[[ from.view ]]$getTranslation(column.name = column.name)
     if(build.new.view == TRUE ) {
-       # browser()
       altriDati <- list.dataLoader[[ from.view ]]$getData()
-      
       listaCampi <- names(mydata)
       listaCampi <- listaCampi[ which( !( listaCampi %in% "pMineR.deltaDate" )) ]
       mydata <- mydata[,listaCampi]
       
-#       for(indice in names(altriDati$pat.process)) {
-#         listaCampi<-names(altriDati$pat.process[[ indice ]])
-#         listaCampi <- listaCampi[ which( !( listaCampi %in% "pMineR.deltaDate" )) ]
-#         altriDati$pat.process[[ indice ]]<-altriDati$pat.process[[ indice ]][listaCampi]
-#       }  
-      # browser()
-      # mydata$pat.process <- altriDati
-      
-      # browser()
       createView(view.name = to.view)
-      # browser()
+
       load.data.frame(mydata = mydata,IDName = altriDati$csv.IDName,EVENTName = altriDati$csv.EVENTName, dateColumnName = altriDati$csv.dateColumnName,view = to.view)
-      # ct<- 1
-      # browser()
-      # ct<- 2
-      
     } else return(mydata)
   }   
   #=================================================================================
