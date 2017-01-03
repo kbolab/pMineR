@@ -915,11 +915,14 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #   min.num.of.valid.words : numero minimo di parole valide
   #   max.word.length : numero massimo di eventi per parola
   #=================================================================================  
-  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, howToBuildBad="resample", debug.mode = FALSE) {
+  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, 
+                      max.word.length=100, howToBuildBad="resample", 
+                      toReturn="csv", debug.mode = FALSE) {
     if(is.na(min.num.of.valid.words)) min.num.of.valid.words = number.of.cases
     quante.da.sbagliare <- number.of.cases - min.num.of.valid.words
 
-    if(debug.mode==TRUE) cat("\nB")
+    # Se è stato chiesto di generare anche delle sequenze NON VALIDE, genera delle 
+    # sequenze NON VALIDE (scusate il nome di sta fava 'play.easy.impreciso')
     if(min.num.of.valid.words>0) {
       a <- play.easy.impreciso(number.of.cases = min.num.of.valid.words,min.num.of.valid.words = min.num.of.valid.words,
                                max.word.length = max.word.length, howToBuildBad = howToBuildBad)
@@ -931,21 +934,28 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         b <- play.easy.impreciso(number.of.cases = 1,min.num.of.valid.words = 0,
                                  max.word.length = max.word.length, howToBuildBad = howToBuildBad)
         if(b$arr.matching.parola==FALSE) {
-          if(debug.mode==TRUE) cat("+")
           if(min.num.of.valid.words==0 & totalizzati==0) {a <- b}
-          else  {
-            a <- join.giving.new.ID(a,b)
-          }
+          else  { a <- join.giving.new.ID(a,b) }
           totalizzati <- totalizzati + 1
         }
-        else{
-          if(debug.mode==TRUE)  cat(".")
-        }
-                                 
       }
     }
-    if(debug.mode==TRUE) cat("\nE")
-    return(a)
+
+    # Restituisci ciò che serve venga restituito
+    # nel caso del CSV
+    if(toReturn=="csv") {
+      daRestituire <- a
+    }
+    # nel caso del dataLoader
+    if(toReturn=="dataLoader") {
+      # Istanzia un oggetto dataLoader che eridita il parametro "verbose"
+      daRestituire<-dataLoader(verbose.mode = param.verbose)
+      daRestituire$load.data.frame(mydata = a$valid.data.frame,
+                                   IDName = "patID",EVENTName = "event",
+                                   dateColumnName = "date")
+    }
+    if(toReturn!="csv" & toReturn!="dataLoader") stop("ERRORE: 'toReturn' non valorizzata correttamente")
+    return(daRestituire)
     
   }
   join.giving.new.ID<-function( a , b ) {

@@ -90,6 +90,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # loadDataset
   #===========================================================  
   loadDataset<-function( dataList ) { 
+    
     transMatrix<-dataList$MMatrix
 #     footPrintTable<-dataList$footPrint
     MMatrix<<-transMatrix
@@ -123,7 +124,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================
   # play
   #===========================================================
-  play<-function(numberOfPlays = 1, min.num.of.valid.words = NA) {
+  play<-function(numberOfPlays = 1, min.num.of.valid.words = NA,
+                 toReturn="csv") {
     obj.utils <- utils()
     res<-list()
     for(i in seq(1,numberOfPlays)) {
@@ -162,7 +164,15 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     
         
     if(!is.null(dim(res))) res<-as.data.frame(res)
-    return(res)
+    if(toReturn=="csv") { daRestituire <- res  }
+    if(toReturn=="dataLoader"){
+      # Istanzia un oggetto dataLoader che eridita il parametro "verbose"
+      daRestituire<-dataLoader(verbose.mode = FALSE)
+      daRestituire$load.data.frame(mydata = res,
+                                   IDName = "patID",EVENTName = "event",
+                                   dateColumnName = "date")      
+    }
+    return(daRestituire)
   }
   #=================================================================================
   # distanceFrom - WRAPPER Function

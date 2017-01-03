@@ -143,24 +143,27 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================
   # play
   #===========================================================
-  play<-function(numberOfPlays = 1 ) {
+  play<-function(numberOfPlays = 1 , toReturn="csv" ) {
     obj.utils <- utils()
     res<-list()
     for(i in seq(1,numberOfPlays)) {
-      # cat("\nb - Caso: ",i)
       res[[as.character(i)]]<-play.Single()
-      # cat("\ne - Caso: ",i)
-      # if(length(res$`1`)==0) browser()
     }
-    # if(length(res[[1]])==0) browser()
-    # cat("\n finale calcolo per ",i)
     if(length(res)>0 & length(unlist(res))>0  ) {
-#         cat("\n RES (length)=",length(res))
-#         cat("\n RES (length unlist)=",length( unlist(res)))
         res <- obj.utils$format.data.for.csv(listaProcessi = res, lista.validi = rep(TRUE,numberOfPlays))
         res<-as.data.frame(res)
     } else return(list())
-    return(res)
+    
+    # restituisci secondo il formato richiesto
+    if(toReturn=="csv") { daRestituire <- res  }
+    if(toReturn=="dataLoader"){
+      # Istanzia un oggetto dataLoader che eridita il parametro "verbose"
+      daRestituire<-dataLoader(verbose.mode = FALSE)
+      daRestituire$load.data.frame(mydata = res,
+                                   IDName = "patID",EVENTName = "event",
+                                   dateColumnName = "date")      
+    }    
+    return(daRestituire)
   }  
   #===========================================================
   # play.Single
@@ -316,13 +319,6 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
         
         jump.prob <- aaa[ indice, statoFuturo ]
         
-#         caratt.s <- parola[ caratt.i  ]
-#         if(!(caratt.s %in% colnames(MMatrix.perc))) { success = FALSE; break; }
-#         if(!(parola[ caratt.i +1 ] %in% colnames(MMatrix.perc))) { success = FALSE; break; }
-        
-        # jump.prob <- dataList$MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
-        
-        # jump.prob <- MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
         if(jump.prob>0) path.attuale <- c(path.attuale,parola[ caratt.i  ])
         if(jump.prob==0) { success = FALSE; break; }
         # caratt.s %in% colnames(MMatrix.perc)
