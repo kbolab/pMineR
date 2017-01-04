@@ -20,7 +20,7 @@ Author: Roberto Gatta [aut, cre],
   Lucia Sacchi [ctb]
 Maintainer: Roberto Gatta <roberto.gatta.bs@gmail.com>
 Description: Allows to build and train simple Process Mining (PM) models (at the moment only AlphaAlgorithm and First Order Markov Model). The aim is to support PM specifically for the clinical domain from both administrative and clinical data.
-License: GPL-2
+License: MIT
 LazyData: true
 Depends:
     DiagrammeR (>= 0.8.2),
