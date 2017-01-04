@@ -57,6 +57,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
   MM.density.list<-''
   list.dictionary<-''
   list.dict.column.event.name<-''
+  input.format.date<-''
   
   param.IDName<-''
   param.EVENTName<-''
@@ -254,15 +255,18 @@ dataLoader<-function( verbose.mode = TRUE ) {
     if( "wordSequence.raw" %in%  nomiAttributi  ) wordSequence.raw<<-dataToSet$wordSequence.raw
 
   }
-  order.list.by.date<-function(   listToBeOrdered, dateColumnName, deltaDate.column.name='pMineR.deltaDate', format.column.date="%d/%m/%Y"  ) {
+  order.list.by.date<-function(   listToBeOrdered, dateColumnName, deltaDate.column.name='pMineR.deltaDate', format.column.date = "%d/%m/%Y" ) {
     # if(length(listToBeOrdered)==0) return(listToBeOrdered);
-    if(format.column.date!="%d/%m/%Y") stop("Not Yet Implemented (ErrCod: #89h89h8h")
+
     # Cicla per ogni paziente
-    # browser()
     for( paziente in seq(1,length(listToBeOrdered)) ) {
       # Estrai la matrice
-      
       matrice.date<-listToBeOrdered[[paziente]]
+      
+      # Leggi la colonna data secondo la formattazione indicata in ingresso e riscrivila nel formato %d/%m/%Y (lo stesso viene fatto in plot.Timeline)
+      newdate <- strptime(as.character(matrice.date[,dateColumnName]), format.column.date)
+      matrice.date[,dateColumnName] <- format(newdate, "%d/%m/%Y")
+    
       # Calcola la colonna delle differenze di date rispetto ad una data di riferimento ed azzera rispetto al minore
       colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y"),as.POSIXct("01/01/2001", format = "%d/%m/%Y"),units = 'days'))
       colonna.delta.date.TMPh898h98h9<-colonna.delta.date.TMPh898h98h9-min(colonna.delta.date.TMPh898h98h9)
@@ -276,7 +280,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
 #     browser()
     return(listToBeOrdered);
   } 
-  load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA) {
+  load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, format.column.date = "%d/%m/%Y") {
     # clear all the attributes
     clearAttributes( );
     
@@ -290,6 +294,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     param.IDName<<-IDName
     param.EVENTName<<-EVENTName
     param.dateColumnName<<-dateColumnName
+    input.format.date<<- format.column.date
     
     # ok, let's begin!
     ID.list.names<-IDName
@@ -308,7 +313,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # Order the list by the interested date (if exists)
     if(!is.na(dateColumnName)) {
       if(length(ID.act.group)==0) browser()
-      ID.act.group<-order.list.by.date(listToBeOrdered = ID.act.group, dateColumnName = dateColumnName)
+      ID.act.group<-order.list.by.date(listToBeOrdered = ID.act.group, dateColumnName = dateColumnName, format.column.date = format.column.date)
     }
     if(verbose.mode == TRUE) cat("\n Building MMatrices and other stuff")
     # build the MM matrix and other stuff...
@@ -335,11 +340,12 @@ dataLoader<-function( verbose.mode = TRUE ) {
   #=================================================================================
   # load.csv
   #=================================================================================  
-  load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA) {
+  load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, format.column.date="%d/%m/%Y") {
     # load the file
     mydata = read.table(file=nomeFile,sep = sep,header = T,quote=quote)
+    
     # Now "load" the data.frame
-    load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName, dateColumnName = dateColumnName )
+    load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName, dateColumnName = dateColumnName , format.column.date = format.column.date)
   }
   #=================================================================================
   # apply.filter
@@ -368,11 +374,16 @@ dataLoader<-function( verbose.mode = TRUE ) {
   #=================================================================================
   # plotTimeline
   #=================================================================================   
-  plot.Timeline<-function( patID ) {
+  plot.Timeline<-function( patID , output.format.date = "%d/%m/%Y") {
 
    matrice <- cbind( pat.process[[ as.character(patID) ]][[param.dateColumnName]],
                          pat.process[[ as.character(patID) ]][[param.EVENTName]]) 
-   plotTimeline(eventTable = matrice, format.date = "%d/%m/%Y")
+   
+   # vedi stessa cosa in order.list.by.date
+   newdate <- strptime(as.character(matrice[,1]), input.format.date)
+   matrice[,1] <- format(newdate, output.format.date)
+   
+   plotTimeline(eventTable = matrice, output.format.date = output.format.date)
   }
   #=================================================================================
   # loader

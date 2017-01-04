@@ -16,8 +16,8 @@ plotTimeline.ID.From.CSV<-function( nomeFile,  IDToPlot, IDName, EVENTName, DATA
 #' 
 #' @description  kfjvkcvcx
 #' @export
-plotTimeline<-function( eventTable , dataSep='/', format.date = "%Y/%m/%d" ) {
-  
+plotTimeline<-function( eventTable , dataSep='/', output.format.date = "%d/%m/%Y" ) {
+
 #     eventTable<-c("2001-01-10","RX torace")
 #     eventTable<-rbind(eventTable, c("2001-05-10","CT torace")   )
 #     eventTable<-rbind(eventTable,   c("2002-05-10","Dieta")   )
@@ -30,7 +30,7 @@ plotTimeline<-function( eventTable , dataSep='/', format.date = "%Y/%m/%d" ) {
 #   if ( dataSep == "/") df$YM <- as.Date(df$DATA, format="%Y/%m/%d")
 #   if ( dataSep == ":") df$YM <- as.Date(df$DATA, format="%Y:%m:%d")
   
-  df$YM <- as.Date(df$DATA, format=format.date)
+  df$YM <- as.Date(df$DATA, format=output.format.date)
   
   rangeYM <- range(df$YM)
   
@@ -44,7 +44,7 @@ plotTimeline<-function( eventTable , dataSep='/', format.date = "%Y/%m/%d" ) {
   axis.Date(
     1,
     at=seq.Date(rangeYM[1],rangeYM[2],by="month"),
-    format="%Y-%m",
+    format="%m/%Y",
     cex.axis=0.6,
     pos=0,
     lwd=0,
