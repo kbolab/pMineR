@@ -429,6 +429,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     MM.density.list<<-''    
     list.dictionary<<-list()
     list.dict.column.event.name<<-list()
+    input.format.date<<-''
     # Not true data, but useful anyway
     param.IDName<<-''
     param.EVENTName<<-''
