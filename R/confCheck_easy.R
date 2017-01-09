@@ -247,6 +247,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # gestisci il log
       newNote();
       note.setStep(number = ct)
+      browser()
       note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW , pMineR.internal.ID.Evt = matriceSequenza[riga,"pMineR.internal.ID.Evt"])
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
 
@@ -570,8 +571,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       matrice <- rbind(matrice, cbind(  arr.date[ riga ] , arr.step[ riga ]  ) )
     }
     
-    plotTimeline(matrice, format.date = "%d/%m/%Y")
+    plotTimeline(matrice, dataLog$csv.date.format)
+    #plotTimeline(matrice, format.date = "%d/%m/%Y")
   }  
+  
   #===========================================================  
   # plotPatientComputedTimeline
   # plot the computed timeline for a given patient
@@ -1161,15 +1164,13 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   get.possible.words.in.WF.easy<-function() {
     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
     arr.parole<-c()
-    
     for(stringa in stringhe) {
-      tmp.1 <- str_sub(string = stringa,start = str_locate(stringa,pattern = "\\$ev.NOW\\$")[2]+1)
-      if(!is.na(tmp.1)) {
-        apici <- str_locate_all(string = tmp.1,pattern = "'")
-        tmp.1 <- str_sub(string = tmp.1,start = apici[[1]][1,1]+1,end = apici[[1]][2,1]-1)
-        if(!is.na(tmp.1)) {
-          if( !(tmp.1 %in% arr.parole)) arr.parole<-c(arr.parole,tmp.1)
-        }
+      matched = str_locate_all(stringa,pattern = "(?<=ev.NOW.==').*?(?=')")
+      for(i in 1:dim(matched[[1]])[1]){
+        tmp.1 <- str_sub(string = stringa,start = matched[[1]][i,1],end = matched[[1]][i,2])
+          if(!is.na(tmp.1)) {
+            if( !(tmp.1 %in% arr.parole)) arr.parole<-c(arr.parole,tmp.1)
+          }
       }
     }
     return(arr.parole)

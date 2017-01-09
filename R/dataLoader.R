@@ -413,7 +413,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
       "MM.density.list"=MM.density.list,
       "csv.IDName"=param.IDName,
       "csv.EVENTName"=param.EVENTName,
-      "csv.dateColumnName"=param.dateColumnName
+      "csv.dateColumnName"=param.dateColumnName,
+      "csv.date.format"=input.format.date
     ))
   }
   #=================================================================================
