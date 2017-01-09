@@ -1137,18 +1137,27 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
            "list.nodes" = list.nodes)
     )
   }
-  #   format.data.for.csv<-function(listaProcessi, lista.validi) { 
-  #     big.csv<-c()
-  #     ct <- 1
-  #     for(i in names(listaProcessi)) {
-  #       numeroElementi<-length(listaProcessi[[i]])
-  #       matrice<-cbind(rep(ct,numeroElementi),listaProcessi[[i]],rep("01/01/1999",numeroElementi),rep(as.character(lista.validi[ct]),numeroElementi) )
-  #       big.csv<-rbind(big.csv,matrice )
-  #       ct <- ct + 1
-  #     }
-  #     colnames(big.csv)<-c("patID","event","date","valido")
-  #     return(big.csv)
-  #   }
+#   get.possible.words.in.WF.easy<-function() {
+#     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
+#     arr.parole<-c()
+#     
+#     for(stringa in stringhe) {
+#       tmp.1 <- str_sub(string = stringa,start = str_locate(stringa,pattern = "\\$ev.NOW\\$")[2]+1)
+#       if(!is.na(tmp.1)) {
+#         apici <- str_locate_all(string = tmp.1,pattern = "'")
+#         tmp.1 <- str_sub(string = tmp.1,start = apici[[1]][1,1]+1,end = apici[[1]][2,1]-1)
+#         if(!is.na(tmp.1)) {
+#           if( !(tmp.1 %in% arr.parole)) arr.parole<-c(arr.parole,tmp.1)
+#         }
+#       }
+#     }
+#     return(arr.parole)
+#   }
+  #=================================================================================
+  # get.possible.words.in.WF.easy
+  # Parsa l'XML dello PWF già in memoria per costruire un array dei possibili 
+  # $ev.NOW$ (gli eventi dell'event log).
+  #=================================================================================   
   get.possible.words.in.WF.easy<-function() {
     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
     arr.parole<-c()
