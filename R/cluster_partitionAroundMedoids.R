@@ -80,11 +80,11 @@ cluster_partitionAroundMedoids <- function() {
     start.time <- Sys.time()
     clustering <<- pam(d, k = num)
     end.time <- Sys.time()
-
+    
     for(i in 1:length(clustering$medoids)){
       clusters_tmp[[i]] <- processInstances[[clustering$medoids[i]]]
-       clusters_tmp[[i]] <- append("BEGIN",clusters_tmp[[i]])
-       clusters_tmp[[i]] <- append(clusters_tmp[[i]],"END")
+      clusters_tmp[[i]] <- append("BEGIN",clusters_tmp[[i]])
+      clusters_tmp[[i]] <- append(clusters_tmp[[i]],"END")
       if(typeOfModel=="firstOrderMarkovModel"){
         obj <- dataProcessor()
         a <- obj$createSequenceMatrix(clusters_tmp[[i]])
@@ -94,7 +94,7 @@ cluster_partitionAroundMedoids <- function() {
       clusters <<- list("clusters"=transitionCountMatrix ,"PtoClust"=clustering$clustering,"clustering"=clustering, "dissimilarity"=d, "data"=x)
     }
     timeToConverge <<- end.time - start.time
-
+    
   }
   
   

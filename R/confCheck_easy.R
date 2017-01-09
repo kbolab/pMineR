@@ -137,7 +137,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
         # res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
         if(param.verbose == TRUE) cat(str_c("\nBeginning Pat ",indice,"..."))
-         # browser()
+          # browser()
         res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], 
                                    col.eventName = dataLog$csv.EVENTName, 
                                    col.dateName = dataLog$csv.dateColumnName , 
@@ -217,7 +217,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #===========================================================     
   playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz, 
                                 event.interpretation="soft") {
-    
     # Cerca lo stato che viene triggerato dal BEGIN
     st.LAST<-""
     st.DONE<-c("")
@@ -227,7 +226,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     error<-""
     computation.result<-"normally terminated"
     history.hop<-list()
-    
+    # browser()
     sequenza <- as.array(matriceSequenza[ ,col.eventName ])
     stop.computation <- FALSE
     
@@ -247,8 +246,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # gestisci il log
       newNote();
       note.setStep(number = ct)
-      browser()
-      note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW , pMineR.internal.ID.Evt = matriceSequenza[riga,"pMineR.internal.ID.Evt"])
+      if("pMineR.internal.ID.Evt" %in% colnames(matriceSequenza))
+        {note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW , pMineR.internal.ID.Evt = matriceSequenza[riga,"pMineR.internal.ID.Evt"])}
+      else 
+        {note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW )}
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
 
       # Cerca chi ha soddisfatto le precondizioni
@@ -872,7 +873,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   note.setStep<-function( number ){
     tmpAttr$stepNumber <<- number
   }  
-  note.setEvent<-function( eventType , eventDate , pMineR.internal.ID.Evt){
+  note.setEvent<-function( eventType , eventDate , pMineR.internal.ID.Evt=''){
     tmpAttr$event <<- eventType
     tmpAttr$event.date <<- eventDate
     tmpAttr$pMineR.internal.ID.Evt <<- pMineR.internal.ID.Evt
