@@ -1,19 +1,20 @@
-#' cluster_expectationMaximization class
+#' A class to perform Expectation-Maximization clustering on sequential data for Process Mining issues
 #' 
-#' @description   This class performs sequence clusterin on a Log by an iterative Expectation-Maximization procedure (up to now, only for First Order Markov Models) :
+#' @description   This class performs sequence clustering on an event-log with the Expectation-Maximization (EM) algorithm. The public methods are:
 #'                \itemize{
-#'                \item \code{costructor( ...) } is the costructor of the class
-#'                \item \code{loadDataset( ...) } loads data into a cluster_expectationMaximization object. It takes as input the output of the method getData from an instance of the classe dataLoader. It stores the logs and built,internally to the logInspector object, all the structures needed for the next computations.
-#'                \item \code{calculateClusters() } This is the “run” command to begin the clustering  calculus. Num is the number of clusters it has to generate andtypeOfModel is the name of the Process Mining model it has to use to generate the space (i.e. "firstOrdermarkovModel", "alphaAlgorithm", ...)
-#'                \item \code{getClusters() } returns a list containing the calculated Clusters.
-#'                \item \code{getClusterStats( ... )} It return a list containing the information about performances of clusters (i.e. clusters support, distances among centroids, mean distance from processes and centroids, standard deviations)
-#'                \item \code{getClusterLog( ... )} Because of the calculateCluster method is an iterative method, it could be of interest for a user to get the logs of eachiteration in order to have an idea of the time needed to converge. For this reason for each iteration an internal attribute calledlogNotes should be updated adding one row and the result should be made available with this method.
-#' 
+#'                \item \code{cluster_expectationMaximization( ) } is the constructor of the class
+#'                \item \code{loadDataset( ) } loads data taken from a \code{dataLoader::getData()} method, into a \code{cluster_expectationMaximization()} object
+#'                \item \code{calculateClusters( ) } performs the actual clustering computation on the previously loaded dataset
+#'                \item \code{getClusters( ) } returns the clusters computed by the \code{cluster_expectationMaximization::calculateClusters()} method
+#'                \item \code{getClusterStats( )} returns informations about the clustering result (i.e. support, between-cluster distance, within-cluster mean distance and standard deviation)
+#'                \item \code{getClusterLog( )} returns informations about the clustering computation itself (i.e. iterations needed to converge, centroids value after each iteration)
 #'                }
-#' @param Parameters for calculateCluster methoda are: 
+#'                In order to better undestand the use of such methods, please visit: www.pminer.info
+#'                
+#' @param Parameters for \code{cluster_expectationMaximization::calculateClusters()} method are:
 #'   \itemize{
 #'    \item \code{num } the number of clusters it has to generate
-#'    \item \code{typeOfModel } the name of the Process Mining model it has to use to generate the space (i.e. "firstOrdermarkovModel", "alphaAlgorithm", ...)
+#'    \item \code{typeOfModel } the name of the Process Mining model it has to use to generate the space (up to now, only the default \code{"firstOrdermarkovModel"} is provided)
 #'   }
 #' @export
 #' @examples \dontrun{
@@ -22,28 +23,28 @@
 #' # ----------------------------------------------- 
 #' obj.L<-dataLoader();   # create a Loader
 #' 
-#' # Load a .csv using "DES" and "ID" as column names to indicate events 
+#' # Load a .csv using "DES" and "ID" as column names to indicate events
 #' # and Patient's ID
 #' obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",
 #' IDName = "ID",EVENTName = "DES", dateColumnName = "DATA")
 #' 
 #' # now create an object cluster_expectationMaximization
-#' obj.clEM<- cluster_expectationMaximization();    
+#' obj.clEM<- cluster_expectationMaximization();
 #' 
 #' # load the data into logInspector object
-#' obj.clEM$loadDataset( obj.L$getData() );  
+#' obj.clEM$loadDataset( obj.L$getData() );
 #' 
 #' # perform clustering computation
-#' obj.clEM$calculateClusters(num = 2, typeOfModel = "firstOrderMarkovModel");  
+#' obj.clEM$calculateClusters(num = 5, typeOfModel = "firstOrderMarkovModel");
 #' 
 #' # get calculated clusters 
-#' obj.clEM$getClusters(); 
+#' obj.clEM$getClusters();
 #' 
 #' # get informations about performance of clusters
-#' obj.clEM$getClusterStats();  
+#' obj.clEM$getClusterStats();
 #' 
-#' # get log of each iteration of the algorithm 
-#' obj.clEM$getClusterLog(); 
+#' # get log of each iteration of the algorithm
+#' obj.clEM$getClusterLog();
 #' }
 
 
@@ -67,7 +68,7 @@ cluster_expectationMaximization <- function() {
   #===========================================================
   # calculateClusters
   #===========================================================  
-  calculateClusters<-function(num, typeOfModel) {
+  calculateClusters<-function(num, typeOfModel="firstOrderMarkovModel") {
     
     if(typeOfModel == "firstOrderMarkovModel"){
       

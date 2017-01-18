@@ -1,17 +1,18 @@
-#' logInspector class
+#' A class to perform a preliminary analysis on sequential data for Process Mining issues
 #' 
-#' @description   This class provides some descriptive statistics about the log:
+#' @description   This class aims at inspecting an event-log for descriptive analysis purposes. The public methods are:
 #'                \itemize{
-#'                \item \code{costructor( ...) } is the costructor of the class
-#'                \item \code{loadDataset( ...) } loads data into a logInspector object. It takes as input the output of the method getData from an instance of the classe dataLoader. It stores the logs and built,internally to the logInspector object, all the structures needed for the next computations.
-#'                \item \code{getEventStats() } returns a list containing event-related stats
-#'                \item \code{getProcessStats() } returns a list containing process-related stats
-#'                \item \code{plotEventStats( ... )} plots event-related stats (takes a custom number of most frequent events it has to plot)
-#'                \item \code{plotProcessStats( ... )} plots process-related stats (takes a custom number of most frequent processes it has to plot)
-#'                \item \code{timeDistribution.stats.plot( ... )} <not yet commented>
-#' 
+#'                \item \code{logInspector( ) } is the constructor of the class
+#'                \item \code{loadDataset( ) } loads data taken from a \code{dataLoader::getData()} method, into a \code{logInspector()} object
+#'                \item \code{getEventStats() } computes and returns event-related stats, such as absolute and relative events frequency
+#'                \item \code{getProcessStats() } computes and returns process-related stats, such as absolute and relative processes frequency
+#'                \item \code{plotEventStats( )} plots the event-related stats (input is the number of most frequent events it has to plot)
+#'                \item \code{plotProcessStats( )} plots the process-related stats (input is the number of most frequent processes it has to plot)
+#'                \item \code{timeDistribution.stats.plot( )} <not yet commented>
 #'                }
-#' @param Parameters for plot methods is: 
+#'                In order to better undestand the use of such methods, please visit: www.pminer.info
+#'                
+#' @param Parameter for \code{logInspector::plotEventStats()} and \code{logInspector::plotProcessStats()} methods is:
 #'   \itemize{
 #'    \item \code{num } the number of most frequent events/processes to plot
 #'   }

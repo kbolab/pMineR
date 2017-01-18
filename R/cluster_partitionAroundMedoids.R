@@ -1,19 +1,20 @@
-#' cluster_expectationMaximization class
+#' A class to perform Partition Around Medoids clustering on sequential data for Process Mining issues
 #' 
-#' @description   This class performs sequence clustering on a Log using the Partition Around Medoids (PAM) algorithm :
+#' @description   This class performs sequence clustering on an event-log with the Partition Around Medoids (PAM) algorithm. The public methods are:
 #'                \itemize{
-#'                \item \code{costructor( ...) } is the costructor of the class
-#'                \item \code{loadDataset( ...) } loads data into a cluster_partitionAroundMedoids object. It takes as input the output of the method getData from an instance of the classe dataLoader. It stores the logs and built,internally to the logInspector object, all the structures needed for the next computations.
-#'                \item \code{calculateClusters() } This is the “run” command to begin the clustering  calculus. Num is the number of clusters it has to generate and typeOfModel is the name of the Process Mining model it has to use to generate the space (i.e. "firstOrdermarkovModel", "alphaAlgorithm", ...)
-#'                \item \code{getClusters() } returns a list containing the calculated Clusters.
-#'                \item \code{getClusterStats( ... )} It return a list containing the information about performances of clusters
-#'                \item \code{getClusterLog( ... )} Because of the calculateCluster method is an iterative method, it could be of interest for a user to get the logs of eachiteration in order to have an idea of the time needed to converge.
-#' 
+#'                \item \code{cluster_partitionAroundMedoids() } is the constructor of the class
+#'                \item \code{loadDataset( ...) } loads data taken from a \code{dataLoader::getData()} method, into a \code{cluster_partitionAroundMedoids()} object
+#'                \item \code{calculateClusters() } performs the actual clustering computation on the previously loaded dataset
+#'                \item \code{getClusters() } returns the clusters computed by the \code{cluster_partitionAroundMedoids::calculateClusters()} method
+#'                \item \code{getClusterStats( ... )} returns informations about the clustering result (i.e. support, between-cluster distance, within-cluster mean distance and standard deviation)
+#'                \item \code{getClusterLog( ... )} returns informations about the clustering computation itself (i.e. iterations needed to converge, centroids value after each iteration)
 #'                }
-#' @param Parameters for calculateCluster methoda are: 
+#'                In order to better undestand the use of such methods, please visit: www.pminer.info
+#'                
+#' @param Parameters for \code{cluster_partitionAroundMedoids::calculateClusters()} method are: 
 #'   \itemize{
 #'    \item \code{num } the number of clusters it has to generate
-#'    \item \code{typeOfModel } the name of the Process Mining model it has to use to generate the space (i.e. "firstOrdermarkovModel", "alphaAlgorithm", ...)
+#'    \item \code{typeOfModel } the name of the Process Mining model it has to use to generate the space (up to now, only the default \code{"firstOrdermarkovModel"} is provided)
 #'   }
 #' @export
 #' @import cluster
