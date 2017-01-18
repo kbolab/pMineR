@@ -1,10 +1,18 @@
-#' secondOrderMarkovModel class
-#' 
-#' @description  This is an implent the Second Order Markov Model (FOMM) for Process Mining issues.
+#' A class to train Second Order Markov Models#' 
+#' @description  This is an implementation of the Second Order Markov Model (SOMM) for Process Mining issues.
 #'                This class provides a minimal set of methods to handle with the FOMM model:
-#'              There are two ways to use this class: directly using the methods previously 
-#'              listed or via wrapping functions (called PM.<method name>). In the examples section you will find an example of both.
-#' @param parameters.list a list containing possible parameters to tune the model. The admitted element of the input list are:
+#'                \itemize{
+#'                \item \code{secondOrderMarkovModel( ) } is the costructor
+#'                \item \code{loadDataset( ) } loads data taken from a dataLoader::getData() method, into a SOMM object
+#'                \item \code{trainModel( ) } train a model using the previously loaded dataset
+#'                \item \code{replay( ) } re-play a given event log on the internal SOMM model
+#'                \item \code{play( ) } play the internal FOMM model a desired number of times, in order to simulate new event-logs. This methods can also, if desired, simulate event-logs which does not complies with the internal SOMM model.
+#'                \item \code{getModel( ) } return the trained internal SOMM model
+#'                }
+#'              In order to better undestand the use of such methods, please visit: www.pminer.info
+#'              
+#'              The consturctor admit the following parameters:
+#' @param parameters.list a list containing possible parameters to tune the model. 
 #' @export
 secondOrderMarkovModel<-function( parameters.list = list() ) {
   MMatrix<-''

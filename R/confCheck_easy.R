@@ -1,6 +1,6 @@
-#' a conformance checking module
+#' A simple conformance checking class
 #' 
-#' @description  A first module for conformance checking
+#' @description  A first module for making conformance checking
 #' @import stringr XML            
 #' @export
 #' @examples \dontrun{
@@ -558,7 +558,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # plotPatientEventTimeLine
   # plot the event timeline for a ginven patient
   #===========================================================  
-  plotPatientEventTimeLine<-function( patientID ) {
+  plotPatientEventTimeLine<-function( patientID , cex.axis = 0.6, cex.text = 0.7) {
     
     st.POST<-list(); st.PRE<-list(); tr.fired<-list()
     txt.section<-"";
@@ -572,7 +572,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       matrice <- rbind(matrice, cbind(  arr.date[ riga ] , arr.step[ riga ]  ) )
     }
     
-    plotTimeline(matrice, dataLog$csv.date.format)
+    plotTimeline(matrice, dataLog$csv.date.format, cex.axis = cex.axis, cex.text = cex.text)
     #plotTimeline(matrice, format.date = "%d/%m/%Y")
   }  
   
@@ -1076,7 +1076,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   genera.parola.valida<-function(number.of.cases, max.word.length=100, parola.valida = TRUE) {
     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
     arr.parole<-get.possible.words.in.WF.easy()
-    
+    # browser()
     # Inizializza gli array
     list.LOGs<-list()
     list.nodes<-list()

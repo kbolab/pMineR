@@ -1,14 +1,21 @@
-#' provides some more advanced features than dataLoader
+#' Load the event-logs serializing many dataLoaders objs
 #' 
-#' @description  This class is  more abstract than dataLoader and provide some facilities. We strongly suggest to adopt meta.dataLoader for quite complex analysys: netherless a meta.dataLoader object can created in any moment starting from an existend dataLoader object
+#' @description  This class is  more abstract than dataLoader and provide some facilities, in particular to cope with dictionaries and tranlations. Because it handles, internally, a set of dataLoader objects, any dataLoader object must be referred by 'view'.
 #'              \itemize{
 #'              \item \code{meta.dataLoader() } the costructor
-#'              \item \code{load.csv( ... ) } loads the a csv file into the \code{meta.dataLoader} object
-#'              \item \code{load.data.frame( ... ) } loads the a csv file into the \code{meta.dataLoader} object
-#'              \item \code{getData( ... ) } returns the loaded data
+#'              \item \code{load.csv( ... ) } loads the csv file into the \code{dataLoader} object
+#'              \item \code{load.data.frame() } loads a data.frame into the \code{dataLoader} object
+#'              \item \code{getData() } return the processed, previously-loaded, data
+#'              \item \code{removeEvents() } remove the events in the array passed as argument (dual of \code{dataLoader::keepOnlyEvents()} )
+#'              \item \code{keepOnlyEvents() } keep only the events in the array passed as argument (dual of \code{dataLoader::removeEvents()} )
+#'              \item \code{addDictionary() } add a dictionary in order, afterward, to translate or group some event name
+#'              \item \code{getTranslation() } perform a translation applying the given dictionary to the loaded csv or data.frame
+#'              \item \code{plot.Timeline() } plot the timeline of the events regarding a single patient 
 #'              } 
-#'              There are two ways to use this class: directly using the methods previously 
-#'              listed or via wrapping functions (called LD.<method name>). In the examples section you will find an example of both.
+#'              In order to better undestand the use of such methods, please visit: www.pminer.info
+#'              
+#'              The consturctor admit the following parameters:
+#' @param verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
 #' @import stringr utils stats           
 #' @export
 meta.dataLoader<-function( verbose.mode = TRUE ) {

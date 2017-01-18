@@ -1,74 +1,29 @@
-#' firstOrderMarkovModel class
+#' A class to train First Order Markov Models
 #' 
 #' @description  This is an implementation of the First Order Markov Model (FOMM) for Process Mining issues.
 #'                This class provides a minimal set of methods to handle with the FOMM model:
 #'                \itemize{
-#'                \item \code{firstOrderMarkovModel( ...) } is the costructor
-#'                \item \code{loadDataset( ...) } loads data into a FOMM object
-#'                \item \code{trainModel() } trains a FOMM model
-#'                \item \code{getModel() } returns the model (XML or graphical way, via grViz script)
-#'                \item \code{replay( ... )} submits a set of given sequences and returns the fitting (not yet implemented for this algorithm)
-#'                \item \code{play( ... )} generates a wished number of sequences
-#'                \item \code{plot() } plots the graph 
-#'                \item \code{distanceFrom( ... )} allows to calculate the distance between two different FOMM objects
-#'                \item \code{plot.delta.graph( ... ) } plots a distance graph between two given FOMM objects
-#'                \item \code{get.transition.Prob( ... ) } calculate the probability to reach a state in K transitions at least
-#'                \item \code{getTimeProb( ... ) } calculate the probability to reach a state in K days
+#'                \item \code{firstOrderMarkovModel( ) } is the costructor
+#'                \item \code{loadDataset( ) } loads data taken from a dataLoader::getData() method, into a FOMM object
+#'                \item \code{trainModel( ) } train a model using the previously loaded dataset
+#'                \item \code{replay( ) } re-play a given event log on the internal FOMM model
+#'                \item \code{play( ) } play the internal FOMM model a desired number of times, in order to simulate new event-logs. This methods can also, if desired, simulate event-logs which does not complies with the internal FOMM model.
+#'                \item \code{plot( ) } plot the internal model
+#'                \item \code{distanceFrom( ) } calculate the scalar distance to another passed FOMM model, passed as argument. The default metric returns a scalar value
+#'                \item \code{getModel( ) } return the trained internal FOMM model
+#'                \item \code{getLogObj( ) } return an XML containing the execution-log of a \code{firstOrderMarkovModel::play()}  computation
+#'                \item \code{getInstanceClass( ) } return the instance class Name and description (version, etc.)
+#'                \item \code{plot.delta.graph( ) } plot a graph, in the desired modality, representing the difference between the internal FOMM and a passed one.
+#'                \item \code{get.transition.Prob( ) } calculate the probability to go in a given number of transitions, from a state to another
+#'                \item \code{get.time.transition.Prob( ) } calculate the probability to go in a given time, from a state to another
+#'                \item \code{build.PWF( ) } build automatically a PWF XML definition script.
+#'                \item \code{findReacheableNodes( ) } and return the array containing the reacheable states, starting from the passed one.
 #'                }
-#'              There are two ways to use this class: directly using the methods previously 
-#'              listed or via wrapping functions (called PM.<method name>). In the examples section you will find an example of both.
-#' @param parameters.list a list containing possible parameters to tune the model. The admitted element of the input list are:
-#'   \itemize{
-#'    \item \code{threshold } a number between 0 and 1 (default is 0). In the graph, arcs with a probability under the threshold will be removed;
-#'    \item \code{considerAutoLoop } a boolean parameter (default is \code{TRUE}). If \code{FALSE} the arcs outcoming and incoming in the same node will be removed.
-#'   }
+#'              In order to better undestand the use of such methods, please visit: www.pminer.info
+#'              
+#'              The consturctor admit the following parameters:
+#' @param parameters.list a list containing possible parameters to tune the model. 
 #' @export
-#' @examples \dontrun{
-#' # ----------------------------------------------- 
-#' #  USING THE METHODS of the class
-#' # ----------------------------------------------- 
-#' obj.L<-dataLoader();   # create a Loader
-#' 
-#' # Load a .csv using "DES" and "ID" as column names to indeicate events 
-#' # and Patient's ID
-#' obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",
-#' EVENTName = "DES")
-#' 
-#' # now create an object firstOrderMarkovModel
-#' obj.MM<-firstOrderMarkovModel();    
-#' 
-#' # load the data into MM model
-#' obj.MM$loadDataset( obj.L$getData() );  
-#' 
-#' # train the model
-#' obj.MM$trainModel();  
-#' 
-#' # plot the model 
-#' obj.MM$plot();  
-#' 
-#' # -----------------------------------------------
-#' ##  USING THE WRAPPER Functions
-#' # -----------------------------------------------
-#' # Instantiate a 'firstOrderMarkovModel' model
-#' obj.LD<-LD.builder()
-#' 
-#' # Load a CSV into the loader
-#' LD.load.csv(loader.obj = obj.LD ,nomeFile = "./otherFiles/test_02.csv",
-#'    IDName = "ID",EVENTName = "DES")
-#' 
-#' # Instantiate a PM model
-#' obj.PM <-PM.builder(kindOfObject = "firstOrderMarkovModel")
-#' 
-#' # Load the PM model
-#' PM.loadDataset(PM.obj = obj.PM,dataList = LD.getData(loader.obj = obj.LD))
-#'
-#' # train it
-#' PM.trainModel(PM.obj = obj.PM)
-#' 
-#' # plot the model 
-#' PM.plot(PM.obj = obj.PM)
-#' 
-#' }
 firstOrderMarkovModel<-function( parameters.list = list() ) {
   MMatrix<-''
   footPrint<-''
@@ -362,13 +317,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   getLogObj<-function() {
     return(obj.log)
   }
-  #===========================================================
-  # setLogObj
-  #===========================================================  
-  setLogObj<-function( objLog ) {
-    obj.log<<-objLog
-  }  
-  
   # ***************************************************************************************************
   # MODEL SPECIFIC PUBLIC METHODS
   # ***************************************************************************************************   
@@ -376,7 +324,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # plot.delta.graph
   # Funzione per il plotting delle distanze rispetto ad una data metrica
   #===========================================================
-  plot.delta.graph<-function( objToCheck, threshold=0, type.of.graph="delta", threshold.4.overlapped=.3 ) {
+  plot.delta.graph<-function( objToCheck, threshold=0, type.of.graph="delta", threshold.4.overlapped=.3 ,giveBackGrViz = FALSE) {
     
     if( type.of.graph != "overlapped" & type.of.graph !="delta") stop("\n Not yet implemented: err.cod. %43547g8fd")
     ext.MM <- objToCheck$getModel(kindOfOutput = "MMatrix.perc")
@@ -403,7 +351,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
       grafo<-build.graph.from.table(MM = m.int, threshold = threshold, 
                                     second.MM = m.ext, 
                                     threshold.second.MM = threshold.4.overlapped, type.of.graph = type.of.graph) 
-    
+    if(giveBackGrViz == TRUE) return(grafo);
     grViz(grafo);
   }   
   #=================================================================================
@@ -825,7 +773,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     "plot"=plot,
     "distanceFrom"=distanceFrom,
     "getLogObj"=getLogObj,
-    "setLogObj"=setLogObj,
     "getInstanceClass"=getInstanceClass,
     "plot.delta.graph"=plot.delta.graph,
     "get.transition.Prob"=get.transition.Prob,

@@ -1,6 +1,6 @@
-#' some useful tools
+#' Some useful tools
 #' 
-#' @description  A class which provide some utility tools
+#' @description  A class which provide some tools. pMineR intarnal use only.
 #' @export
 utils<-function() {
   dectobin <- function(y) {
@@ -64,9 +64,9 @@ textObj<-function() {
   }
   return(list("add"=add,"get"=get))
 }
-#' some useffdsfds
+#' some data processing useful tools
 #' 
-#' @description  A class whffdsfdde some utility tools
+#' @description  A class which provide some tools. pMineR intarnal use only.
 #' @export
 dataProcessor<-function() {
   

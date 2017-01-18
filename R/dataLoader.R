@@ -1,52 +1,23 @@
-#' load csv based log files
+#' Load the event-logs
 #' 
 #' @description  A loader for csv based log files. It also calculates the footprint table, transition matrix probabilities, and presents data in different shapes. The public methods are:
 #'              \itemize{
 #'              \item \code{dataLoader() } the costructor
-#'              \item \code{load.csv( ... ) } loads the a csv file into the \code{dataLoader} object
-#'              \item \code{getData() } returns the loaded data
-#'              \item \code{apply.filter() } apply a filter to logs (es: for denoising issues)
-#'              \item \code{removeEvents() } remove some events from stored logs
+#'              \item \code{load.csv( ... ) } loads the csv file into the \code{dataLoader} object
+#'              \item \code{load.data.frame() } loads a data.frame into the \code{dataLoader} object
+#'              \item \code{getData() } return the processed, previously-loaded, data
+#'              \item \code{removeEvents() } remove the events in the array passed as argument (dual of \code{dataLoader::keepOnlyEvents()} )
+#'              \item \code{keepOnlyEvents() } keep only the events in the array passed as argument (dual of \code{dataLoader::removeEvents()} )
+#'              \item \code{addDictionary() } add a dictionary in order, afterward, to translate or group some event name
+#'              \item \code{getTranslation() } perform a translation applying the given dictionary to the loaded csv or data.frame
+#'              \item \code{plot.Timeline() } plot the timeline of the events regarding a single patient 
 #'              } 
-#'              There are two ways to use this class: directly using the methods previously 
-#'              listed or via wrapping functions (called LD.<method name>). In the examples section you will find an example of both.
+#'              In order to better undestand the use of such methods, please visit: www.pminer.info
+#'              
+#'              The consturctor admit the following parameters:
+#' @param verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
 #' @import stringr utils stats           
 #' @export
-#' @examples \dontrun{
-#' # -----------------------------------------------
-#' #  USING THE METHODS of the class
-#' # -----------------------------------------------
-#' obj.L<-dataLoader();   # create a Loader
-#' 
-#' # Load a .csv using "DES" and "ID" as column names to indeicate events 
-#' # and Patient's ID
-#' obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",
-#' EVENTName = "DES")
-#' 
-#' # print the footprint table 
-#' res<- obj.L$getData()
-#' print(res$footprint)
-#' 
-#' 
-#' # -----------------------------------------------
-#' #  USING THE WRAPPER Functions
-#' # -----------------------------------------------
-#' # Instantiate a loader
-#' obj.LD<-LD.builder()
-#' 
-#' # Load a CSV into the loader
-#' LD.load.csv(loader.obj = obj.LD ,nomeFile = "./otherFiles/test_02.csv",
-#' IDName = "ID",EVENTName = "DES")
-#' 
-#' # Instantiate a PM model
-#' obj.PM <-PM.builder(kindOfObject = "alphaAlgorithm")
-#' 
-#' # get the data
-#' res = LD.getData(loader.obj = obj.LD)
-#'
-#' # print the footprint table
-#' print(res$footprint)
-#' }
 dataLoader<-function( verbose.mode = TRUE ) {
   arrayAssociativo<-''
   footPrint<-''
@@ -348,33 +319,9 @@ dataLoader<-function( verbose.mode = TRUE ) {
     load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName, dateColumnName = dateColumnName , format.column.date = format.column.date)
   }
   #=================================================================================
-  # apply.filter
-  #=================================================================================  
-  apply.filter<-function( filter.list=list() ) {  
-
-    if(length(filter.list) == 0 ) return;
-    for( filtro in names(filter.list)) {
-      if(filtro == "event.absolute.coverage.threshold" | filtro == "event.relative.coverage.threshold") {
-        I.1<-logInspector(); 
-        I.1$loadDataset( getData() );
-        evt.stat <- I.1$getEventStats()
-        proc.stat <- I.1$getProcessStats()
-        
-        if(filtro == "event.absolute.coverage.threshold") copertura<-evt.stat$`Absolute Coverage`
-        else copertura<-evt.stat$`Absolute Coverage`/length(pat.process)
-        names(copertura)<-names(evt.stat$`Absolute Coverage`)
-        
-        under.threshold<-names(copertura)[which(copertura<= filter.list[[filtro]]$threshold )]
-        under.threshold<-under.threshold[!(under.threshold=="END" | under.threshold=="BEGIN")]
-        removeEvents(array.events = under.threshold)
-      }
-    }
-    return;
-  }
-  #=================================================================================
   # plotTimeline
   #=================================================================================   
-  plot.Timeline<-function( patID , output.format.date = "%d/%m/%Y") {
+  plot.Timeline<-function( patID , output.format.date = "%d/%m/%Y",cex.axis = 0.6, cex.text = 0.7) {
 
    matrice <- cbind( pat.process[[ as.character(patID) ]][[param.dateColumnName]],
                          pat.process[[ as.character(patID) ]][[param.EVENTName]]) 
@@ -383,7 +330,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
    newdate <- strptime(as.character(matrice[,1]), input.format.date)
    matrice[,1] <- format(newdate, output.format.date)
    
-   plotTimeline(eventTable = matrice, output.format.date = output.format.date)
+   plotTimeline(eventTable = matrice, output.format.date = output.format.date, cex.axis = cex.axis,cex.text = cex.text )
   }
   #=================================================================================
   # loader
@@ -445,7 +392,6 @@ dataLoader<-function( verbose.mode = TRUE ) {
     "getData"=getData,
     "removeEvents"=removeEvents,
     "keepOnlyEvents"=keepOnlyEvents,
-    # "apply.filter"=apply.filter,
     "addDictionary"=addDictionary,
     "getTranslation"=getTranslation,
     "plot.Timeline"=plot.Timeline
