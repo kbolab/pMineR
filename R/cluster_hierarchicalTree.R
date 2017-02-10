@@ -11,22 +11,22 @@
 #'                }
 #'                In order to better undestand the use of such methods, please visit: www.pminer.info
 #'                
-#' @param Parameters for \code{cluster_hierarchicalTree::calculateClusters()} method are:
+#' Parameters for \code{cluster_hierarchicalTree::calculateClusters()} method are:
 #'   \itemize{
 #'    \item \code{num } the number of clusters it has to generate
 #'    \item \code{typeOfModel } the name of the Process Mining model it has to use to generate the space (up to now, only the default \code{"firstOrdermarkovModel"} is provided)
 #'   }
 #' @export
+#' @import cluster
 #' @examples \dontrun{
-#' # ----------------------------------------------- 
-#' #  USING THE METHODS of the class
-#' # ----------------------------------------------- 
-#' obj.L<-dataLoader();   # create a Loader
+#' 
+#' # create a Loader
+#' obj.L<-dataLoader();  
 #' 
 #' # Load a .csv using "DES" and "ID" as column names to indicate events 
 #' # and Patient's ID
 #' obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",
-#' IDName = "ID",EVENTName = "DES")
+#' IDName = "ID",EVENTName = "DES",dateColumnName = "DATA")
 #' 
 #' # now create an object cluster_expectationMaximization
 #' obj.clEM<- cluster_expectationMaximization();    
@@ -35,16 +35,16 @@
 #' obj.clEM$loadDataset( obj.L$getData() );  
 #' 
 #' # perform clustering computation
-#' obj.clEM$calculateClusters();  
+#' obj.clEM$calculateClusters( num = 2);  
 #' 
 #' # get calculated clusters 
-#' obj.clEM$getClusters(); 
+#' a <- obj.clEM$getClusters(); 
 #' 
 #' # get informations about performance of clusters
-#' obj.clEM$getClusterStats();  
+#' b <- obj.clEM$getClusterStats();  
 #' 
 #' # get log of each iteration of the algorithm 
-#' obj.clEM$getClusterLog(); 
+#' d <- obj.clEM$getClusterLog(); 
 #' }
 
 
@@ -54,7 +54,7 @@ cluster_hierarchicalTree <- function() {
   obj.logI <-''
   processToCluster <-''
   clusters <-''
-  logNotes <<- ''
+  logNotes <- ''
   #===========================================================
   # loadDataset
   #===========================================================  

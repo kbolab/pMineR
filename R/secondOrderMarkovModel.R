@@ -12,8 +12,42 @@
 #'              In order to better undestand the use of such methods, please visit: www.pminer.info
 #'              
 #'              The consturctor admit the following parameters:
-#' @param parameters.list a list containing possible parameters to tune the model. 
+#' parameters.list a list containing possible parameters to tune the model. 
+#' @param parameters.list a list containing the parameters. The possible ones are: 'considerAutoLoop' and 'threshold'. 'considerAutoLoop' is a boolean which indicates if the autoloops have to be admitted, while 'threshold' is the minimum value that a probability should have to do not be set to zero, in the transition matrix.
 #' @export
+#' @examples \dontrun{
+#'
+#' # create a Loader
+#' obj.L<-dataLoader();   
+#'
+#' # Load a .csv 
+#' obj.L$load.csv(nomeFile = "../otherFiles/mammella.csv",
+#' IDName = "CODICE_SANITARIO_ADT",
+#' EVENTName = "DESC_REPARTO_RICOVERO",
+#' dateColumnName = "DATA_RICOVERO")
+#'
+#' # get the loaded data
+#' dati <- obj.L$getData()
+#'
+#' # build a Second Order Marvov Model with a threshold of 0.2
+#' SOMM <- secondOrderMarkovModel( 
+#' parameters.list = list("threshold"=0.002))
+#'
+#' # load the data
+#' SOMM$loadDataset(dataList = dati)
+#'
+#' # train a model
+#' SOMM$trainModel()
+#'
+#' # generate 10 new processes (nb: if the 
+#' # threshold is too low, it can fail...)
+#' aaa <- SOMM$play(numberOfPlays = 10)
+#'
+#' # get the transition matrix
+#' TranMatrix <- SOMM$getModel(kindOfOutput = "MM.2.Matrix.perc")
+#'
+#'
+#' }
 secondOrderMarkovModel<-function( parameters.list = list() ) {
   MMatrix<-''
   MMatrix.perc<-''
@@ -139,15 +173,15 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     ))
     
   }  
-  #=================================================================================
-  # play.easy
-  #   number.of.cases : numero di casi da generare
-  #   min.num.of.valid.words : numero minimo di parole valide
-  #   max.word.length : numero massimo di eventi per parola
-  #=================================================================================  
-  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, 
-                      howToBuildBad="resample", debug.mode = FALSE) {
-  }  
+  # #=================================================================================
+  # # play.easy
+  # #   number.of.cases : numero di casi da generare
+  # #   min.num.of.valid.words : numero minimo di parole valide
+  # #   max.word.length : numero massimo di eventi per parola
+  # #=================================================================================  
+  # play.easy<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, 
+  #                     howToBuildBad="resample", debug.mode = FALSE) {
+  # }  
   #===========================================================
   # play
   #===========================================================
@@ -379,6 +413,14 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
     ))
   }   
   #===========================================================
+  # replay
+  #===========================================================
+  plot<-function(  ) {  
+    cat("\n-------------------------------------------")
+    cat("\n Sorry, unfortunately we do not provide any graph for a SOMM model")
+    cat("\n-------------------------------------------")
+  }
+  #===========================================================
   # setIstanceClass
   #===========================================================
   setInstanceClass<-function( className, classType = "default") {
@@ -411,11 +453,12 @@ secondOrderMarkovModel<-function( parameters.list = list() ) {
   costructor( parametersFromInput = parameters.list);
   #===========================================================
   return( list(
-    "trainModel"=trainModel,
     "loadDataset"=loadDataset,
+    "trainModel"=trainModel,
+    "getModel"=getModel,
     "play"=play,
     "replay"=replay,
-    "getModel"=getModel
+    "plot"=plot
   ) )  
 }
 

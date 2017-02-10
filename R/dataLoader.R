@@ -15,9 +15,25 @@
 #'              In order to better undestand the use of such methods, please visit: www.pminer.info
 #'              
 #'              The consturctor admit the following parameters:
-#' @param verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
+#' verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
+#' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
 #' @import stringr utils stats           
 #' @export
+#' @examples \dontrun{
+#'
+#' # create a Loader
+#' obj.L<-dataLoader();   
+#'
+#' # Load a .csv 
+#' obj.L$load.csv(nomeFile = "../otherFiles/mammella.csv",
+#' IDName = "CODICE_SANITARIO_ADT",
+#' EVENTName = "DESC_REPARTO_RICOVERO",
+#' dateColumnName = "DATA_RICOVERO")
+#'
+#' # return the results
+#' obj.L$getData()
+#' 
+#' }
 dataLoader<-function( verbose.mode = TRUE ) {
   arrayAssociativo<-''
   footPrint<-''

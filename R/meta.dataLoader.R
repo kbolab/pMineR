@@ -15,9 +15,36 @@
 #'              In order to better undestand the use of such methods, please visit: www.pminer.info
 #'              
 #'              The consturctor admit the following parameters:
-#' @param verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
+#' verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
+#' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
 #' @import stringr utils stats           
 #' @export
+#' @examples \dontrun{
+#' 
+#' # create a Loader
+#' obj.L<-meta.dataLoader();   
+#'
+#' # create a view
+#' obj.L$createView(view.name = "mammella")
+#' obj.L$createView(view.name = "retto")
+#' 
+#' # Load a .csv into the view 'mammella'
+#' obj.L$load.csv(nomeFile = "../otherFiles/mammella.csv",
+#' IDName = "CODICE_SANITARIO_ADT",
+#' EVENTName = "DESC_REPARTO_RICOVERO",
+#' dateColumnName = "DATA_RICOVERO", view="mammella")
+#' 
+#' # Load a .csv into the view 'retto'
+#' obj.L$load.csv(nomeFile = "../otherFiles/mammella.csv",
+#' IDName = "CODICE_SANITARIO_ADT",
+#' EVENTName = "DESC_REPARTO_RICOVERO",
+#' dateColumnName = "DATA_RICOVERO", view="retto")
+#'
+#' # get the data from the view 'retto'
+#' aaa <- obj.L$getData(view = "retto")
+#'
+#' 
+#' }
 meta.dataLoader<-function( verbose.mode = TRUE ) {
   list.dataLoader <-list()
   param.verbose<-''

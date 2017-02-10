@@ -81,7 +81,7 @@ dataProcessor<-function() {
     colnames(MM)<-c("BEGIN","END",unique(as.character(mydata[[EVENT.list.names]])))
     rownames(MM)<-colnames(MM)
     # Creiamo anche la matrice con le density dei tempi di transizione
-    # (ma solo se c'è un campo DATA TIME)
+    # (ma solo se c'e' un campo DATA TIME)
     MM.den.list<-list()
 
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
@@ -119,7 +119,7 @@ dataProcessor<-function() {
     quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
 
     # Calcola la matrice delle medie dei tempi
-    # Sarebbe bello avere le density... vabbè. più avanti
+    # Sarebbe bello avere le density... vabbe'. piu' avanti
     if(EVENTDateColumnName!='' & !is.na(EVENTDateColumnName)){
       MM.mean.time<-MM
       MM.mean.time[ 1:nrow(MM.mean.time) , 1:ncol(MM.mean.time)   ]<-Inf

@@ -11,16 +11,15 @@
 #'                }
 #'                In order to better undestand the use of such methods, please visit: www.pminer.info
 #'                
-#' @param Parameters for \code{cluster_expectationMaximization::calculateClusters()} method are:
+#' Parameters for \code{cluster_expectationMaximization::calculateClusters()} method are:
 #'   \itemize{
 #'    \item \code{num } the number of clusters it has to generate
 #'    \item \code{typeOfModel } the name of the Process Mining model it has to use to generate the space (up to now, only the default \code{"firstOrdermarkovModel"} is provided)
 #'   }
 #' @export
 #' @examples \dontrun{
-#' # ----------------------------------------------- 
-#' #  USING THE METHODS of the class
-#' # ----------------------------------------------- 
+#' 
+#' # create a Loader
 #' obj.L<-dataLoader();   # create a Loader
 #' 
 #' # Load a .csv using "DES" and "ID" as column names to indicate events
@@ -38,13 +37,13 @@
 #' obj.clEM$calculateClusters(num = 5, typeOfModel = "firstOrderMarkovModel");
 #' 
 #' # get calculated clusters 
-#' obj.clEM$getClusters();
+#' a <- obj.clEM$getClusters();
 #' 
 #' # get informations about performance of clusters
-#' obj.clEM$getClusterStats();
+#' b <- obj.clEM$getClusterStats();
 #' 
 #' # get log of each iteration of the algorithm
-#' obj.clEM$getClusterLog();
+#' d <- obj.clEM$getClusterLog();
 #' }
 
 
@@ -54,7 +53,7 @@ cluster_expectationMaximization <- function() {
   obj.logI <-''
   processToCluster <-''
   clusters <-''
-  logNotes <<- ''
+  logNotes <- ''
   #===========================================================
   # loadDataset
   #===========================================================  
@@ -93,7 +92,7 @@ cluster_expectationMaximization <- function() {
       clusterM <- clusterM[ ! sapply(clusterM, is.null) ]
 #     RG -im
 #       Riga aggiunta per ovviare al caso in cui END abbia degli NaN sulla riga
-#       (non ho capito perchè ma a volte capita... è normale? Andrebbe capito e sistemata questa 
+#       (non ho capito perche' ma a volte capita... e' normale? Andrebbe capito e sistemata questa 
 #       'pezza' al meglio)
       clusterM[  which(is.na(clusterM), arr.ind = TRUE) ]<-0
 #     RG -fm

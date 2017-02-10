@@ -22,8 +22,47 @@
 #'              In order to better undestand the use of such methods, please visit: www.pminer.info
 #'              
 #'              The consturctor admit the following parameters:
-#' @param parameters.list a list containing possible parameters to tune the model. 
+#' parameters.list a list containing possible parameters to tune the model. 
+#' @param parameters.list a list containing the parameters. The possible ones are: 'considerAutoLoop' and 'threshold'. 'considerAutoLoop' is a boolean which indicates if the autoloops have to be admitted, while 'threshold' is the minimum value that a probability should have to do not be set to zero, in the transition matrix.
 #' @export
+#' @examples \dontrun{
+#'
+#' # create a Loader
+#' obj.L<-dataLoader();   
+#'
+#' # Load a .csv 
+#' obj.L$load.csv(nomeFile = "../otherFiles/mammella.csv",
+#' IDName = "CODICE_SANITARIO_ADT",
+#' EVENTName = "DESC_REPARTO_RICOVERO",
+#' dateColumnName = "DATA_RICOVERO")
+#'
+#' # get the loaded data
+#' dati <- obj.L$getData()
+#'
+#' # build a Second Order Marvov Model with a threshold of 0.2
+#' FOMM <- firstOrderMarkovModel( 
+#' parameters.list = list("threshold"=0.001))
+#'
+#' # load the data
+#' FOMM$loadDataset(dataList = dati)
+#'
+#' # train a model
+#' FOMM$trainModel()
+#'
+#' # generate 10 new processes (nb: if the 
+#' # threshold is too low, it can fail...)
+#' aaa <- FOMM$play(numberOfPlays = 10)
+#'
+#' # get the transition matrix
+#' TranMatrix <- FOMM$getModel(kindOfOutput = "MMatrix.perc")
+#'
+#' # plot the model
+#' FOMM$plot()
+#'
+#' # generate other 20 fake-processes
+#' ooo <- FOMM$play(numberOfPlays = 20)
+#'
+#' }
 firstOrderMarkovModel<-function( parameters.list = list() ) {
   MMatrix<-''
   footPrint<-''
@@ -765,13 +804,14 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   costructor( parametersFromInput = parameters.list);
   #===========================================================
   return( list(
+    "loadDataset"=loadDataset,
     "trainModel"=trainModel,
     "getModel"=getModel,
-    "loadDataset"=loadDataset,
     "replay"=replay,
     "play"=play,
     "plot"=plot,
     "distanceFrom"=distanceFrom,
+    
     "getLogObj"=getLogObj,
     "getInstanceClass"=getInstanceClass,
     "plot.delta.graph"=plot.delta.graph,

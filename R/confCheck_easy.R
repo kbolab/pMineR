@@ -1,25 +1,52 @@
 #' A simple conformance checking class
 #' 
 #' @description  A first module for making conformance checking
-#' @import stringr XML            
+#' @import stringr XML DiagrammeR      
+#' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
 #' @export
 #' @examples \dontrun{
 #' 
-#' obj.L<-dataLoader();   # create a Loader 
-#' 
-#' # Load a .csv using "DES" and "ID" as column names to indicate events 
-#' # and Patient's ID
-# obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",IDName = "ID",
-# EVENTName = "DES")
-#'
 #' #  Create a Conformance Checker obj
 #' obj.cc <- confCheck_easy()
 #' 
 #' # Load an XML with the workflow to check
-#' obj.cc$loadWorkFlow( WF.fileName='../otherFiles/import_01/FranciWF.xml' )
+#' obj.cc$loadWorkFlow( WF.fileName='../otherFiles/import_01/rules.v2.xml' )
 #' 
-#' # load data into Conformance Checker obj
-#' obj.cc$loadDataset( obj.L$getData() );
+#' # plot the graph related to the XML
+#' obj.cc$plot()
+#' 
+#' # now play 20 processes, 10 correct and 10 mismatchful 
+#' # (matching and not matching can be seen thanks to the 'valido' column)
+#' aaa <- obj.cc$play(number.of.cases = 20,min.num.of.valid.words = 10)
+#' 
+#' # Build a dataLoaderObject
+#' objDL <- dataLoader()
+#' 
+#' # load the previously genearated data.frame
+#' objDL$load.data.frame(mydata = aaa$valid.data.frame,IDName = "patID",
+#' EVENTName = "event",dateColumnName = "date")
+#' 
+#' # now load the data into the obj
+#' obj.cc$loadDataset(dataList = objDL$getData())
+#' # replay the loaded data
+#' obj.cc$replay()
+#' 
+#' # plot the result, showing the terminations in absolute values
+#' obj.cc$plot.replay.result(whatToCount = "terminations",
+#' kindOfNumber = "absolute")
+#' # plot the result, showing the transitions in relative values
+#' obj.cc$plot.replay.result(whatToCount = "activations",
+#' kindOfNumber = "relative")
+#' 
+#' # get the XML of the replay
+#' xmlText <- obj.cc$get.XML.replay.result()
+#' # or the same data in form of list
+#' list.result <- obj.cc$get.list.replay.result()
+#' 
+#' # plot the timeline of the first patient
+#' # and the timeline computed during the re-play
+#' obj.cc$plotPatientEventTimeLine(patientID = "1")
+#' obj.cc$plotPatientReplayedTimeline(patientID = "1")
 #' 
 #' }
 confCheck_easy<-function( verbose.mode = TRUE ) {
@@ -80,7 +107,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if(length(st.type)==0) st.type="normal"
       else st.type = str_replace_all(string = st.type,pattern = "'",replacement = "") 
       
-      # Carica quanto indicato nell'XML nella variabile che poi andrà copiata 
+      # Carica quanto indicato nell'XML nella variabile che poi andra' copiata 
       # negli attributi globali
       lista.stati[[ state.name ]]<-list()
       lista.stati[[ state.name ]][["plotIt"]]<-plotIt
@@ -98,7 +125,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if(length(plotIt)==0) plotIt=TRUE
       else plotIt = str_replace_all(string = plotIt,pattern = "'",replacement = "")
       
-      # Carica quanto indicato nell'XML nella variabile che poi andrà copiata 
+      # Carica quanto indicato nell'XML nella variabile che poi andra' copiata 
       # negli attributi globali      
       lista.trigger[[ trigger.name ]]<-list()
       lista.trigger[[ trigger.name ]][["condition"]]<-condizione
@@ -113,13 +140,13 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     WF.struct[[ "info" ]][[ "trigger" ]] <<- lista.trigger
   }    
   #===========================================================  
-  # playLoadedData
+  # replay (ex playLoadedData)
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================    
-  playLoadedData<-function( number.perc = 1 , event.interpretation = "soft") {
+  replay<-function( number.perc = 1 , event.interpretation = "soft") {
     
     # Chiama addNote, che via via popola una stringa 
-    # che alla fine conterrà l'intero XML
+    # che alla fine conterra' l'intero XML
     ct<-1
     
     # clear the notebook
@@ -159,10 +186,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     addNote(msg = "\n</xml>")
   }   
   #===========================================================  
-  # playLoadedData
-  # Cazzo! Non ricordo più nemmeno io cosa fa questa funzione.....
+  # get.list.replay.result (ex getPlayedSequencesStat.00)
+  # Ops! Non ricordo piu' nemmeno io cosa fa questa funzione.....
   #===========================================================      
-  getPlayedSequencesStat.00<-function( ) {
+  get.list.replay.result<-function( ) {
     list.fired.trigger<-list()
     list.final.states<-list() 
     termination.END.states<-list()
@@ -176,7 +203,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       }      
     }
     
-    doc <- xmlInternalTreeParse(file = getXML(),asText = TRUE)
+    doc <- xmlInternalTreeParse(file = get.XML.replay.result(),asText = TRUE)
     arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
     array.fired.trigger<-c()
     final.states<-c()
@@ -328,7 +355,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       }
     }
     
-    # Se la computazione non è, per qualche motivo, interrotta
+    # Se la computazione non e', per qualche motivo, interrotta
     if( stop.computation == FALSE ) {
       # Now process the EOF !!
       ct <- ct + 1
@@ -446,10 +473,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     ))
   }  
   #===========================================================  
-  # getXML
+  # get.XML.replay.result (ex getXML)
   # it returns the XML file
   #===========================================================  
-  getXML<-function(notebook.name='computationLog'){
+  get.XML.replay.result<-function(notebook.name='computationLog'){
     return(notebook[[notebook.name]])
   }
   #===========================================================  
@@ -469,12 +496,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     return(valore)
   }    
   #===========================================================  
-  # plotGraph
+  # plot (ex plotGraph)
   # plot the Graph
   # 'clear' is the graph as passed
   # 'computed' is the graph weighted by real computation flows
   #===========================================================   
-  plotGraph<-function(  ) {
+  plot<-function(  ) {
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
     arr.trigger.rappresentabili<-c();
@@ -577,10 +604,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   }  
   
   #===========================================================  
-  # plotPatientComputedTimeline
+  # plotPatientReplayedTimeline (ex plotPatientComputedTimeline)
   # plot the computed timeline for a given patient
   #===========================================================   
-  plotPatientComputedTimeline<-function( patientID ) {  
+  plotPatientReplayedTimeline<-function( patientID ) {  
     
     st.POST<-list(); st.PRE<-list(); tr.fired<-list()
     txt.section<-"";
@@ -638,7 +665,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     mermaid(aaa)    
   }    
   #===========================================================  
-  # plotComputationResult
+  # plot.replay.result  ( ex plotComputationResult)
   # plot the Graph
   # 'clear' is the graph as passed
   # 'computed' is the graph weighted by real computation flows
@@ -646,7 +673,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #                to filter the computation
   # kindOfNumber : i numeri: 'relative' o 'absolute'
   #===========================================================   
-  plotComputationResult<-function( whatToCount='activations' ,     kindOfNumber='relative', 
+  plot.replay.result<-function( whatToCount='activations' ,     kindOfNumber='relative', 
                                    avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c(), whichPatientID=c("*"), plot.unfired.Triggers = TRUE ) {
     
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
@@ -794,12 +821,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # INPUT
   # tipo = 'stato' o 'trigger' in funzione di cosa sia
   # whatToCount = 'activations'  se si vogliono contare le attivazioni,
-  #               'terminations' se si vogliono contare quante volte vi è terminato
+  #               'terminations' se si vogliono contare quante volte vi e' terminato
   # avoidFinalStates = un array che contiene gli stati che non devono essere 
   #                    finali per i pazienti da considerare (serve per fare un filtro)
   # avoidTransitionOnStates = un array che indica gli stati che non devono essre
-  #                           transitati dai pazienti da considerare (è un filtro)
-  # avoidToFireTrigger = badalì, indovina un po'?
+  #                           transitati dai pazienti da considerare (e' un filtro)
+  # avoidToFireTrigger = badali', indovina un po'?
   #===========================================================  
   giveBackComputationCounts<-function( nomeElemento, tipo, whatToCount, avoidFinalStates, avoidTransitionOnStates, avoidToFireTrigger , whichPatientID) {
     # Carica l'XML
@@ -833,7 +860,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         if(whatToCount=='terminations')  howMany<- unlist(xpathApply(doc,str_c('//xml/computation[@n="',i,'"]/atTheEnd/last.fired.trigger[@name="',nomeElemento,'"]'),xmlGetAttr,"name"))
       }
       
-      # Verifica se il finale è incluso in quelli da scartare: se sì, skippa tutto il paziente 
+      # Verifica se il finale e' incluso in quelli da scartare: se si', skippa tutto il paziente 
       # (la computazione corrente)
       if(sum(st.FINAL.arr %in% avoidFinalStates) >=1 | 
          sum(st.TRANSITION.ON.arr %in% avoidTransitionOnStates) >=1 |
@@ -903,7 +930,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     addNote(msg = testo)
   }   
   addNote<-function( msg, level='1', notebook.name='computationLog' ) { 
-    # Crea la posizione, se ancora non c'è
+    # Crea la posizione, se ancora non c'e'
     if(length(notebook)==0) notebook[[notebook.name]]<<-c()
     else {  if( !(notebook.name %in% names(notebook))) notebook[[notebook.name]]<<-c()  }
     # Accoda la nota
@@ -914,18 +941,18 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   
   
   #=================================================================================
-  # play.easy
+  # play (ex play.easy)
   #   number.of.cases : numero di casi da generare
   #   min.num.of.valid.words : numero minimo di parole valide
   #   max.word.length : numero massimo di eventi per parola
   #=================================================================================  
-  play.easy<-function(number.of.cases, min.num.of.valid.words=NA, 
+  play<-function(number.of.cases, min.num.of.valid.words=NA, 
                       max.word.length=100, howToBuildBad="resample", 
                       toReturn="csv", debug.mode = FALSE) {
     if(is.na(min.num.of.valid.words)) min.num.of.valid.words = number.of.cases
     quante.da.sbagliare <- number.of.cases - min.num.of.valid.words
 
-    # Se è stato chiesto di generare anche delle sequenze NON VALIDE, genera delle 
+    # Se e' stato chiesto di generare anche delle sequenze NON VALIDE, genera delle 
     # sequenze NON VALIDE (scusate il nome di sta fava 'play.easy.impreciso')
     if(min.num.of.valid.words>0) {
       a <- play.easy.impreciso(number.of.cases = min.num.of.valid.words,min.num.of.valid.words = min.num.of.valid.words,
@@ -945,7 +972,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       }
     }
 
-    # Restituisci ciò che serve venga restituito
+    # Restituisci cio' che serve venga restituito
     # nel caso del CSV
     if(toReturn=="csv") {
       daRestituire <- a
@@ -990,7 +1017,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # Genera un buon numero di parole valide
     lista.res <- genera.parola.valida(number.of.cases = number.of.cases,
                                       max.word.length = max.word.length )
-    # Ora prendine la metà e fai uno shuffle
+    # Ora prendine la meta' e fai uno shuffle
     quante.da.mescolare <- number.of.cases - min.num.of.valid.words
     aaa <- lista.res$list.LOGs
  
@@ -1014,7 +1041,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       
       # Ora devo controllare, di quelle che ho "shuffellato", quante sono ancora valide!
       for(indice.parola in seq(1,quante.da.mescolare)) {
-        # Costruisci la matrice per consentire l'eseguibilità
+        # Costruisci la matrice per consentire l'eseguibilita'
         
         marice.dati<-c()
         numeroGiorno<-1
@@ -1033,12 +1060,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                    col.dateName = "data" , 
                                    IDPaz = indice.parola  )
         # scorri tutta la storia alla ricerca di qualche hop che non ha 
-        # scatenato un trigger. Se lo trovi, la parola è sbagliata!
+        # scatenato un trigger. Se lo trovi, la parola e' sbagliata!
         parola.corretta <- TRUE
         for(indice.hops in names(res$history.hop)) {
           if(length(res$history.hop[[ indice.hops ]]$active.trigger)==0) parola.corretta<-FALSE
-          # tuttavia se quanto analizzato ora è relativo ad un nodo END, non proseguire oltre
-          # (ciò che c'è dopo, ipotizzo che non mi interessi)
+          # tuttavia se quanto analizzato ora e' relativo ad un nodo END, non proseguire oltre
+          # (cio' che c'e' dopo, ipotizzo che non mi interessi)
           # browser()
           arr.nodi.attivati <- res$history.hop[[ indice.hops ]]$st.ACTIVE
           stop.search.END<-FALSE
@@ -1099,7 +1126,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         arr.parole.sampled <- sample(x = arr.parole,size = length(arr.parole))
         
         # loopa su tutte la parole disponibili, cercando di uscirne   
-        # ( in realtà loop infiniti sono teoricamente possibili)
+        # ( in realta' loop infiniti sono teoricamente possibili)
         trovato.qualcosa <- FALSE
         for( ev.NOW in arr.parole.sampled){
           # if( ev.NOW == 'CT centratura') browser()
@@ -1123,8 +1150,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         st.ACTIVE <- newHop$st.ACTIVE
         st.LAST <- newHop$st.LAST
         st.DONE <- newHop$st.DONE
-        # Se uno degli stati raggiunti è di END, ferma la corsa 
-        # (la parola è finita)
+        # Se uno degli stati raggiunti e' di END, ferma la corsa 
+        # (la parola e' finita)
         for(nomeStato in st.ACTIVE) {
           nomeStato<-str_replace_all(string = nomeStato,pattern = "'",replacement = "")
           if(WF.struct$info$stati[[ nomeStato ]]$type=="END") terminate.run <- TRUE
@@ -1159,7 +1186,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
 #   }
   #=================================================================================
   # get.possible.words.in.WF.easy
-  # Parsa l'XML dello PWF già in memoria per costruire un array dei possibili 
+  # Parsa l'XML dello PWF gia' in memoria per costruire un array dei possibili 
   # $ev.NOW$ (gli eventi dell'event log).
   #=================================================================================   
   get.possible.words.in.WF.easy<-function() {
@@ -1193,15 +1220,27 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   return(list(
     "loadWorkFlow"=loadWorkFlow,
     "loadDataset"=loadDataset,
-    "playLoadedData"=playLoadedData,
-    "getXML"=getXML,
-    "plotGraph"=plotGraph,
-    "plotComputationResult"=plotComputationResult,
-    "getPlayedSequencesStat.00"=getPlayedSequencesStat.00,
-    "getPatientLog"=getPatientLog,
-    "plotPatientComputedTimeline" = plotPatientComputedTimeline,
-    "getPatientXML"=getPatientXML,
+    "play"=play,  # rimpiazza la play.easy
+    "replay"=replay, # rimpiazza la playLoadedData
+    "plot"=plot, # rimpiazza la plotGraph
+    
+    "plot.replay.result"=plot.replay.result, # rimpiazza la plotComputationResult
+    "get.list.replay.result"=get.list.replay.result, # rimpiazza la getPlayedSequencesStat.00
+    "get.XML.replay.result"=get.XML.replay.result, # rimpiazza la getXML
     "plotPatientEventTimeLine" = plotPatientEventTimeLine,
-    "play.easy"=play.easy
+    "plotPatientReplayedTimeline" = plotPatientReplayedTimeline, # rimpiazza la plotPatientComputedTimeline
+    
+    
+    "getPatientLog"=getPatientLog,
+    
+    "getPatientXML"=getPatientXML
+    
+    # "play.easy"=play.easy
+    # "playLoadedData"=playLoadedData,
+    # "plotGraph"=plotGraph,
+    # "plotComputationResult"=plotComputationResult
+    # "getPlayedSequencesStat.00"=getPlayedSequencesStat.00,
+    # "getXML"=getXML,
+    # "plotPatientComputedTimeline" = plotPatientComputedTimeline,
   ))
 }

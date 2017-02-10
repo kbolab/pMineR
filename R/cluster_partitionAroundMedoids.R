@@ -1,5 +1,5 @@
 #' A class to perform Partition Around Medoids clustering on sequential data for Process Mining issues
-#' 
+#'
 #' @description   This class performs sequence clustering on an event-log with the Partition Around Medoids (PAM) algorithm. The public methods are:
 #'                \itemize{
 #'                \item \code{cluster_partitionAroundMedoids() } is the constructor of the class
@@ -10,42 +10,40 @@
 #'                \item \code{getClusterLog( ... )} returns informations about the clustering computation itself (i.e. iterations needed to converge, centroids value after each iteration)
 #'                }
 #'                In order to better undestand the use of such methods, please visit: www.pminer.info
-#'                
-#' @param Parameters for \code{cluster_partitionAroundMedoids::calculateClusters()} method are: 
+#'
+#' Parameters for \code{cluster_partitionAroundMedoids::calculateClusters()} method are:
 #'   \itemize{
 #'    \item \code{num } the number of clusters it has to generate
 #'    \item \code{typeOfModel } the name of the Process Mining model it has to use to generate the space (up to now, only the default \code{"firstOrdermarkovModel"} is provided)
 #'   }
 #' @export
-#' @import cluster
 #' @examples \dontrun{
-#' # ----------------------------------------------- 
-#' #  USING THE METHODS of the class
-#' # ----------------------------------------------- 
-#' obj.L<-dataLoader();   # create a Loader
 #' 
-#' # Load a .csv using "DES" and "ID" as column names to indicate events 
+#' # create a Loader 
+#' obj.L<-dataLoader();   
+#'
+#' # Load a .csv using "DES" and "ID" as column names to indicate events
 #' # and Patient's ID
-#' obj.L$load.csv(nomeFile = "./otherFiles/test_02.csv",
-#' IDName = "ID",EVENTName = "DES")
-#' 
+#' obj.L$load.csv(nomeFile = "../otherFiles/test_02.csv",
+#' IDName = "ID",EVENTName = "DES",dateColumnName = "DATA")
+#'
 #' # now create an object cluster_partitionAroundMedoids
-#' obj.clPAM<- cluster_partitionAroundMedoids();    
-#' 
+#' obj.clPAM<- cluster_partitionAroundMedoids();
+#'
 #' # load the data into logInspector object
-#' obj.clPAM$loadDataset( obj.L$getData() );  
-#' 
+#' obj.clPAM$loadDataset( obj.L$getData() );
+#'
 #' # perform clustering computation
-#' obj.clPAM$calculateClusters();  
-#' 
-#' # get calculated clusters 
-#' obj.clPAM$getClusters(); 
-#' 
+#' obj.clPAM$calculateClusters(num = 2);
+#'
+#' # get calculated clusters
+#' a <- obj.clPAM$getClusters();
+#'
 #' # get informations about performance of clusters
-#' obj.clPAM$getClusterStats();  
-#' 
-#' # get log of each iteration of the algorithm 
-#' obj.clPAM$getClusterLog(); 
+#' b <- obj.clPAM$getClusterStats();
+#'
+#' # get log of each iteration of the algorithm
+#' d <- obj.clPAM$getClusterLog();
 #' }
 
 
@@ -53,25 +51,27 @@ cluster_partitionAroundMedoids <- function() {
   processInstances <-''
   obj.logI <-''
   clusters <-''
+  clustering<-list()
   timetoConverge <-''
   #===========================================================
   # loadDataset
-  #===========================================================  
-  loadDataset<-function( dataList ) { 
+  #===========================================================
+  loadDataset<-function( dataList ) {
     
     processInstances <<- dataList$wordSequence.raw
     obj.logI<<-logInspector()
     obj.logI$loadDataset( dataList )
-  }  
+  }
   
   #===========================================================
   # calculateClusters
-  #===========================================================  
+  #===========================================================
   calculateClusters<-function(num, typeOfModel = "firstOrderMarkovModel") {
+    # browser()
     clusters_tmp <- list()
     transitionCountMatrix <-list()
     x <- sapply(processInstances,unlist)
-    #create data.frame from list 
+    #create data.frame from list
     max.length <- max(sapply(x, length))
     x <- lapply(x, function(v) { c(v, rep("NA", max.length-length(v)))})
     xx <- do.call(rbind, x)
@@ -94,14 +94,16 @@ cluster_partitionAroundMedoids <- function() {
       }
       clusters <<- list("clusters"=transitionCountMatrix ,"PtoClust"=clustering$clustering,"clustering"=clustering, "dissimilarity"=d, "data"=x)
     }
-    timeToConverge <<- end.time - start.time
+    timeToConverge=NULL #aggiunto per nota "no visible binding del check"
+    t <- end.time - start.time
+    timeToConverge <<- as.numeric(t)
     
   }
   
   
   #===========================================================
   # getClusters
-  #===========================================================  
+  #===========================================================
   getClusters<-function() {
     
     return(clusters)
@@ -110,7 +112,7 @@ cluster_partitionAroundMedoids <- function() {
   
   #===========================================================
   # getClusterStats
-  #===========================================================  
+  #===========================================================
   getClusterStats<-function() {
     stats <- list("clusinfo"=clustering$clusinfo, "silinfo"=clustering$silinfo, "clustering"=clustering$clustering)
     return(stats)
@@ -118,10 +120,9 @@ cluster_partitionAroundMedoids <- function() {
   
   #===========================================================
   # getClusterLog
-  #===========================================================  
+  #===========================================================
   getClusterLog<-function() {
     
-    browser()
     return(timetoConverge)
   }
   
@@ -129,13 +130,14 @@ cluster_partitionAroundMedoids <- function() {
   # costructor
   # E' il costruttore della classe
   #===========================================================
-  costructor<-function() { 
-    
+  costructor<-function() {
     processInstances <<-''
-    obj.logI <-''
+    obj.logI <<-''
     clusters <<-''
-    timeToConverge <<-''
-  } 
+    clustering<<-list()
+    timeToConverge<-NULL
+    timeToConverge<<-''
+  }
   #===========================================================
   costructor();
   #===========================================================
@@ -144,7 +146,7 @@ cluster_partitionAroundMedoids <- function() {
     "calculateClusters"=calculateClusters,
     "getClusters"=getClusters,
     "getClusterStats"=getClusterStats,
-    "getClusterLog"=getClusterLog 
+    "getClusterLog"=getClusterLog
   ) )
   
 }

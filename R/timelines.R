@@ -5,6 +5,7 @@
 #' @param output.format.date the format of the passed date. The default value is \code{' d / m / Y' }
 #' @param cex.axis cex for timeline-text
 #' @param cex.text cex for event-text 
+#' @import graphics
 #' @export
 plotTimeline<-function( eventTable , output.format.date = "%d/%m/%Y" ,cex.axis = 0.6, cex.text = 0.7) {
 
