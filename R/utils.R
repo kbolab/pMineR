@@ -129,6 +129,19 @@ dataProcessor<-function() {
         }        
       }
     }
+    
+    # CALCOLO LA MATRICE DEI FLUSSI FUORI DALLO STATO
+    
+    if(EVENTDateColumnName!='' & !is.na(EVENTDateColumnName)){
+      MM.mean.outflow.time<-MM
+      MM.mean.outflow.time[ 1:nrow(MM.mean.outflow.time) , 1:ncol(MM.mean.outflow.time)   ]<-NA
+      for(state.from in names(MM.den.list))  {
+        for(state.to in names(MM.den.list[[state.from]]))  {
+          MM.mean.outflow.time[state.from,state.to ]<-mean(MM.den.list[[ state.from]][[ state.to ]][which(MM.den.list[[ state.from]][[ state.to ]] >=0 & state.from != state.to)])
+        }
+      }
+    }
+    
     # costruisci una semplice versione, con le parole (come piace tanto a Van der Aalst)
     wordSequence.TMP01<-list();
     for(i in seq(1,length(ID.act.group))) {
@@ -141,6 +154,7 @@ dataProcessor<-function() {
                  "MMatrix"=MM,
                  "MM.mean.time"=MM.mean.time,
                  "MM.density.list"=MM.den.list,
+                 "MM.mean.outflow.time"=MM.mean.outflow.time,
                  "pat.process"=ID.act.group,
                  "wordSequence.raw"=wordSequence.TMP01) )    
   }

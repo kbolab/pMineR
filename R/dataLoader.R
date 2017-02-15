@@ -40,7 +40,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
   MMatrix<-''
   pat.process<-''   
   wordSequence.raw<-''
-  MM.mean.time<-''  
+  MM.mean.time<-''
+  MM.mean.outflow.time<-''
   MM.density.list<-''
   list.dictionary<-''
   list.dict.column.event.name<-''
@@ -322,6 +323,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     pat.process<<-res$pat.process
     wordSequence.raw<<-res$wordSequence.raw    
     MM.mean.time<<-res$MM.mean.time  
+    MM.mean.outflow.time<<-res$MM.mean.outflow.time
     MM.density.list<<-res$MM.density.list   
   }
   #=================================================================================
@@ -374,6 +376,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
       "wordSequence.raw"=wordSequence.raw,
       "MM.mean.time"=MM.mean.time,
       "MM.density.list"=MM.density.list,
+      "MM.mean.outflow.time"=MM.mean.outflow.time,
       "csv.IDName"=param.IDName,
       "csv.EVENTName"=param.EVENTName,
       "csv.dateColumnName"=param.dateColumnName,
@@ -390,6 +393,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     pat.process<<-'' 
     wordSequence.raw<<-''
     MM.mean.time<<-''  
+    MM.mean.outflow.time<<-''
     MM.density.list<<-''    
     list.dictionary<<-list()
     list.dict.column.event.name<<-list()
