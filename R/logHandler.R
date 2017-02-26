@@ -6,16 +6,20 @@ logHandler<-function() {
   # indicated in 'type'
   #=================================================================================
   sendLog<-function( msg , type="MSG" ) {
-    if(length(msg)>1) messaggio<-paste(msg,collapse='')
-    else messaggio<-msg 
+    if(length(msg)>1) msg<-paste(msg,collapse='')
+    else msg<-msg 
+    
+    printPrefix <- behaviourTable[which(behaviourTable[,"msg"]==type),"printPrefix"]
+    if(printPrefix=="T") msg <- paste( c("\n",type,": ",msg),collapse = '')
+    else msg <- msg
     
     what2Do<-behaviourTable[which(behaviourTable[,"msg"]==type),"behaviour"]
     
     if(what2Do == "display")  {
-      cat("\n",msg,":",messaggio)
+      cat(msg)
     }
     if(what2Do == "stop")  {
-      cat("\n",msg,":",messaggio)
+      cat(msg)
       stop();
     }    
   }
@@ -31,11 +35,11 @@ logHandler<-function() {
   #=================================================================================
   costructor<-function() {
     bht<-c()
-    bht<-rbind(bht,c("WRN","display"))
-    bht<-rbind(bht,c("MSG","display"))
-    bht<-rbind(bht,c("ERR","display"))
-    bht<-rbind(bht,c("NMI","stop"))
-    colnames(bht)<-c("msg","behaviour")
+    bht<-rbind(bht,c("WRN","display","T"))
+    bht<-rbind(bht,c("MSG","display","F"))
+    bht<-rbind(bht,c("ERR","display","T"))
+    bht<-rbind(bht,c("NMI","stop","T"))
+    colnames(bht)<-c("msg","behaviour","printPrefix")
     behaviourTable<<-bht
   }
   #=================================================================================
