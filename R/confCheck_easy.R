@@ -964,7 +964,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # Frulla per ogni possibile trigger, verificando se si puo' attivare
     for( trigger.name in names(WF.struct$info$trigger) ) {
       
-      browser()
+      # browser()
       
       # Se il trigger e' plottabile
       if(WF.struct$info$trigger[[trigger.name]]$plotIt == TRUE) {
@@ -1000,7 +1000,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
     arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
     
-    browser()
+    # browser()
     a<-paste(c("digraph boxes_and_circles {
                
                # a 'graph' statement
