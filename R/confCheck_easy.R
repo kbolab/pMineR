@@ -177,7 +177,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     notebook <<- list()
     # and begin to note!
     addNote(msg = "\n<xml>")
-    # browser()
     # Per ogni paziente
     for( indice in names(dataLog$wordSequence.raw)) {
       
@@ -221,14 +220,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     termination.END.states<-list()
     arr.nodi.end<-c()
 
-    # Costruisci subito la lista dei nodi plottabili (cosi' non ci penso piu')
-    # Faccio anche la lista dei nodi END
-    # for(nomeStato in names(WF.struct$info$stati)) {
-    #   if( WF.struct$info$stati[[nomeStato]]$type == 'END') {
-    #     arr.nodi.end<-c(arr.nodi.end,str_c(nomeStato))
-    #   }      
-    # }
-    
     # prendo la lista dei nodi END
     arr.nodi.end <- WF.struct[[ "info" ]][[ "arr.nodi.end" ]]
     
@@ -485,9 +476,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if( sum(arr.nodi.end %in% st.ACTIVE) != 0 ) { 
         stop.computation <- TRUE 
       }
-      # cat("******************************")
     }
-    # browser()
     # Ritorna
     return( list( "st.ACTIVE"=st.ACTIVE,
                   "error"=error,
@@ -675,10 +664,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     errore <- FALSE;   errMsg<-"";
     tabella.set.unset <- c()
 
-    # cat("\n-------------------------------")
-    # cat("\n EVENT NOW:",ev.NOW)
-    # cat("\n st.ACTIVE:",st.ACTIVE)
-    
     # Frulla per ogni possibile trigger, verificando se si puo' attivare
     for( trigger.name in names(WF.struct[[ "info" ]][[ "trigger" ]]) ) {
 
@@ -725,12 +710,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
             for(i in seq(1,length(array.to.unset))) {
               array.to.unset[ i ] <- paste(c("'",array.to.unset[ i ],"'"),collapse = '' )
             }
-            # browser()
-            # lids <- 77
           }
-          
-          # array.to.set <- str_replace_all(string = array.to.set,pattern = "'","")
-          # array.to.unset <- str_replace_all(string = array.to.unset,pattern = "'","")
           
           # aggiungi le righe alla matrice che definisce le azioni
           for(i in seq(1,length(array.to.set))) {
@@ -740,23 +720,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
             tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.unset[i],"unset",pri  )   )
           }          
 
-          # # Prendi la lista dei set
-          # new.st.ACTIVE <- unique(c(new.st.ACTIVE,array.to.set))
-          # # E togli eventuali unset
-          # new.st.ACTIVE <- unique(new.st.ACTIVE[!(new.st.ACTIVE %in% array.to.unset)])
-          # # st.LAST
-          # new.st.LAST <- unique(c(new.st.LAST,array.to.set))
-          # # st.DONE
-          # new.st.DONE <- unique(c(new.st.DONE,array.to.unset))
-          # # Trigger attivi
-          # active.trigger <- c(active.trigger,trigger.name)
-          # # Aggiorna gli array con i set e gli unset di tutti i trigger
-          # # (dato che piu' d'uno potrebbe essere attivo
-          # global.array.to.set <- unique(c(global.array.to.set,array.to.set))
-          # global.array.to.unset <- unique(c(global.array.to.unset,array.to.unset))
         }
       }
-      
     }
     
     # Se esista la tabella, verifica i conflitti di set/unset
@@ -764,7 +729,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       res <- check.conflitti.set.unset( tabella = tabella.set.unset )
       
       # Ora non dimenticare eventuali stati già presenti!
-      # new.st.ACTIVE <- res$to.set
       new.st.ACTIVE <- c(res$to.set,st.ACTIVE)
       new.st.ACTIVE <- unique(new.st.ACTIVE[!(new.st.ACTIVE %in% res$to.unset)])
       active.trigger <- res$triggers.name
@@ -773,14 +737,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       errMsg <- res$errorMsg
       errore <- res$errore
     } 
-    # else presenza.conflitti.set.unset <- FALSE
-    
-    # # if(presenza.conflitti.set.unset>0) {
-    # if(presenza.conflitti.set.unset == TRUE) { 
-    #   errMsg <- c("Set e unset conflicting. Check the following triggers: ",paste( active.trigger,collapse=','  ));
-    #   errore = TRUE;
-    #   obj.LogHandler$sendLog(msg = errMsg, type="NMI")
-    # }
+
     # Ritorna i nuovi stati e la lista dei trigger attivati
     return(list(
       "st.ACTIVE"=new.st.ACTIVE,      # lista nuovi stati ACTIVE 
@@ -822,7 +779,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         errore = TRUE;
         obj.LogHandler$sendLog(msg = errMsg, type="NMI")        
       }
-      # browser()
       # calcola gli array set/uset da proporre ai livelli di priorità più alti
       # Togli eventuali set/unset di livello inferiore
       global.array.to.set <- global.array.to.set[ !(global.array.to.set %in% local.array.to.unset)  ]
@@ -849,9 +805,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   parse.for.temporal.conditions <- function(stringa , st.ACTIVE.time , st.ACTIVE.time.cum ) {
 
     stringa.run <- stringa
-    
-    # stringaToMatch <- ".afmtd\\([0-9]+\\)"
-    # pos.par <- str_locate(string = stringaToMatch, pattern = "\\(")[1]-1
     
     lista.comandi.condition <- list(
       "afmtd" = ".afmtd\\([0-9]+\\)",
@@ -954,17 +907,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if( WF.struct$info$stati[[nomeStato]]$plotIt == TRUE) {
         arr.st.plotIt<-c(arr.st.plotIt,str_c("'",nomeStato,"'"))
       }
-      # if( WF.struct$info$stati[[nomeStato]]$type == 'END') {
-      #   arr.nodi.end<-c(arr.nodi.end,str_c("'",nomeStato,"'"))
-      # }      
     }
     # prendo i nodi end
     arr.nodi.end <- WF.struct[[ "info" ]][[ "arr.nodi.end" ]]
     
     # Frulla per ogni possibile trigger, verificando se si puo' attivare
     for( trigger.name in names(WF.struct$info$trigger) ) {
-      
-      # browser()
       
       # Se il trigger e' plottabile
       if(WF.struct$info$trigger[[trigger.name]]$plotIt == TRUE) {
@@ -1000,7 +948,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
     arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
     
-    # browser()
     a<-paste(c("digraph boxes_and_circles {
                
                # a 'graph' statement
@@ -1025,7 +972,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                ",stringa.nodo.from,"
                ",stringa.nodo.to,"
   }"), collapse='') 
-    # browser()
     grViz(a);
 }
   #===========================================================  
@@ -1047,7 +993,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     }
     
     plotTimeline(matrice, dataLog$csv.date.format, cex.axis = cex.axis, cex.text = cex.text)
-    #plotTimeline(matrice, format.date = "%d/%m/%Y")
   }  
   
   #===========================================================  
@@ -1137,9 +1082,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if( WF.struct$info$stati[[nomeStato]]$plotIt == TRUE) {
         arr.st.plotIt<-c(arr.st.plotIt,str_c("'",nomeStato,"'"))
       }
-      # if( WF.struct$info$stati[[nomeStato]]$type == 'END') {
-      #   arr.nodi.end<-c(arr.nodi.end,str_c("'",nomeStato,"'"))
-      # }      
     }
     # prendo i nodi end
     arr.nodi.end <- WF.struct[[ "info" ]][[ "arr.nodi.end" ]]
@@ -1236,7 +1178,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       stringa.nodo.to<-c(stringa.nodo.to,nuovaRiga)
     }    
     
-    # browser()
     a<-paste(c("digraph boxes_and_circles {
                
                # a 'graph' statement
@@ -1436,14 +1377,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     if(toReturn=="dataLoader") {
       # Istanzia un oggetto dataLoader che eridita il parametro "verbose"
       daRestituire<-dataLoader(verbose.mode = param.verbose)
-      # browser()
       daRestituire$load.data.frame(mydata = a$valid.data.frame,
                                    IDName = "patID",EVENTName = "event",
                                    dateColumnName = "date" , 
                                    format.column.date = output.format.date)
     }
     if(toReturn!="csv" & toReturn!="dataLoader") stop("ERRORE: 'toReturn' non valorizzata correttamente")
-    # browser()
     return(daRestituire)
     
   }
@@ -1464,14 +1403,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     obj.utils <- utils()
     if(is.na(min.num.of.valid.words)) min.num.of.valid.words = as.integer(number.of.cases/2)
     arr.matching.parola<-c()
-    
-    # genera l'array dei nodi terminali
-    #     arr.nodi.end<-c()
-    #     for(nomeStato in names(WF.struct$info$stati)) {
-    #       if( WF.struct$info$stati[[nomeStato]]$type == 'END') {
-    #         arr.nodi.end<-c(arr.nodi.end,nomeStato)
-    #       }      
-    #     }
     
     # Genera un buon numero di parole valide
     lista.res <- genera.parola.valida(number.of.cases = number.of.cases,
@@ -1497,7 +1428,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           }
         }
       }
-      # browser()
       # Ora devo controllare, di quelle che ho "shuffellato", quante sono ancora valide!
       for(indice.parola in seq(1,quante.da.mescolare)) {
         # Costruisci la matrice per consentire l'eseguibilita'
@@ -1506,8 +1436,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         numeroGiorno<-1
         for(index.car in seq(1,length(lista.res$list.LOGs[[ indice.parola ]]))) {
           sing.car <- lista.res$list.LOGs[[ indice.parola ]][index.car]
-          # nuovaRiga<-c("01/01/1921",sing.car)
-          # nuovaDatatmp <- as.character(as.Date("01/01/2000",format="%d/%m/%Y") + numeroGiorno)
           nuovaDatatmp <- as.Date("01/01/2000",format="%d/%m/%Y") + numeroGiorno
           nuovaDatatmp <- as.character(format( nuovaDatatmp, format = output.format.date ))
           nuovaRiga<-c(nuovaDatatmp,sing.car)
@@ -1520,7 +1448,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                    col.eventName = "evento", 
                                    col.dateName = "data" , 
                                    IDPaz = indice.parola  )
-        # browser()
         # scorri tutta la storia alla ricerca di qualche hop che non ha 
         # scatenato un trigger. Se lo trovi, la parola e' sbagliata!
         parola.corretta <- TRUE
@@ -1528,7 +1455,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           if(length(res$history.hop[[ indice.hops ]]$active.trigger)==0) parola.corretta<-FALSE
           # tuttavia se quanto analizzato ora e' relativo ad un nodo END, non proseguire oltre
           # (cio' che c'e' dopo, ipotizzo che non mi interessi)
-          # browser()
           arr.nodi.attivati <- res$history.hop[[ indice.hops ]]$st.ACTIVE
           stop.search.END<-FALSE
           for( tmp.run in arr.nodi.attivati){
@@ -1539,17 +1465,13 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           }
           if(stop.search.END==TRUE) break;
         }
-        #       if(parola.corretta == TRUE) browser()
         arr.matching.parola<-c(arr.matching.parola,parola.corretta)
       }
     }
- # METTERE UN BROWSER QUI PER CAPIRE PERCHÈ IL FORMATO DATA È YMD INVECE CEHE HMY!!!
-    
+
     # dichiara certamente vere quelle iniziali, quelle non shuffellate
 
-    # if(length(arr.matching.parola)==0) {
-      arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-quante.da.mescolare))
-    # }
+    arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-quante.da.mescolare))
     valid.csv<-obj.utils$format.data.for.csv(listaProcessi = lista.res$list.LOGs,arr.matching.parola)
     valid.data.frame<-as.data.frame(valid.csv)
     
@@ -1566,7 +1488,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   genera.parola.valida<-function(number.of.cases, max.word.length=100, parola.valida = TRUE) {
     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
     arr.parole<-get.possible.words.in.WF.easy()
-    # browser()
     # Inizializza gli array
     list.LOGs<-list()
     list.nodes<-list()
@@ -1590,7 +1511,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       
       # genera il numero di sequenze desiderate
       for( indice in seq(1, max.word.length)) {
-        # browser()
         # costruisci l'array delle parole possibili, rimescolato
         # (per evitare starvation)
         arr.parole.sampled <- sample(x = arr.parole,size = length(arr.parole))
@@ -1606,7 +1526,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                     st.ACTIVE.time = st.ACTIVE.time,
                                     st.ACTIVE.time.cum = st.ACTIVE.time.cum,
                                     EOF = FALSE   )
-          # browser();
           if( !is.null(newHop$active.trigger ) & newHop$error == FALSE) {
             trovato.qualcosa <- TRUE
             break;
@@ -1636,29 +1555,13 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       list.nodes[[ as.character(num.parola) ]] <- list.high.level
     }
     
-    # browser()
     # restituisci la stringa valida
     return(  
       list("list.LOGs"   = list.LOGs,
            "list.nodes" = list.nodes)
     )
   }
-#   get.possible.words.in.WF.easy<-function() {
-#     stringhe<- unlist(xpathApply(WF.xml,str_c('//xml/workflow/trigger/condition'),xmlValue  )  )
-#     arr.parole<-c()
-#     
-#     for(stringa in stringhe) {
-#       tmp.1 <- str_sub(string = stringa,start = str_locate(stringa,pattern = "\\$ev.NOW\\$")[2]+1)
-#       if(!is.na(tmp.1)) {
-#         apici <- str_locate_all(string = tmp.1,pattern = "'")
-#         tmp.1 <- str_sub(string = tmp.1,start = apici[[1]][1,1]+1,end = apici[[1]][2,1]-1)
-#         if(!is.na(tmp.1)) {
-#           if( !(tmp.1 %in% arr.parole)) arr.parole<-c(arr.parole,tmp.1)
-#         }
-#       }
-#     }
-#     return(arr.parole)
-#   }
+
   #=================================================================================
   # get.possible.words.in.WF.easy
   # Parsa l'XML dello PWF gia' in memoria per costruire un array dei possibili 
@@ -1669,9 +1572,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     arr.parole<-c()
     for(stringa in stringhe) {
       matched = str_locate_all(stringa,pattern = "(?<=ev.NOW.==').*?(?=')")
-      # browser()
       # Se hai trovato almeno una occorrenza
-      # browser()
       if(dim(matched[[1]])[1]>0){
         # allora estrai la sottostringa
         for(i in 1:dim(matched[[1]])[1]){
