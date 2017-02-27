@@ -127,12 +127,16 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       plotIt<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]'),collapse = ""),xmlGetAttr,"plotIt")[[1]]
       arr.set<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/set'),collapse = ""),xmlValue)
       arr.unset<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/unset'),collapse = ""),xmlValue)
+      arr.unsetAll<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/unsetAll'),collapse = ""),xmlValue)
       pri<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]'),collapse = ""),xmlGetAttr,"pri")[[1]]
       if(is.null(pri)) pri<-0;
       pri <- as.numeric(pri)
       
       if(length(plotIt)==0) plotIt=TRUE
       else plotIt = str_replace_all(string = plotIt,pattern = "'",replacement = "")
+      
+      if(length(arr.unsetAll)==0) arr.unsetAll <- FALSE
+      else arr.unsetAll <- TRUE
       
       # Carica quanto indicato nell'XML nella variabile che poi andra' copiata 
       # negli attributi globali      
@@ -141,9 +145,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       lista.trigger[[ trigger.name ]][["set"]]<-arr.set
       lista.trigger[[ trigger.name ]][["pri"]]<-pri
       lista.trigger[[ trigger.name ]][["unset"]]<-arr.unset
+      lista.trigger[[ trigger.name ]][["unsetAll"]]<-arr.unsetAll
       lista.trigger[[ trigger.name ]][["plotIt"]]<-plotIt
     }
-    
+
     # Costruisci la lista dei nodi 'END'
     arr.nodi.end<-c()
     for(nomeStato in names(lista.stati)) {
@@ -151,7 +156,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         arr.nodi.end<-c(arr.nodi.end,str_c("'",nomeStato,"'"))
       }      
     }
-    
+
     # popola l'attributo della classe
     WF.struct[[ "info" ]]<<- list()
     WF.struct[[ "info" ]][[ "stati" ]] <<- lista.stati
@@ -374,8 +379,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # Fai il flush 
       note.flush()
       
-      # # Se ho uno stato di 'END' attivo, chiudi la computazione (fai giusto l'EOF)
-      # if( sum(arr.nodi.end %in% st.ACTIVE) != 0 ) { break; }      
+      # Azzera il tempo di eventuali stati che sono stati resettati
+      stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
+      stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
+      st.ACTIVE.time [ stati.da.resettare ] <- 0     
       
       # Ora ripeti la ricerca dei trigger senza passare alcun evento, giusto per 
       # vedere i trigger che si possono eventualmente attivare a seguito di 
@@ -384,9 +391,13 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # Continua a loopare fino a che e' vero che qualche trigger e' scattato
       # ctct <- 1
       while(  devo.restare.in.trigger.loop == TRUE & sum(arr.nodi.end %in% st.ACTIVE) == 0 ) {
-        # ctct <- ctct +1
-        # if(ctct > 30 ) browser()
-        # cat("\n",sum(arr.nodi.end %in% st.ACTIVE))
+
+        # Azzera il tempo di eventuali stati che sono stati resettati
+        stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
+        stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
+        st.ACTIVE.time [ stati.da.resettare ] <- 0
+        
+        # Verifica se c'è un trigger
         newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = "", st.DONE = st.DONE, 
                                   st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                   st.ACTIVE.time.cum = st.ACTIVE.time.cum,
@@ -707,6 +718,20 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           array.to.set<-unlist((WF.struct[["info"]][["trigger"]][[trigger.name]]$set))
           array.to.unset<-unlist((WF.struct[["info"]][["trigger"]][[trigger.name]]$unset))
           
+          # Se devi fare un unsetAll, provvedi, prendendo per esplicito la lista degli stati di cui fare l'unset
+          if(   WF.struct[["info"]][["trigger"]][[trigger.name]]$unsetAll == TRUE) {
+            aaa <- names(WF.struct$info$stati)[ !(names(WF.struct$info$stati) %in% str_replace_all(string = array.to.set,pattern = "'",""))   ]
+            array.to.unset <- unique(c(array.to.unset, aaa))
+            for(i in seq(1,length(array.to.unset))) {
+              array.to.unset[ i ] <- paste(c("'",array.to.unset[ i ],"'"),collapse = '' )
+            }
+            # browser()
+            # lids <- 77
+          }
+          
+          # array.to.set <- str_replace_all(string = array.to.set,pattern = "'","")
+          # array.to.unset <- str_replace_all(string = array.to.unset,pattern = "'","")
+          
           # aggiungi le righe alla matrice che definisce le azioni
           for(i in seq(1,length(array.to.set))) {
             tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.set[i],"set",pri  )   )
@@ -938,6 +963,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     # Frulla per ogni possibile trigger, verificando se si puo' attivare
     for( trigger.name in names(WF.struct$info$trigger) ) {
+      
+      browser()
+      
       # Se il trigger e' plottabile
       if(WF.struct$info$trigger[[trigger.name]]$plotIt == TRUE) {
         
@@ -972,7 +1000,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
     arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
     
-    # browser()
+    browser()
     a<-paste(c("digraph boxes_and_circles {
                
                # a 'graph' statement
