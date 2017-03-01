@@ -1,7 +1,7 @@
 #' A simple conformance checking class
 #' 
 #' @description  A first module for making conformance checking
-#' @import stringr XML DiagrammeR      
+#' @import stringr XML DiagrammeR lubridate     
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
 #' @export
 #' @examples \dontrun{
@@ -167,11 +167,13 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # replay (ex playLoadedData)
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================    
-  replay<-function( number.perc = 1 , event.interpretation = "soft") {
+  replay<-function( number.perc = 1 , event.interpretation = "soft", timeUM = "dmy") {
     
     # Chiama addNote, che via via popola una stringa 
     # che alla fine conterra' l'intero XML
     ct<-1
+    
+    if(timeUM != "dmy") obj.LogHandler$sendLog(msg = "'timeUM can be only set to 'dmy', in this version of confCheck_easy::replay();", type="NMI")
     
     # clear the notebook
     notebook <<- list()
@@ -185,15 +187,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         if(param.verbose == TRUE) cat("\n Doing:",indice)
         
         addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
-        # res <- playSingleSequence( sequenza = dataLog$wordSequence.raw[[ indice ]]  )
         if(param.verbose == TRUE) cat(str_c("\nBeginning Pat ",indice,"..."))
-          # browser()
         res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], 
                                    col.eventName = dataLog$csv.EVENTName, 
                                    col.dateName = dataLog$csv.dateColumnName , 
                                    IDPaz = indice,
                                    event.interpretation = event.interpretation)
-        # browser()
         if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
         addNote(msg = "\n\t\t<atTheEnd>")
         for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
@@ -202,14 +201,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         addNote(msg = "\n\t</computation>")
         ct <- ct + 1
         if(   (ct/length(dataLog$wordSequence.raw)) > number.perc  ) break;
-        
       }
-      
     }
     # Chiudi l'XML
     addNote(msg = "\n</xml>")
-    # browser()
-  }   
+  } 
   #===========================================================  
   # get.list.replay.result (ex getPlayedSequencesStat.00)
   # Ops! Non ricordo piu' nemmeno io cosa fa questa funzione.....
@@ -248,7 +244,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       
       if(sum(final.states %in% arr.nodi.end)>0) { termination.END.states[[i]] <- TRUE }
       else { termination.END.states[[i]] <- FALSE }
-      
     }
     
     return(list(
@@ -257,14 +252,20 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       "termination.END.states"=termination.END.states
     ))
   }
+  incrementa.tempo<-function( tempo , timeDetail )   {
+    if(timeDetail=="days") tempo.new <- tempo + days(1)
+    if(timeDetail=="hours") tempo.new <- tempo + hours(1)
+    if(timeDetail=="weeks") tempo.new <- tempo + weeks(1)
+    if(timeDetail=="months") tempo.new <- tempo + months(1)  
+    return(tempo.new);
+  }
   #===========================================================  
   # playSingleSequence
   # esegue il conformanche checking con una specifica sequenza 
   # di LOG (di un paziente)
   #===========================================================    
   playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz, 
-                                event.interpretation="soft") {
-    # browser()
+                                event.interpretation="soft" , timeUM = "dmy") {
     # Cerca lo stato che viene triggerato dal BEGIN
     st.LAST<-""
     st.DONE<-c("")
@@ -286,43 +287,95 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     names(st.ACTIVE.time) <- lista.stati.possibili
     # e crea anche il cumulativo
     st.ACTIVE.time.cum <- st.ACTIVE.time
+    
     # Analizza TUTTI gli eventi della sequenza
     for( indice.di.sequenza in seq(1,length(sequenza) )) {
-      
-      # browser()
-      
-      # Se non è il primo evento, calcola il delta di data rispetto al precedente
-      if( indice.di.sequenza > 1 ) {
-        
-        # Calcola il gap in giorni fra questo evento ed il precendete
-        old.date <- matriceSequenza[ ,col.dateName ][ indice.di.sequenza - 1 ]
-        new.date <- matriceSequenza[ ,col.dateName ][ indice.di.sequenza ]
-        old.date <- strptime(c(old.date), format = play.output.format.date)
-        new.date <- strptime(c(new.date), format = play.output.format.date)
-        
-        # Ecco il delta
-        delta.days <- as.integer(difftime(new.date[1], old.date[1], units = "days"))
-        
-        # Considera da upgradare gli stati che non siano BEGIN o END
-        # (che sono casi un po' degenere)
-        stati.da.uppgradare <- st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ]
-        
-        # Rimouvi gli apicini 
-        stati.da.uppgradare <- str_replace_all(stati.da.uppgradare,"'", "")
-        
-        # Aggiungi il delta data a quelli da aggiornare
-        st.ACTIVE.time.cum [ stati.da.uppgradare ] <- st.ACTIVE.time.cum [ stati.da.uppgradare ] + delta.days
-        st.ACTIVE.time [ stati.da.uppgradare ] <- st.ACTIVE.time [ stati.da.uppgradare ] + delta.days
-        stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
-        st.ACTIVE.time [ stati.da.resettare ] <- 0
-      }
-      
+
       # due variabili comode per dopo
       ev.NOW <- sequenza[indice.di.sequenza]
       indice.di.sequenza.ch <- as.character(indice.di.sequenza)
       history.hop[[indice.di.sequenza.ch]]<-list()
       fired.trigger.in.this.iteration <- FALSE
       
+      # Azzera il tempo di eventuali stati che sono stati resettati
+      stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
+      stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
+      st.ACTIVE.time [ stati.da.resettare ] <- 0 
+      # ORA scorri i giorni che passano fra l'evento precedente e quello in esame
+      # Va fatto PRIMA di attivare il controllo sull'effetto dell'evento
+      if( indice.di.sequenza > 1 ) {
+        data.iniziale <- matriceSequenza[ ,col.dateName ][ indice.di.sequenza - 1 ]
+        data.finale <- matriceSequenza[ ,col.dateName ][ indice.di.sequenza ]
+
+        if(timeUM == "dmy") {
+          data.iniziale <- dmy(matriceSequenza[ ,col.dateName ][ indice.di.sequenza - 1 ])
+          data.finale <- dmy(matriceSequenza[ ,col.dateName ][ indice.di.sequenza ])
+        }
+        if(timeUM == "ymd") {
+          data.iniziale <- ymd(matriceSequenza[ ,col.dateName ][ indice.di.sequenza - 1 ])
+          data.finale <- ymd(matriceSequenza[ ,col.dateName ][ indice.di.sequenza ])
+        }
+        data.attuale <- data.iniziale
+        fired.trigger.in.this.iteration <- TRUE
+        
+        # Cicla per tutti i giorni dall'inizio alla fine
+        while(  as.integer(difftime(data.attuale, data.finale)[ 1 ])<0 ) {
+
+            # continua a ripetere fino a che per quel giorno non ci sono più trigger
+            # Setta a FALSE la variabile per uscire dal loop
+            # Cerca se c'è un trigger per questa data
+            newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE, 
+                                      st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
+                                      st.ACTIVE.time.cum = st.ACTIVE.time.cum,
+                                      EOF = FALSE   )
+            # Se c'e' un errore, ferma tutto
+            if(newHop$error==TRUE) {
+              note.set.error(error = newHop$error)
+              note.flush()
+              return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger , "date" = data.ev.NOW   ) );
+            }    
+            # Se hai rilevato dei trigger attivi
+            if(length(newHop$active.trigger)!=0) {
+              ct <- ct + 1
+              
+              # gestisci il log
+              newNote();
+              note.setStep(number = ct)              
+              note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
+              note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
+              note.setEvent(eventType = '', eventDate = as.character(format(data.attuale,play.output.format.date)) )
+              note.flush()              
+              
+              # Aggiorna le variabili
+              st.ACTIVE <- newHop$st.ACTIVE
+              last.fired.trigger<-newHop$active.trigger
+              fired.trigger.in.this.iteration <- TRUE
+              
+              # Azzera il tempo di eventuali stati che sono stati resettati
+              stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
+              stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
+              st.ACTIVE.time [ stati.da.resettare ] <- 0  
+
+            }            
+            
+            data.attuale <- data.attuale + 1
+            
+            # Aggiungi il delta data a quelli da aggiornare
+            st.ACTIVE.time.cum [ stati.da.uppgradare ] <- st.ACTIVE.time.cum [ stati.da.uppgradare ] + 1
+            st.ACTIVE.time [ stati.da.uppgradare ] <- st.ACTIVE.time [ stati.da.uppgradare ] + 1
+            
+            # Azzera il tempo di eventuali stati che sono stati resettati
+            stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
+            stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
+            st.ACTIVE.time [ stati.da.resettare ] <- 0 
+        }
+      }
+      
+      # Azzera il tempo di eventuali stati che sono stati resettati
+      stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
+      stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
+      st.ACTIVE.time [ stati.da.resettare ] <- 0      
+
       if(param.verbose == TRUE) cat(str_c("\n\t processing:",ev.NOW))
       
       # costruisco un contatore della riga della tabella in analisi
@@ -333,7 +386,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       newNote();
       note.setStep(number = ct)
       if("pMineR.internal.ID.Evt" %in% colnames(matriceSequenza))
-      {note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW , pMineR.internal.ID.Evt = matriceSequenza[riga,"pMineR.internal.ID.Evt"])}
+      {note.setEvent(eventType = ev.NOW, eventDate =  data.ev.NOW , pMineR.internal.ID.Evt = matriceSequenza[riga,"pMineR.internal.ID.Evt"])}
       else 
       {note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW )}
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
@@ -380,7 +433,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # pregressi triggers.
       devo.restare.in.trigger.loop<-TRUE
       # Continua a loopare fino a che e' vero che qualche trigger e' scattato
-      # ctct <- 1
       while(  devo.restare.in.trigger.loop == TRUE & sum(arr.nodi.end %in% st.ACTIVE) == 0 ) {
 
         # Azzera il tempo di eventuali stati che sono stati resettati
@@ -485,164 +537,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                   "history.hop" = history.hop,
                   "computation.result" = computation.result) );
   }   
-  old.playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz, 
-                                event.interpretation="soft") {
-    # Cerca lo stato che viene triggerato dal BEGIN
-    st.LAST<-""
-    st.DONE<-c("")
-    st.ACTIVE<-c("'BEGIN'")
-    last.fired.trigger<-c()
-    ct <- 0; riga <- 0
-    error<-""
-    computation.result<-"normally terminated"
-    history.hop<-list()
-    # browser()
-    sequenza <- as.array(matriceSequenza[ ,col.eventName ])
-    stop.computation <- FALSE
-    
-    # Analizza TUTTI gli eventi della sequenza
-    for( indice.di.sequenza in seq(1,length(sequenza) )) {
-      # browser()
-      # due variabili comode per dopo
-      ev.NOW <- sequenza[indice.di.sequenza]
-      indice.di.sequenza.ch <- as.character(indice.di.sequenza)
-      history.hop[[indice.di.sequenza.ch]]<-list()
-      fired.trigger.in.this.iteration <- FALSE
-      
-      if(param.verbose == TRUE) cat(str_c("\n\t processing:",ev.NOW))
-      # costruisco un contatore della riga della tabella in analisi
-      riga <- riga + 1
-      data.ev.NOW <- matriceSequenza[ riga ,col.dateName ]
-      ct <- ct + 1
-      # gestisci il log
-      newNote();
-      note.setStep(number = ct)
-      if("pMineR.internal.ID.Evt" %in% colnames(matriceSequenza))
-      {note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW , pMineR.internal.ID.Evt = matriceSequenza[riga,"pMineR.internal.ID.Evt"])}
-      else 
-      {note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW )}
-      note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
-      
-      # Cerca chi ha soddisfatto le precondizioni
-      newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = FALSE   )
-      history.hop[[indice.di.sequenza.ch]]$active.trigger<-newHop$active.trigger
-      history.hop[[indice.di.sequenza.ch]]$ev.NOW<-ev.NOW
-      history.hop[[indice.di.sequenza.ch]]$st.ACTIVE<-newHop$st.ACTIVE
-      # Se c'e' un errore, ferma tutto
-      if(newHop$error==TRUE) {
-        note.set.error(error = newHop$error)
-        note.flush()
-        return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger , "date" = data.ev.NOW   ) );
-      }
-      
-      # Se hai rilevato dei trigger attivi
-      if(length(newHop$active.trigger)!=0) {
-        note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
-        note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
-        st.ACTIVE <- newHop$st.ACTIVE
-        last.fired.trigger<-newHop$active.trigger
-        fired.trigger.in.this.iteration <- TRUE
-      } else { 
-        # altrimenti segnala che NON ci sono trigger attivi
-        note.set.fired.trigger(array.fired.trigger = '')
-        # E i nuovi stati validi sono esattamente i vecchi
-        note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = st.ACTIVE)
-      }
-      # Fai il flush 
-      note.flush()
-      
-      # Ora ripeti la ricerca dei trigger senza passare alcun evento, giusto per 
-      # vedere i trigger che si possono eventualmente attivare a seguito di 
-      # pregressi triggers.
-      devo.restare.in.trigger.loop<-TRUE
-      # Continua a loopare fino a che e' vero che qualche trigger e' scattato
-      while(  devo.restare.in.trigger.loop == TRUE  ) {
-        
-        newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = "", st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = FALSE   )
-        
-        # inzializza il log in caso di errore o in caso di trigger
-        if(newHop$error==TRUE | length(newHop$active.trigger)!=0) {
-          ct <- ct + 1
-          newNote();
-          note.setStep(number = ct)
-          note.setEvent(eventType = '', eventDate = data.ev.NOW, pMineR.internal.ID.Evt = '')
-          note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
-        }
-        
-        # Se c'e' un errore, ferma tutto
-        if(newHop$error==TRUE) {
-          note.set.error(error = newHop$error)
-          note.flush()
-          return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger"=last.fired.trigger, "date" = data.ev.NOW  ) )
-        }
-        
-        # Se hai rilevato qualche trigger attivo
-        if(length(newHop$active.trigger)!=0)  {
-          note.setEvent(eventType = '', eventDate = data.ev.NOW, pMineR.internal.ID.Evt = '' )
-          note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
-          note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
-          note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
-          st.ACTIVE <- newHop$st.ACTIVE
-          last.fired.trigger<-newHop$active.trigger
-          # e fai il flush
-          note.flush()          
-        }
-        # altrimenti (se non ci sono stati trigger, vedi di uscire dal loop)
-        else devo.restare.in.trigger.loop<-FALSE
-      }
-      # Se i vincoli di interpretazione degli event log sono "hard" allora non posso accettare
-      # di passare ad un altro evento, se un evento non ha scatenato trigger!
-      if(event.interpretation == "hard" & fired.trigger.in.this.iteration == FALSE)  {
-        computation.result <- "event not predicted in hard checking"
-        stop.computation <- TRUE
-        break;
-      }
-    }
-    
-    # Se la computazione non e', per qualche motivo, interrotta
-    if( stop.computation == FALSE ) {
-      # Now process the EOF !!
-      ct <- ct + 1
-      # gestisci il log
-      newNote();
-      note.setStep(number = ct)
-      note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW , pMineR.internal.ID.Evt = 'EOF')
-      note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
-      
-      # Cerca chi ha soddisfatto le precondizioni
-      newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE, st.ACTIVE = st.ACTIVE, EOF = TRUE  )
-      
-      # Se c'e' un errore, ferma tutto
-      if(newHop$error==TRUE) {
-        note.set.error(error = newHop$error)
-        note.flush()
-        return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger , "date" = data.ev.NOW ) );
-      }
-      
-      # Se hai rilevato dei trigger attivi
-      if(length(newHop$active.trigger)!=0) {
-        note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
-        note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
-        st.ACTIVE <- newHop$st.ACTIVE
-        last.fired.trigger<-newHop$active.trigger
-      } else { 
-        # altrimenti segnala che NON ci sono trigger attivi
-        note.set.fired.trigger(array.fired.trigger = '')
-        # E i nuovi stati validi sono esattamente i vecchi
-        note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = st.ACTIVE)
-      }
-      # Fai il flush 
-      note.flush()    
-    }
-    
-    # Ritorna
-    return( list( "st.ACTIVE"=st.ACTIVE,
-                  "error"=error,
-                  "last.fired.trigger" = last.fired.trigger, 
-                  "date" = data.ev.NOW,
-                  "history.hop" = history.hop,
-                  "computation.result" = computation.result) );
-  }    
   #===========================================================  
   # attiva.trigger
   # is the "core": it finds out the trigger that should be fired
@@ -1338,7 +1232,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #=================================================================================  
   play<-function(number.of.cases, min.num.of.valid.words=NA, 
                       max.word.length=100, howToBuildBad="resample", 
-                      toReturn="csv", debug.mode = FALSE, output.format.date = "%d/%m/%Y") {
+                      toReturn="csv", debug.mode = FALSE, output.format.date = "%d/%m/%Y",
+                      typeOfRandomDataGenerator="dayAfterDay") {
     
     # Aggiorna il formato data dell'ultimp PLAY
     play.output.format.date <<- output.format.date
@@ -1351,15 +1246,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     if(min.num.of.valid.words>0) {
       a <- play.easy.impreciso(number.of.cases = min.num.of.valid.words,min.num.of.valid.words = min.num.of.valid.words,
                                max.word.length = max.word.length, howToBuildBad = howToBuildBad,
-                               output.format.date = output.format.date)
+                               output.format.date = output.format.date , typeOfRandomDataGenerator=typeOfRandomDataGenerator)
     }
-    
+    # browser()
     if(quante.da.sbagliare>0) {
       totalizzati = 0
       while(totalizzati < quante.da.sbagliare) {
         b <- play.easy.impreciso(number.of.cases = 1,min.num.of.valid.words = 0,
                                  max.word.length = max.word.length, howToBuildBad = howToBuildBad,
-                                 output.format.date = output.format.date)
+                                 output.format.date = output.format.date, typeOfRandomDataGenerator=typeOfRandomDataGenerator)
         if(b$arr.matching.parola==FALSE) {
           if(min.num.of.valid.words==0 & totalizzati==0) {a <- b}
           else  { a <- join.giving.new.ID(a,b) }
@@ -1399,7 +1294,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     return(a)
   }
   play.easy.impreciso<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, 
-                                howToBuildBad="resample", output.format.date = "%d/%m/%Y") {
+                                howToBuildBad="resample", output.format.date = "%d/%m/%Y", 
+                                typeOfRandomDataGenerator="dayAfterDay") {
     obj.utils <- utils()
     if(is.na(min.num.of.valid.words)) min.num.of.valid.words = as.integer(number.of.cases/2)
     arr.matching.parola<-c()
@@ -1407,6 +1303,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # Genera un buon numero di parole valide
     lista.res <- genera.parola.valida(number.of.cases = number.of.cases,
                                       max.word.length = max.word.length )
+    
+    # browser()
     # Ora prendine la meta' e fai uno shuffle
     quante.da.mescolare <- number.of.cases - min.num.of.valid.words
     aaa <- lista.res$list.LOGs
@@ -1439,7 +1337,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           nuovaDatatmp <- as.Date("01/01/2000",format="%d/%m/%Y") + numeroGiorno
           nuovaDatatmp <- as.character(format( nuovaDatatmp, format = output.format.date ))
           nuovaRiga<-c(nuovaDatatmp,sing.car)
+          # if(typeOfRandomDataGenerator=="dayAfterDay") giorni.da.sommare <-1
+          # if(typeOfRandomDataGenerator=="randomWeek1-4") giorni.da.sommare <- as.integer(runif(n = 1,min=1,max=4) * 7)
+          # if(typeOfRandomDataGenerator=="randomMonth1-4") giorni.da.sommare <- as.integer(runif(n = 1,min=1,max=4) * 30)
+
           numeroGiorno<-numeroGiorno+1
+          
           marice.dati <- rbind(marice.dati,nuovaRiga)
         }
         colnames(marice.dati)<-c("data","evento")
@@ -1472,7 +1375,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # dichiara certamente vere quelle iniziali, quelle non shuffellate
 
     arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-quante.da.mescolare))
-    valid.csv<-obj.utils$format.data.for.csv(listaProcessi = lista.res$list.LOGs,arr.matching.parola)
+    valid.csv<-obj.utils$format.data.for.csv(listaProcessi = lista.res$list.LOGs,
+                                             lista.validi = arr.matching.parola, 
+                                             typeOfRandomDataGenerator= typeOfRandomDataGenerator)
     valid.data.frame<-as.data.frame(valid.csv)
     
     

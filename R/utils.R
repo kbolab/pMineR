@@ -22,13 +22,22 @@ utils<-function() {
     else return(FALSE)
   }
   
-  format.data.for.csv<-function(listaProcessi, lista.validi) { 
+  format.data.for.csv<-function(listaProcessi, lista.validi, typeOfRandomDataGenerator="dayAfterDay") { 
     big.csv<-c()
     ct <- 1
+    
+
     for(i in names(listaProcessi)) {
       numeroElementi<-length(listaProcessi[[i]])
+
+      if(typeOfRandomDataGenerator=="dayAfterDay") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=1))
+      if(typeOfRandomDataGenerator=="randomDay1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) )
+      if(typeOfRandomDataGenerator=="randomWeek1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) * 7)
+      if(typeOfRandomDataGenerator=="randomMonth1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) * 30)
+      
       # matrice<-cbind(rep(ct,numeroElementi),listaProcessi[[i]],rep("01/01/1999",numeroElementi),rep(as.character(lista.validi[ct]),numeroElementi) )
-      array.Date <- as.character(format(as.Date("01/01/2000",format="%d/%m/%Y") + seq(1,numeroElementi) ,format="%d/%m/%Y") )
+      # array.Date <- as.character(format(as.Date("01/01/2000",format="%d/%m/%Y") + seq(1,numeroElementi) ,format="%d/%m/%Y") )
+      array.Date <- as.character(format(as.Date("01/01/2000",format="%d/%m/%Y") + cumsum(giorni.da.sommare) ,format="%d/%m/%Y") )
       matrice<-cbind(rep(ct,numeroElementi),listaProcessi[[i]],array.Date,rep(as.character(lista.validi[ct]),numeroElementi) )
       big.csv<-rbind(big.csv,matrice )
       ct <- ct + 1
