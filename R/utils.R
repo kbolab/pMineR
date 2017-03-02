@@ -77,6 +77,7 @@ textObj<-function() {
 #' 
 #' @description  A class which provide some tools. pMineR intarnal use only.
 #' @export
+#' @useDynLib pMineR
 dataProcessor<-function() {
   
   #=================================================================================
@@ -124,6 +125,22 @@ dataProcessor<-function() {
           }
         }    
       }
+      # invoca il programma in C per estrarre i tempi reciproci fra TUTTI
+      # browser()
+      iii <- unlist(lapply(ID.act.group[[patID]][,EVENT.list.names] , function(x) which(colnames(MM)==x) ))
+      massimo <-max(iii)
+      out.MM<-rep( 0 , (massimo+1)*(massimo+1) )
+      out.delta<-c()
+      # browser()
+      # aa<-.C("rilevaTempiTransizioni",
+      #        as.integer(iii), 
+      #        as.double(ID.act.group[[patID]][,"pMineR.deltaDate"]), 
+      #        as.integer( length(iii) ),
+      #        as.integer( massimo ),
+      #        as.integer(out.MM))
+      # # browser()
+      # k <- 4
+      
     }
     quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
 
