@@ -1,6 +1,7 @@
 #' Some useful tools
 #' 
 #' @description  A class which provide some tools. pMineR intarnal use only.
+#' @import Rcpp
 #' @export
 utils<-function() {
   dectobin <- function(y) {
@@ -93,6 +94,7 @@ dataProcessor<-function() {
     # Creiamo anche la matrice con le density dei tempi di transizione
     # (ma solo se c'e' un campo DATA TIME)
     MM.den.list<-list()
+    MM.den.list.high.det<-list()
 
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
     # per ogni paziente
@@ -129,18 +131,31 @@ dataProcessor<-function() {
       # browser()
       iii <- unlist(lapply(ID.act.group[[patID]][,EVENT.list.names] , function(x) which(colnames(MM)==x) ))
       massimo <-max(iii)
-      out.MM<-rep( 0 , (massimo+1)*(massimo+1) )
+      out.MM<-rep( 0 , (massimo)*(massimo) )
       out.delta<-c()
-      # browser()
+      nuovoOut <- c()
+      
+      aaa <- transitionsTime( iii , ID.act.group[[patID]][,"pMineR.deltaDate"], max(iii) );
+      
+      mm.in <- matrix(c(iii,ID.act.group[[patID]][,"pMineR.deltaDate"]),nrow=2,byrow = T)
+      mm.out <- t(matrix(c(aaa$from,aaa$to,aaa$time),nrow=3,byrow = T))
+      
+      for( riga in seq(1,nrow(mm.out))) {
+        int.from <-colnames(MM)[mm.out[riga,1]];
+        int.to <-colnames(MM)[mm.out[riga,2]];
+        delta.tempo <-mm.out[riga,3];
+        if(length(MM.den.list.high.det[[ int.from ]])==0) MM.den.list.high.det[[ int.from]]<-list()
+        if(length(MM.den.list.high.det[[ int.from]][[ int.to ]])==0) MM.den.list.high.det[[ int.from]][[ int.to ]]<-c()
+        MM.den.list.high.det[[ int.from]][[ int.to ]]<-c(MM.den.list.high.det[[ int.from]][[ int.to ]],delta.tempo)
+      }
+
       # aa<-.C("rilevaTempiTransizioni",
-      #        as.integer(iii), 
-      #        as.double(ID.act.group[[patID]][,"pMineR.deltaDate"]), 
+      #        as.integer(iii),
+      #        as.double(ID.act.group[[patID]][,"pMineR.deltaDate"]),
       #        as.integer( length(iii) ),
       #        as.integer( massimo ),
       #        as.integer(out.MM))
-      # # browser()
-      # k <- 4
-      
+
     }
     quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
 
@@ -181,6 +196,7 @@ dataProcessor<-function() {
                  "MM.mean.time"=MM.mean.time,
                  "MM.density.list"=MM.den.list,
                  "MM.mean.outflow.time"=MM.mean.outflow.time,
+                 "MM.den.list.high.det" = MM.den.list.high.det,
                  "pat.process"=ID.act.group,
                  "wordSequence.raw"=wordSequence.TMP01) )    
   }
@@ -215,3 +231,4 @@ dataProcessor<-function() {
     "createSequenceMatrix" = createSequenceMatrix
   ))
 }
+

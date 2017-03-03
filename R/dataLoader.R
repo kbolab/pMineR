@@ -43,6 +43,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
   MM.mean.time<-''
   MM.mean.outflow.time<-''
   MM.density.list<-''
+  MM.den.list.high.det<-''
   list.dictionary<-''
   list.dict.column.event.name<-''
   input.format.date<-''
@@ -267,6 +268,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     MM.mean.time<<-res$MM.mean.time  
     MM.mean.outflow.time<<-res$MM.mean.outflow.time
     MM.density.list<<-res$MM.density.list   
+    MM.den.list.high.det <<- res$MM.den.list.high.det
   }
   #=================================================================================
   # load.csv
@@ -318,6 +320,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
       "wordSequence.raw"=wordSequence.raw,
       "MM.mean.time"=MM.mean.time,
       "MM.density.list"=MM.density.list,
+      "MM.den.list.high.det"=MM.den.list.high.det,
       "MM.mean.outflow.time"=MM.mean.outflow.time,
       "csv.IDName"=param.IDName,
       "csv.EVENTName"=param.EVENTName,
@@ -337,6 +340,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     MM.mean.time<<-''  
     MM.mean.outflow.time<<-''
     MM.density.list<<-''    
+    MM.den.list.high.det<<-''
     list.dictionary<<-list()
     list.dict.column.event.name<<-list()
     input.format.date<<-''
@@ -345,6 +349,9 @@ dataLoader<-function( verbose.mode = TRUE ) {
     param.EVENTName<<-''
     param.dateColumnName<<-''
     param.verbose<<-verbose.mode
+    
+    # print(timesTwo( 3.2 ))
+    
   }
   costructor( verboseMode = verbose.mode )
   #================================================================================= 
