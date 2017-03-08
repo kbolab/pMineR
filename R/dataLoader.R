@@ -170,10 +170,19 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # per ogni paziente costruisci i gruppi 
     ID.list<-unique(mydata[[ID.list.names]])
     ID.act.group<-list();
+    paziente.da.tenere<-c()
     for(i in ID.list) {
+      # prendi i soli record che afferiscono al paziente in esame
+      # aaa<-mydata[ which(mydata[[ID.list.names]]==i  ), ]
       ID.act.group[[i]]<-mydata[ which(mydata[[ID.list.names]]==i  ), ]
+      if(nrow(ID.act.group[[i]])>2) {paziente.da.tenere <- c(paziente.da.tenere,i) }
     }    
-    return(ID.act.group)
+    return(
+      list(
+        "ID.act.group" = ID.act.group,
+        "paziente.da.tenere" = paziente.da.tenere
+      )
+    )
   }
 
   setData<-function(   dataToSet  ) {
@@ -194,7 +203,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     for( paziente in seq(1,length(listToBeOrdered)) ) {
       # Estrai la matrice
       matrice.date<-listToBeOrdered[[paziente]]
-      
+
       # Leggi la colonna data secondo la formattazione indicata in ingresso e riscrivila nel formato %d/%m/%Y (lo stesso viene fatto in plot.Timeline)
       newdate <- strptime(as.character(matrice.date[,dateColumnName]), format.column.date)
       matrice.date[,dateColumnName] <- format(newdate, "%d/%m/%Y")
@@ -214,12 +223,18 @@ dataLoader<-function( verbose.mode = TRUE ) {
   load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, format.column.date = "%d/%m/%Y") {
     # clear all the attributes
     clearAttributes( );
-    
+
     obj.dataProcessor <- dataProcessor()
     
     # Add an internal ID attribute to myData (to uniquely identify Logs)
     if(!("pMineR.internal.ID.Evt" %in% colnames(mydata) ))
       { mydata <- cbind("pMineR.internal.ID.Evt"=seq(1,nrow(mydata)),mydata ) }
+    
+    # Change the DATA FORMAT!
+    mydata[[dateColumnName]] <- as.character(mydata[[dateColumnName]] )
+    mydata[[dateColumnName]] <- strptime(as.character(mydata[[dateColumnName]]), format.column.date)
+    mydata[[dateColumnName]] <- format(mydata[[dateColumnName]],"%d/%m/%Y")
+    format.column.date <- "%d/%m/%Y"
     
     # Just to have then an idea of the passed parameters...
     param.IDName<<-IDName
@@ -238,8 +253,16 @@ dataLoader<-function( verbose.mode = TRUE ) {
     }
     if(verbose.mode == TRUE) cat("\n internal Grouping")
     # group the log of the patient in a structure easier to handle
-    ID.act.group<-groupPatientLogActivity(mydata, ID.list.names) 
+    ooo <- groupPatientLogActivity(mydata, ID.list.names) 
+    ID.act.group<-ooo$ID.act.group
+    paziente.da.tenere<-ooo$paziente.da.tenere
     
+    # Se non ci sono almeno due eventi per ogni paziente, togli il paziente dalla lista
+    # (e dal data frame originale)
+    # Se non ci sono almeno due eventi per il paziente, toglilo dalla lista
+    ID.act.group <- ID.act.group[  paziente.da.tenere  ]
+    mydata <- mydata[ ( mydata[[IDName]] %in% paziente.da.tenere  ), ]
+
     if(verbose.mode == TRUE) cat("\n Ordering date:")
     # Order the list by the interested date (if exists)
     if(!is.na(dateColumnName)) {

@@ -99,6 +99,7 @@ dataProcessor<-function() {
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
     # per ogni paziente
     for(patID in seq(1,length(ID.act.group))) {
+      cat("\n processing :",patID)
       # su ogni elemento del percorso clinico
       # t e' il "tempo" in senso di "step"
       for(t in seq(1,nrow(ID.act.group[[patID]]))) {
@@ -139,7 +140,7 @@ dataProcessor<-function() {
       
       mm.in <- matrix(c(iii,ID.act.group[[patID]][,"pMineR.deltaDate"]),nrow=2,byrow = T)
       mm.out <- t(matrix(c(aaa$from,aaa$to,aaa$time),nrow=3,byrow = T))
-      
+      # if(patID == 10 ) browser()
       for( riga in seq(1,nrow(mm.out))) {
         int.from <-colnames(MM)[mm.out[riga,1]];
         int.to <-colnames(MM)[mm.out[riga,2]];

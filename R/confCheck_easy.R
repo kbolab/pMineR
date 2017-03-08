@@ -747,12 +747,13 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           if(comandoToCheck == "afletd") { esito = st.ACTIVE.time[ nomeStato ] <= quantita }
           
           # stringa.run <- paste( c( str_sub(stringa.run,end = matrice.match[riga, "start"]-1),' == \'',nomeStato,'\' ',str_sub(stringa.run,start = matrice.match[riga, "end"]+1) )    , collapse='')
-          
-          if(esito==TRUE){
-            stringa.run <- paste( c( str_sub(stringa.run,end = matrice.match[riga, "start"]-1),' == \'',nomeStato,'\' ',str_sub(stringa.run,start = matrice.match[riga, "end"]+1) )    , collapse='')
-          } else {
-            stringa.run <- paste( c( str_sub(stringa.run,end = matrice.match[riga, "start"]-1),' != \'',nomeStato,'\' ',str_sub(stringa.run,start = matrice.match[riga, "end"]+1) )    , collapse='')
-          }
+          # browser()
+          stringa.run <- paste(c( str_sub(stringa.run,end = subMatrix.nomeStato[ nrow(subMatrix.nomeStato)-1, "start"]-1), "'",esito,"'",str_sub(stringa.run,start = matrice.match[riga, "end"] +1) ), collapse='')
+          # if(esito==TRUE){
+          #   stringa.run <- paste( c( str_sub(stringa.run,end = matrice.match[riga, "start"]-1),' == \'',nomeStato,'\' ',str_sub(stringa.run,start = matrice.match[riga, "end"]+1) )    , collapse='')
+          # } else {
+          #   stringa.run <- paste( c( str_sub(stringa.run,end = matrice.match[riga, "start"]-1),' != \'',nomeStato,'\' ',str_sub(stringa.run,start = matrice.match[riga, "end"]+1) )    , collapse='')
+          # }
         }
       }
     }
