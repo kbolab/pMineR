@@ -17,7 +17,7 @@
 #'              The consturctor admit the following parameters:
 #' verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
-#' @import stringr utils stats           
+#' @import stringr stats progress           
 #' @export
 #' @examples \dontrun{
 #'
@@ -52,6 +52,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
   param.EVENTName<-''
   param.dateColumnName<-''  
   param.verbose<-''
+  obj.LH<-''
   #=================================================================================
   # clearAttributes
   # this method clear all the attributes in order to make the object re-useable
@@ -171,12 +172,17 @@ dataLoader<-function( verbose.mode = TRUE ) {
     ID.list<-unique(mydata[[ID.list.names]])
     ID.act.group<-list();
     paziente.da.tenere<-c()
+    pb <- txtProgressBar(min = 0, max = length(ID.list), style = 3)
+    pb.ct <- 0
     for(i in ID.list) {
+      
+      pb.ct <- pb.ct + 1; setTxtProgressBar(pb, pb.ct)
       # prendi i soli record che afferiscono al paziente in esame
       # aaa<-mydata[ which(mydata[[ID.list.names]]==i  ), ]
       ID.act.group[[i]]<-mydata[ which(mydata[[ID.list.names]]==i  ), ]
       if(nrow(ID.act.group[[i]])>2) {paziente.da.tenere <- c(paziente.da.tenere,i) }
     }    
+    close(pb)
     return(
       list(
         "ID.act.group" = ID.act.group,
@@ -197,10 +203,11 @@ dataLoader<-function( verbose.mode = TRUE ) {
 
   }
   order.list.by.date<-function(   listToBeOrdered, dateColumnName, deltaDate.column.name='pMineR.deltaDate', format.column.date = "%d/%m/%Y" ) {
-    # if(length(listToBeOrdered)==0) return(listToBeOrdered);
 
+    pb <- txtProgressBar(min = 0, max = length(listToBeOrdered), style = 3)
     # Cicla per ogni paziente
     for( paziente in seq(1,length(listToBeOrdered)) ) {
+      setTxtProgressBar(pb, paziente)
       # Estrai la matrice
       matrice.date<-listToBeOrdered[[paziente]]
 
@@ -216,16 +223,20 @@ dataLoader<-function( verbose.mode = TRUE ) {
       colnames(listToBeOrdered[[paziente]])<-c(colnames(listToBeOrdered[[paziente]])[1:length(colnames(listToBeOrdered[[paziente]]))-1],deltaDate.column.name)
       # Ordina il data.frame di ogni paziente per la colonna DeltaT
       listToBeOrdered[[paziente]]<-listToBeOrdered[[paziente]][order(listToBeOrdered[[paziente]][[deltaDate.column.name]]),]
-      if(param.verbose == TRUE) cat("\n Now ordering: ",paziente)
     }
+    close(pb)
     return(listToBeOrdered);
   } 
   load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, format.column.date = "%d/%m/%Y") {
     # clear all the attributes
     clearAttributes( );
-
-    obj.dataProcessor <- dataProcessor()
     
+    if(length(mydata[[dateColumnName]]) == 0) { obj.LH$sendLog( c("dateColumnName '",dateColumnName,"' not present! ")  ,"ERR"); return() }
+    if(length(mydata[[EVENTName]]) == 0) { obj.LH$sendLog( c("EVENTName '",EVENTName,"' not present! ")  ,"ERR"); return() }
+    if(length(mydata[[IDName]]) == 0) { obj.LH$sendLog( c("IDName '",IDName,"' not present! ")  ,"ERR"); return() }    
+    
+    obj.dataProcessor <- dataProcessor()
+
     # Add an internal ID attribute to myData (to uniquely identify Logs)
     if(!("pMineR.internal.ID.Evt" %in% colnames(mydata) ))
       { mydata <- cbind("pMineR.internal.ID.Evt"=seq(1,nrow(mydata)),mydata ) }
@@ -251,7 +262,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
     if(!is.na(dateColumnName)) {
       mydata[[dateColumnName]]<-as.character(mydata[[dateColumnName]])
     }
-    if(verbose.mode == TRUE) cat("\n internal Grouping")
+    if(verbose.mode == TRUE) obj.LH$sendLog("\n 1) internal Grouping (1/3):\n")
+      # cat("\n 1) internal Grouping")
     # group the log of the patient in a structure easier to handle
     ooo <- groupPatientLogActivity(mydata, ID.list.names) 
     ID.act.group<-ooo$ID.act.group
@@ -262,26 +274,35 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # Se non ci sono almeno due eventi per il paziente, toglilo dalla lista
     ID.act.group <- ID.act.group[  paziente.da.tenere  ]
     mydata <- mydata[ ( mydata[[IDName]] %in% paziente.da.tenere  ), ]
-
-    if(verbose.mode == TRUE) cat("\n Ordering date:")
+    
+    # if(verbose.mode == TRUE) cat("\n 2) Ordering date:\n")
+    if(verbose.mode == TRUE) obj.LH$sendLog(" 2) Ordering date (2/3):\n")
     # Order the list by the interested date (if exists)
     if(!is.na(dateColumnName)) {
       if(length(ID.act.group)==0) browser()
       ID.act.group<-order.list.by.date(listToBeOrdered = ID.act.group, dateColumnName = dateColumnName, format.column.date = format.column.date)
     }
-    if(verbose.mode == TRUE) cat("\n Building MMatrices and other stuff")
+    # if(verbose.mode == TRUE) cat("\n 3) Building MMatrices and other stuff")
+    if(verbose.mode == TRUE) obj.LH$sendLog(" 3) Building MMatrices and other stuff (3/3):\n")
+    
     # build the MM matrix and other stuff...
     res <- obj.dataProcessor$buildMMMatrices.and.other.structures(mydata = mydata, 
                                                                   EVENT.list.names = EVENT.list.names, 
                                                                   EVENTName = EVENTName,
                                                                   EVENTDateColumnName = param.dateColumnName,
                                                                   ID.act.group = ID.act.group)
+    if(res$error == TRUE) { 
+      if(res$errCode == 1) {obj.LH$sendLog( "event '' (BLANK) detected, please check the file\n"  ,"ERR"); return()}
+      if(res$errCode == 2) {obj.LH$sendLog( "an event has a label with a length greter than 50 chars...\n"  ,"ERR"); return()}
+      if(res$errCode == 3) {obj.LH$sendLog( "at least an event has an invalid char in the label (',$,\")\n"  ,"ERR"); return()}      
+    }
 #     res<-buildMMMatrices.and.other.structures(mydata = mydata, 
 #                                               EVENT.list.names = EVENT.list.names, 
 #                                               EVENTName = EVENTName, 
 #                                               ID.act.group = ID.act.group)
     #populate the internal attributes
     
+    # browser()
     
     arrayAssociativo<<-res$arrayAssociativo
     footPrint<<-res$footPrint
@@ -297,8 +318,13 @@ dataLoader<-function( verbose.mode = TRUE ) {
   # load.csv
   #=================================================================================  
   load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, format.column.date="%d/%m/%Y") {
+    
     # load the file
+    if(!file.exists(nomeFile)) { obj.LH$sendLog(c( "'",nomeFile,"' does not exist!\n" ),"ERR"); return() }
     mydata = read.table(file=nomeFile,sep = sep,header = T,quote=quote)
+    
+    if(length(mydata)==0) { obj.LH$sendLog(c( "'",nomeFile,"' seems to be empty....\n" ),"ERR"); return() }
+    if(dim(mydata)[2]==1) { obj.LH$sendLog(c( "'",nomeFile,"' seems to have only one column... check the separator!\n" ),"ERR"); return() }
     
     # Now "load" the data.frame
     load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName, dateColumnName = dateColumnName , format.column.date = format.column.date)
@@ -373,6 +399,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
     param.dateColumnName<<-''
     param.verbose<<-verbose.mode
     
+    obj.LH<<-logHandler()
     # print(timesTwo( 3.2 ))
     
   }

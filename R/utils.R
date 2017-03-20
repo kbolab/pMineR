@@ -85,21 +85,36 @@ dataProcessor<-function() {
   # buildMMMatrices.and.other.structures
   # costruisce la MM matrix ed anche altra robaccia
   #=================================================================================    
-  buildMMMatrices.and.other.structures<-function(mydata, EVENT.list.names, EVENTName, EVENTDateColumnName=NA, ID.act.group) {
+  buildMMMatrices.and.other.structures<-function(mydata, EVENT.list.names, 
+                                                 EVENTName, EVENTDateColumnName=NA, ID.act.group) {
 
     # costruisci la matrice
     MM<-matrix(0, ncol=length(unique(mydata[[EVENT.list.names]]))+2, nrow=length(unique(mydata[[EVENT.list.names]]))+2 )
     colnames(MM)<-c("BEGIN","END",unique(as.character(mydata[[EVENT.list.names]])))
     rownames(MM)<-colnames(MM)
+    
+    if(("" %in% trimws(colnames(MM))) == TRUE) {
+      return( list("error"=TRUE, "errCode"=1)  )
+    }
+    
+    if(max(nchar(colnames(MM)))>60)  {
+      return( list("error"=TRUE, "errCode"=2)  )
+    }
+    if(length(grep("'", colnames(MM))))  {
+      return( list("error"=TRUE, "errCode"=3)  )
+    }    
+
     # Creiamo anche la matrice con le density dei tempi di transizione
     # (ma solo se c'e' un campo DATA TIME)
     MM.den.list<-list()
     MM.den.list.high.det<-list()
-
+   
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
     # per ogni paziente
+    pb <- txtProgressBar(min = 0, max = length(ID.act.group), style = 3)
     for(patID in seq(1,length(ID.act.group))) {
-      cat("\n processing :",patID)
+      # cat("\n processing :",patID)
+      setTxtProgressBar(pb, patID)
       # su ogni elemento del percorso clinico
       # t e' il "tempo" in senso di "step"
       for(t in seq(1,nrow(ID.act.group[[patID]]))) {
@@ -149,15 +164,16 @@ dataProcessor<-function() {
         if(length(MM.den.list.high.det[[ int.from]][[ int.to ]])==0) MM.den.list.high.det[[ int.from]][[ int.to ]]<-c()
         MM.den.list.high.det[[ int.from]][[ int.to ]]<-c(MM.den.list.high.det[[ int.from]][[ int.to ]],delta.tempo)
       }
-
+      # browser()
       # aa<-.C("rilevaTempiTransizioni",
       #        as.integer(iii),
       #        as.double(ID.act.group[[patID]][,"pMineR.deltaDate"]),
       #        as.integer( length(iii) ),
       #        as.integer( massimo ),
       #        as.integer(out.MM))
-
+# browser()
     }
+    close(pb)
     quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
 
     # Calcola la matrice delle medie dei tempi
@@ -199,7 +215,8 @@ dataProcessor<-function() {
                  "MM.mean.outflow.time"=MM.mean.outflow.time,
                  "MM.den.list.high.det" = MM.den.list.high.det,
                  "pat.process"=ID.act.group,
-                 "wordSequence.raw"=wordSequence.TMP01) )    
+                 "wordSequence.raw"=wordSequence.TMP01,
+                 "error"=FALSE) )    
   }
   
   #=================================================================================

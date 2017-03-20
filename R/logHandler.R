@@ -1,3 +1,6 @@
+#' error handler class
+#' 
+#' @description  A class to deal with errors
 logHandler<-function() {
   behaviourTable<-c()
   #=================================================================================
