@@ -167,13 +167,14 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # replay (ex playLoadedData)
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================    
-  replay<-function( number.perc = 1 , event.interpretation = "soft", timeUM = "dmy") {
+  replay<-function( number.perc = 1 , event.interpretation = "soft") {
     
     # Chiama addNote, che via via popola una stringa 
     # che alla fine conterra' l'intero XML
     ct<-1
-    
-    if(timeUM != "dmy") obj.LogHandler$sendLog(msg = "'timeUM can be only set to 'dmy', in this version of confCheck_easy::replay();", type="NMI")
+    csv.date.format <- dataLog$csv.date.format
+    # browser()
+    # if(timeUM != "dmy") obj.LogHandler$sendLog(msg = "'timeUM can be only set to 'dmy', in this version of confCheck_easy::replay();", type="NMI")
     
     # clear the notebook
     notebook <<- list()
@@ -1414,7 +1415,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       arr.low.level<-c()
       list.high.level<-list()
       terminate.run = FALSE
-      
+      # cat("\n --------------------- ")
       # genera il numero di sequenze desiderate
       for( indice in seq(1, max.word.length)) {
         # costruisci l'array delle parole possibili, rimescolato
@@ -1424,6 +1425,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         # loopa su tutte la parole disponibili, cercando di uscirne   
         # ( in realta' loop infiniti sono teoricamente possibili)
         trovato.qualcosa <- FALSE
+        
         for( ev.NOW in arr.parole.sampled){
           newHop <- attiva.trigger( st.LAST = st.LAST, 
                                     ev.NOW = ev.NOW, 
@@ -1434,9 +1436,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                     EOF = FALSE   )
           if( !is.null(newHop$active.trigger ) & newHop$error == FALSE) {
             trovato.qualcosa <- TRUE
+            # cat("\n ",ev.NOW)
             break;
           }
         }
+        
         if(trovato.qualcosa==FALSE){
           stop("ERROR: non ci sono eventi che consentono di far evolvere la stringa")
         }        

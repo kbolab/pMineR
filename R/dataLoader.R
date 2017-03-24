@@ -202,7 +202,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
     if( "wordSequence.raw" %in%  nomiAttributi  ) wordSequence.raw<<-dataToSet$wordSequence.raw
 
   }
-  order.list.by.date<-function(   listToBeOrdered, dateColumnName, deltaDate.column.name='pMineR.deltaDate', format.column.date = "%d/%m/%Y" ) {
+  order.list.by.date<-function(   listToBeOrdered, dateColumnName, deltaDate.column.name='pMineR.deltaDate', 
+                                  format.column.date = "%d/%m/%Y %H:%M:%S" ) {
 
     pb <- txtProgressBar(min = 0, max = length(listToBeOrdered), style = 3)
     # Cicla per ogni paziente
@@ -210,13 +211,14 @@ dataLoader<-function( verbose.mode = TRUE ) {
       setTxtProgressBar(pb, paziente)
       # Estrai la matrice
       matrice.date<-listToBeOrdered[[paziente]]
-
+# browser()
       # Leggi la colonna data secondo la formattazione indicata in ingresso e riscrivila nel formato %d/%m/%Y (lo stesso viene fatto in plot.Timeline)
       newdate <- strptime(as.character(matrice.date[,dateColumnName]), format.column.date)
-      matrice.date[,dateColumnName] <- format(newdate, "%d/%m/%Y")
+      matrice.date[,dateColumnName] <- format(newdate, "%d/%m/%Y %H:%M:%S")
     
       # Calcola la colonna delle differenze di date rispetto ad una data di riferimento ed azzera rispetto al minore
-      colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y"),as.POSIXct("01/01/2001", format = "%d/%m/%Y"),units = 'days'))
+      # colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y"),as.POSIXct("01/01/2001", format = "%d/%m/%Y"),units = 'days'))
+      colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y"),as.POSIXct("01/01/2001", format = "%d/%m/%Y"),units = 'mins'))
       colonna.delta.date.TMPh898h98h9<-colonna.delta.date.TMPh898h98h9-min(colonna.delta.date.TMPh898h98h9)
       # Aggiungi la colonna dei delta data
       listToBeOrdered[[paziente]]<-cbind(listToBeOrdered[[paziente]],colonna.delta.date.TMPh898h98h9)
@@ -227,10 +229,11 @@ dataLoader<-function( verbose.mode = TRUE ) {
     close(pb)
     return(listToBeOrdered);
   } 
-  load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, format.column.date = "%d/%m/%Y") {
+  load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, format.column.date = "%d/%m/%Y %H:%M:%S") {
     # clear all the attributes
     clearAttributes( );
-    
+    aaaaaaa <- mydata
+    # browser()
     if(length(mydata[[dateColumnName]]) == 0) { obj.LH$sendLog( c("dateColumnName '",dateColumnName,"' not present! ")  ,"ERR"); return() }
     if(length(mydata[[EVENTName]]) == 0) { obj.LH$sendLog( c("EVENTName '",EVENTName,"' not present! ")  ,"ERR"); return() }
     if(length(mydata[[IDName]]) == 0) { obj.LH$sendLog( c("IDName '",IDName,"' not present! ")  ,"ERR"); return() }    
@@ -240,12 +243,14 @@ dataLoader<-function( verbose.mode = TRUE ) {
     # Add an internal ID attribute to myData (to uniquely identify Logs)
     if(!("pMineR.internal.ID.Evt" %in% colnames(mydata) ))
       { mydata <- cbind("pMineR.internal.ID.Evt"=seq(1,nrow(mydata)),mydata ) }
-    
+
     # Change the DATA FORMAT!
     mydata[[dateColumnName]] <- as.character(mydata[[dateColumnName]] )
     mydata[[dateColumnName]] <- strptime(as.character(mydata[[dateColumnName]]), format.column.date)
-    mydata[[dateColumnName]] <- format(mydata[[dateColumnName]],"%d/%m/%Y")
-    format.column.date <- "%d/%m/%Y"
+    mydata[[dateColumnName]] <- format(mydata[[dateColumnName]],"%d/%m/%Y %H:%M:%S")
+    format.column.date <- "%d/%m/%Y %H:%M:%S"
+    
+    # browser()
     
     # Just to have then an idea of the passed parameters...
     param.IDName<<-IDName
@@ -296,6 +301,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
       if(res$errCode == 2) {obj.LH$sendLog( "an event has a label with a length greter than 50 chars...\n"  ,"ERR"); return()}
       if(res$errCode == 3) {obj.LH$sendLog( "at least an event has an invalid char in the label (',$,\")\n"  ,"ERR"); return()}      
     }
+    if(  sum( is.na(mydata[[dateColumnName]]) ) > 0  ) {  obj.LH$sendLog( c("at least one date is set to NA, please check loaded data and data format! (patients: ",paste(    mydata[which(is.na(mydata[[dateColumnName]])),IDName]  ,collapse = ','),") \n")  ,"ERR"); return()}      
 #     res<-buildMMMatrices.and.other.structures(mydata = mydata, 
 #                                               EVENT.list.names = EVENT.list.names, 
 #                                               EVENTName = EVENTName, 
@@ -317,7 +323,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
   #=================================================================================
   # load.csv
   #=================================================================================  
-  load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, format.column.date="%d/%m/%Y") {
+  load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, 
+                      format.column.date="%d/%m/%Y %H:%M:%S") {
     
     # load the file
     if(!file.exists(nomeFile)) { obj.LH$sendLog(c( "'",nomeFile,"' does not exist!\n" ),"ERR"); return() }
@@ -327,7 +334,8 @@ dataLoader<-function( verbose.mode = TRUE ) {
     if(dim(mydata)[2]==1) { obj.LH$sendLog(c( "'",nomeFile,"' seems to have only one column... check the separator!\n" ),"ERR"); return() }
     
     # Now "load" the data.frame
-    load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName, dateColumnName = dateColumnName , format.column.date = format.column.date)
+    load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName, 
+                     dateColumnName = dateColumnName , format.column.date = format.column.date)
   }
   #=================================================================================
   # plotTimeline
