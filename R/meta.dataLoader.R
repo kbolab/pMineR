@@ -62,24 +62,30 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
   # a method to load CSV files. This is a wrapper of the same method of the 
   # dataLoader class
   #=================================================================================  
-  load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, view = "main") {
+  load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", 
+                      format.column.date = "%d/%m/%Y %H:%M:%S",dateColumnName=NA, view = "main") {
     # if the view does not exist, error
     if( !(view %in% names(list.dataLoader) ) )
-      { obj.logHandler$sendLog( msg =c("ERROR: '",view,"' does not exist"), type="NMI" ); return; }
+      { obj.logHandler$sendLog( msg =c("ERROR: '",view,"' does not exist"), type="ERR" ); return; }
     # ok, load data
-    list.dataLoader[[ view ]]$load.csv( nomeFile = nomeFile, IDName = IDName, EVENTName = EVENTName, quote = quote, sep = sep, dateColumnName = dateColumnName)
+    list.dataLoader[[ view ]]$load.csv( nomeFile = nomeFile, IDName = IDName, EVENTName = EVENTName, quote = quote, 
+                                        sep = sep, dateColumnName = dateColumnName,
+                                        format.column.date = format.column.date)
   }
   #=================================================================================
   # load.data.frame
   # a method to load data.frame. This is a wrapper of the same method of the 
   # dataLoader class  
   #=================================================================================  
-  load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, view = "main") {
+  load.data.frame<-function( mydata, IDName, EVENTName, 
+                             format.column.date = "%d/%m/%Y %H:%M:%S",dateColumnName=NA, view = "main") {
     # if the view does not exist, error
     if( !(view %in% names(list.dataLoader) ) )
-      { obj.logHandler$sendLog( msg =c("ERROR: '",view,"' does not exist"), type="NMI" ); return; }
+      { obj.logHandler$sendLog( msg =c("ERROR: '",view,"' does not exist"), type="ERR" ); return; }
     # ok, load data
-    list.dataLoader[[ view ]]$load.data.frame(  mydata = mydata, IDName = IDName, EVENTName = EVENTName, dateColumnName = dateColumnName)
+    list.dataLoader[[ view ]]$load.data.frame(  mydata = mydata, IDName = IDName, 
+                                                EVENTName = EVENTName, dateColumnName = dateColumnName,
+                                                format.column.date = format.column.date)
   }  
   #=================================================================================
   # getData

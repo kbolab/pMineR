@@ -216,10 +216,10 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
       # Leggi la colonna data secondo la formattazione indicata in ingresso e riscrivila nel formato %d/%m/%Y (lo stesso viene fatto in plot.Timeline)
       newdate <- strptime(as.character(matrice.date[,dateColumnName]), format.column.date)
       matrice.date[,dateColumnName] <- format(newdate, "%d/%m/%Y %H:%M:%S")
-    
+    # browser()
       # Calcola la colonna delle differenze di date rispetto ad una data di riferimento ed azzera rispetto al minore
       # colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y"),as.POSIXct("01/01/2001", format = "%d/%m/%Y"),units = 'days'))
-      colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y"),as.POSIXct("01/01/2001", format = "%d/%m/%Y"),units = 'mins'))
+      colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y %H:%M:%S"),as.POSIXct("01/01/2001 00:00:00", format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
       colonna.delta.date.TMPh898h98h9<-colonna.delta.date.TMPh898h98h9-min(colonna.delta.date.TMPh898h98h9)
       # Aggiungi la colonna dei delta data
       listToBeOrdered[[paziente]]<-cbind(listToBeOrdered[[paziente]],colonna.delta.date.TMPh898h98h9)

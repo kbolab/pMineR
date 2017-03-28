@@ -94,7 +94,7 @@ dataProcessor<-function() {
     MM<-matrix(0, ncol=length(unique(mydata[[EVENT.list.names]]))+2, nrow=length(unique(mydata[[EVENT.list.names]]))+2 )
     colnames(MM)<-c("BEGIN","END",unique(as.character(mydata[[EVENT.list.names]])))
     rownames(MM)<-colnames(MM)
-    
+    # print(max.char.length.label)
     if(("" %in% trimws(colnames(MM))) == TRUE) {
       return( list("error"=TRUE, "errCode"=1)  )
     }
@@ -138,7 +138,8 @@ dataProcessor<-function() {
           MM[ nomeCampo.pre, nomeCampo.post ]<-MM[ nomeCampo.pre, nomeCampo.post ]+1
           # if(param.dateColumnName!='' & ! is.na(param.dateColumnName)){
           if(EVENTDateColumnName!='' & ! is.na(EVENTDateColumnName)){
-            delta.date<-as.numeric(difftime(as.POSIXct(ID.act.group[[patID]][t+1,EVENTDateColumnName], format = "%d/%m/%Y"),as.POSIXct(ID.act.group[[patID]][t,EVENTDateColumnName], format = "%d/%m/%Y"),units = 'days'))
+            # browser()
+            delta.date<-as.numeric(difftime(as.POSIXct(ID.act.group[[patID]][t+1,EVENTDateColumnName], format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(ID.act.group[[patID]][t,EVENTDateColumnName], format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
             if(length(MM.den.list[[ nomeCampo.pre]])==0) MM.den.list[[ nomeCampo.pre]]<-list()
             if(length(MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]])==0) MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c()
             MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c(MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]],delta.date)
@@ -161,6 +162,7 @@ dataProcessor<-function() {
       for( riga in seq(1,nrow(mm.out))) {
         int.from <-colnames(MM)[mm.out[riga,1]];
         int.to <-colnames(MM)[mm.out[riga,2]];
+        # browser()
         delta.tempo <-mm.out[riga,3];
         if(length(MM.den.list.high.det[[ int.from ]])==0) MM.den.list.high.det[[ int.from]]<-list()
         if(length(MM.den.list.high.det[[ int.from]][[ int.to ]])==0) MM.den.list.high.det[[ int.from]][[ int.to ]]<-c()
