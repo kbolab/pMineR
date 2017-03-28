@@ -86,7 +86,9 @@ dataProcessor<-function() {
   # costruisce la MM matrix ed anche altra robaccia
   #=================================================================================    
   buildMMMatrices.and.other.structures<-function(mydata, EVENT.list.names, 
-                                                 EVENTName, EVENTDateColumnName=NA, ID.act.group) {
+                                                 EVENTName, EVENTDateColumnName=NA, 
+                                                 ID.act.group,
+                                                 max.char.length.label = 50) {
 
     # costruisci la matrice
     MM<-matrix(0, ncol=length(unique(mydata[[EVENT.list.names]]))+2, nrow=length(unique(mydata[[EVENT.list.names]]))+2 )
@@ -97,7 +99,7 @@ dataProcessor<-function() {
       return( list("error"=TRUE, "errCode"=1)  )
     }
     
-    if(max(nchar(colnames(MM)))>60)  {
+    if(max(nchar(colnames(MM)))>max.char.length.label)  {
       return( list("error"=TRUE, "errCode"=2)  )
     }
     if(length(grep("'", colnames(MM))))  {

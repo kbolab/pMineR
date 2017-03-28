@@ -34,7 +34,7 @@
 #' obj.L$getData()
 #' 
 #' }
-dataLoader<-function( verbose.mode = TRUE ) {
+dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   arrayAssociativo<-''
   footPrint<-''
   MMatrix<-''
@@ -47,11 +47,12 @@ dataLoader<-function( verbose.mode = TRUE ) {
   list.dictionary<-''
   list.dict.column.event.name<-''
   input.format.date<-''
-  
+  # print(max.char.length.label)
   param.IDName<-''
   param.EVENTName<-''
   param.dateColumnName<-''  
   param.verbose<-''
+  param.max.char.length.label<-'';
   obj.LH<-''
   #=================================================================================
   # clearAttributes
@@ -59,7 +60,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
   # for other issues ( dirty variables could have dramatic effetcs! )
   #=================================================================================    
   clearAttributes<-function() {
-    costructor( verboseMode = param.verbose )
+    costructor( verboseMode = param.verbose , max.char.length.label = param.max.char.length.label )
   }
   #=================================================================================
   # addDictionary
@@ -295,10 +296,12 @@ dataLoader<-function( verbose.mode = TRUE ) {
                                                                   EVENT.list.names = EVENT.list.names, 
                                                                   EVENTName = EVENTName,
                                                                   EVENTDateColumnName = param.dateColumnName,
-                                                                  ID.act.group = ID.act.group)
+                                                                  ID.act.group = ID.act.group,
+                                                                  max.char.length.label = param.max.char.length.label
+                                                                  )
     if(res$error == TRUE) { 
       if(res$errCode == 1) {obj.LH$sendLog( "event '' (BLANK) detected, please check the file\n"  ,"ERR"); return()}
-      if(res$errCode == 2) {obj.LH$sendLog( "an event has a label with a length greter than 50 chars...\n"  ,"ERR"); return()}
+      if(res$errCode == 2) {obj.LH$sendLog( c("an event has a label with a length greter than ",param.max.char.length.label," chars...\n")  ,"ERR"); return()}
       if(res$errCode == 3) {obj.LH$sendLog( "at least an event has an invalid char in the label (',$,\")\n"  ,"ERR"); return()}      
     }
     if(  sum( is.na(mydata[[dateColumnName]]) ) > 0  ) {  obj.LH$sendLog( c("at least one date is set to NA, please check loaded data and data format! (patients: ",paste(    mydata[which(is.na(mydata[[dateColumnName]])),IDName]  ,collapse = ','),") \n")  ,"ERR"); return()}      
@@ -388,7 +391,7 @@ dataLoader<-function( verbose.mode = TRUE ) {
   #=================================================================================
   # costructor
   #=================================================================================  
-  costructor<-function( verboseMode  ) {
+  costructor<-function( verboseMode , max.char.length.label  ) {
     arrayAssociativo<<-''
     footPrint<<-''
     MMatrix<<-''
@@ -406,12 +409,13 @@ dataLoader<-function( verbose.mode = TRUE ) {
     param.EVENTName<<-''
     param.dateColumnName<<-''
     param.verbose<<-verbose.mode
+    param.max.char.length.label<<-max.char.length.label
     
     obj.LH<<-logHandler()
     # print(timesTwo( 3.2 ))
     
   }
-  costructor( verboseMode = verbose.mode )
+  costructor( verboseMode = verbose.mode, max.char.length.label = max.char.length.label )
   #================================================================================= 
   return(list(
     "load.csv"=load.csv,
