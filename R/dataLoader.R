@@ -355,6 +355,55 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
    plotTimeline(eventTable = matrice, output.format.date = output.format.date, cex.axis = cex.axis,cex.text = cex.text )
   }
   #=================================================================================
+  # plot.time.probability
+  #=================================================================================   
+  plot.transition.time.probability<-function( from.state , to.state , col.cum='red' , 
+                                              col.dens = 'BLUE',
+                                              prob.cumulative = TRUE, prob.density = TRUE,
+                                              plotIT = TRUE, returnValues=FALSE) {
+
+    ppp <- MM.den.list.high.det[[ from.state ]][[ to.state ]]
+    delta.x <- density(ppp)$x[ 2 ] - density(ppp)$x[ 1 ]
+    min.cum.sum = cumsum(density(ppp)$y)
+    min.cum.sum <- min.cum.sum * delta.x
+    
+    if( plotIT == TRUE ) {
+      main <- paste(  c("Time-Transition Probability\n(",from.state," => ",to.state,")") ,collapse='')
+      plot(0,0,ylab='Prob.',xlab='Time (mins)',xlim = range(density(ppp)$x),ylim=c(0,1),col='white',main=main)
+      points(y = min.cum.sum, x = density(ppp)$x,type='l',col = col.cum)
+      par(new=TRUE)
+      plot(y = density(ppp)$y, x = density(ppp)$x,type='l', axes = FALSE, bty = "n", xlab = "", ylab = "", col = col.dens)
+      axis(4)
+    }
+    
+    if(returnValues == TRUE) {
+      return(list(
+        "x" = density(ppp)$x,
+        "density" = density(ppp)$y,
+        "cumulative" = min.cum.sum
+      ))
+    }
+
+  }
+  old.plot.transition.time.probability<-function( from.state , to.state , col.cum='red' , 
+                                              col.dens = 'green',
+                                              prob.cumulative = TRUE, prob.density = TRUE,
+                                              plotIT = TRUE, returnValues=FALSE) {
+    # MM.den.list.high.det
+    
+    ppp <- MM.den.list.high.det[[ from.state ]][[ to.state ]]
+    delta.x <- density(ppp)$x[ 2 ] - density(ppp)$x[ 1 ]
+    min.cum.sum = cumsum(density(ppp)$y)
+    min.cum.sum <- min.cum.sum * delta.x
+    
+    main <- paste(  c("Time-Transition Probability\n(",from.state," => ",to.state,")") ,collapse='')
+    plot(0,0,ylab='Prob.',xlab='Time',xlim = range(density(ppp)$x),ylim=c(0,1),col='white',main=main)
+    if(prob.cumulative==TRUE) points(y = min.cum.sum, x = density(ppp)$x,type='l',col = col.cum)
+    if(prob.density==TRUE) points(y = density(ppp)$y, x = density(ppp)$x,type='l',col = col.dens)
+    # plot(y = min.cum.sum, x = density(ppp)$x,main= main,xlab='time',ylab='Prob',type='l',col = col)
+    
+  }  
+  #=================================================================================
   # loader
   #=================================================================================  
   getData<-function( ) {
@@ -425,6 +474,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     "keepOnlyEvents"=keepOnlyEvents,
     "addDictionary"=addDictionary,
     "getTranslation"=getTranslation,
-    "plot.Timeline"=plot.Timeline
+    "plot.Timeline"=plot.Timeline,
+    "plot.transition.time.probability"=plot.transition.time.probability
   ))
 }

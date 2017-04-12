@@ -1,4 +1,4 @@
-#' A class to train Second Order Markov Models#' 
+#' A class to train Second Order Markov Models
 #' @description  This is an implementation of the Second Order Markov Model (SOMM) for Process Mining issues.
 #'                This class provides a minimal set of methods to handle with the FOMM model:
 #'                \itemize{

@@ -136,6 +136,7 @@ dataProcessor<-function() {
           nomeCampo.pre<-ID.act.group[[patID]][t,EVENT.list.names]
           nomeCampo.post<-ID.act.group[[patID]][t+1,EVENT.list.names]
           MM[ nomeCampo.pre, nomeCampo.post ]<-MM[ nomeCampo.pre, nomeCampo.post ]+1
+          # if(nomeCampo.pre == "DIMISSIONE" & nomeCampo.post=="TRIAGE") browser()
           # if(param.dateColumnName!='' & ! is.na(param.dateColumnName)){
           if(EVENTDateColumnName!='' & ! is.na(EVENTDateColumnName)){
             # browser()

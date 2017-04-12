@@ -74,6 +74,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   MMatrix.perc.noLoop<-NA
   MMatrix.mean.time<-NA
   MMatrix.density.list<-NA  
+  MM.den.list.high.det <- NA
   istanceClass<-list()
   obj.log<-NA
   
@@ -104,14 +105,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     # MM.mean.time and MM.density.list
     MMatrix.mean.time<<-dataList$MM.mean.time
     MMatrix.density.list<<-dataList$MM.density.list
+    MM.den.list.high.det<<- dataList$MM.den.list.high.det
     
-    
-#     if(!is.null(parameters$threshold)) threshold<-parameters$threshold
-#     else threshold<-0
-#     
-#     if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
-#     else considerAutoLoop <- TRUE
-#     
     # dichiara che i dati sono stati caricati
     is.dataLoaded<<-TRUE
   }  
@@ -122,11 +117,37 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
                  toReturn="csv") {
     obj.utils <- utils()
     res<-list()
-    for(i in seq(1,numberOfPlays)) {
-      res[[as.character(i)]]<-play.Single()
-    }
+    tempo<-list()
+    data.ora<-list()
     
-    # kkk
+    for(i in seq(1,numberOfPlays)) {
+      chiave <- as.character(i)
+      res[[chiave]]<-play.Single()
+      # costruisci le parole
+      
+      tempo[[chiave]]<-c(0)
+      data.ora.tm2 <- as.POSIXct("01/01/2000 00:00:01", format = "%d/%m/%Y %H:%M:%S")
+      data.ora[[chiave]] <- c( as.character(data.ora.tm2)  )
+      
+      for( contatore in seq(1,length(res[[chiave]])-1 ) ) {
+        # browser()
+        ppp <- MM.den.list.high.det[[ res[[chiave]][contatore] ]][[ res[[chiave]][contatore+1] ]]
+        min.cum.sum = cumsum(density(ppp)$y)
+        # Normalizza a 1
+        min.cum.sum <- min.cum.sum / max(min.cum.sum) 
+        dado.lanciato <- runif(n = 1,min = min(min.cum.sum+0.001),max = .95)
+        deltaMinuti <- max(density(ppp)$x[( min.cum.sum<dado.lanciato )])
+        # if(deltaMinuti == -Inf) browser();
+        deltaMinuti <- max(0,deltaMinuti)
+        # browser()
+        # stop("\n\n\ FAVA!!! CASTA GLI ESTREMI DEL DADO!!!! \n\n\n")
+        tempo[[chiave]] <- c(tempo[[chiave]],deltaMinuti)
+        data.ora.tm2 <- data.ora.tm2 + 60 * deltaMinuti
+        if(is.na(data.ora.tm2)) browser()
+        data.ora[[chiave]] <- c(data.ora[[chiave]],as.character(data.ora.tm2))
+      }
+    }
+
     # Se devi generare alcune sequenze invalida, provvedi
     arr.quanti.invalidi <- c()
     if(!is.na(min.num.of.valid.words)) {
@@ -137,37 +158,74 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
         sottomatrice <- MMatrix[ !(colnames(MMatrix) %in% c("BEGIN","END")), !(rownames(MMatrix) %in% c("BEGIN","END"))  ]
         posizione.zeri <- which(sottomatrice==0,arr.ind = TRUE)
         
-        # for( i in names(res))  {
         for( i in seq(1,sequenze.da.invalidare))  {
           if( length(res[[i]])>1 ) {
             dado.innesto <- as.integer(runif(1,min=1,max =length(res[[i]])))
             dato.righe.matrice <- as.integer(runif(1,min=1,max = nrow(posizione.zeri)))
             res[[i]][dado.innesto] <- rownames(sottomatrice)[posizione.zeri[ dato.righe.matrice,1 ]]  
             res[[i]][dado.innesto+1] <- colnames(sottomatrice)[ posizione.zeri[ dato.righe.matrice,2 ]]
+            
           }
           arr.quanti.invalidi<-c(arr.quanti.invalidi,rep(FALSE,length(res[[i]])))
         }
       }
     }
-    # kkk
- # browser()      
-    res <- obj.utils$format.data.for.csv(listaProcessi = res, lista.validi = rep(TRUE,numberOfPlays))
-    # if(is.null(dim(res))) browser()
-    # browser()
+
+    res <- local.format.data.for.csv(listaProcessi = res, 
+                                      lista.validi = rep(TRUE,numberOfPlays),
+                                      data.ora = data.ora)
+
     if(length(arr.quanti.invalidi)>=0 & !is.null(arr.quanti.invalidi)) res[,"valido"][1:length(arr.quanti.invalidi)]<-arr.quanti.invalidi
     
-        
+    
     if(!is.null(dim(res))) res<-as.data.frame(res)
     if(toReturn=="csv") { daRestituire <- res  }
     if(toReturn=="dataLoader"){
       # Istanzia un oggetto dataLoader che eridita il parametro "verbose"
-      daRestituire<-dataLoader(verbose.mode = FALSE)
+      daRestituire<-dataLoader()
       daRestituire$load.data.frame(mydata = res,
                                    IDName = "patID",EVENTName = "event",
-                                   dateColumnName = "date")      
+                                   dateColumnName = "date",format.column.date = "%Y-%m-%d %H:%M:%S")      
     }
     return(daRestituire)
-  }
+  }  
+  
+  local.format.data.for.csv<-function(listaProcessi, lista.validi,
+                                      data.ora = data.ora, typeOfRandomDataGenerator="") { 
+    big.csv<-c()
+    ct <- 1
+    
+    # for(i in names(listaProcessi)) {
+    for(posizione in seq(1,length(listaProcessi))) {
+      
+      i <- names(listaProcessi)[posizione]
+      
+      numeroElementi<-length(listaProcessi[[i]])
+      # browser()
+      # ppp <- MM.den.list.high.det[[names(listaProcessi)[posizione]]][[names(listaProcessi)[posizione+1]]]
+      # max(density(ppp)$x[(cumsum(density(ppp)$y)<runif(n = 1,min = 0,max = 1) )])
+      # if(typeOfRandomDataGenerator=="dayAfterDay") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=1))
+      # if(typeOfRandomDataGenerator=="randomDay1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) )
+      # if(typeOfRandomDataGenerator=="randomWeek1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) * 7)
+      # if(typeOfRandomDataGenerator=="randomMonth1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) * 30)
+      
+      # matrice<-cbind(rep(ct,numeroElementi),listaProcessi[[i]],rep("01/01/1999",numeroElementi),rep(as.character(lista.validi[ct]),numeroElementi) )
+      # array.Date <- as.character(format(as.Date("01/01/2000",format="%d/%m/%Y") + seq(1,numeroElementi) ,format="%d/%m/%Y") )
+      # browser()
+      array.Date <- data.ora[[i]]
+      # array.Date <- as.character(format(as.Date("01/01/2000",format="%d/%m/%Y %H:%M:%S") + cumsum(giorni.da.sommare) ,format="%d/%m/%Y %H:%M:%S") )
+      matrice<-cbind(rep(ct,numeroElementi),listaProcessi[[i]],array.Date,rep(as.character(lista.validi[ct]),numeroElementi) )
+      big.csv<-rbind(big.csv,matrice )
+      ct <- ct + 1
+    }
+    # cat("\n",dim(big.csv))
+    if(!is.null(dim(big.csv))) {
+      # cat("\n DIM(big.csv)=",dim(big.csv))
+      # if(dim(big.csv)[2]==1) browser()
+      colnames(big.csv)<-c("patID","event","date","valido")
+    }
+    return(big.csv)
+  }  
   #=================================================================================
   # distanceFrom - WRAPPER Function
   # Funzione WRAPPER per il calcolo delle distanze rispetto ad un oggetto omologo
@@ -796,6 +854,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     MMatrix.perc.noLoop<<-NA  
     MMatrix.mean.time<<-NA
     MMatrix.density.list<<-NA
+    MM.den.list.high.det<<-NA
     istanceClass<<-list()
     obj.log<<-logHandler();
     setInstanceClass(className = "firstOrderMarkovModel")
