@@ -23,7 +23,6 @@ resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
     data.dataLoader<<-dataList;
     parameter$in.evt<<-in.evt
     parameter$out.evt<<-out.evt
-    
   }
   #===========================================================
   # auto.Push.and.Pull
@@ -158,7 +157,6 @@ resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
     
     dateToCheck<-strptime(dateToCheck, different.date.format)
     dateToCheck <- format(dateToCheck,"%Y-%m-%d %H:%M:%S")
-    
     
     arr.delta.date <- as.numeric(difftime(as.POSIXct(aa[, "data"], format = "%Y-%m-%d %H:%M:%S"),
                                           as.POSIXct(rep(dateToCheck,nrow(aa)), format = "%Y-%m-%d %H:%M:%S"),

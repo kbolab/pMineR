@@ -343,16 +343,20 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   #=================================================================================
   # plotTimeline
   #=================================================================================   
-  plot.Timeline<-function( patID , output.format.date = "%d/%m/%Y",cex.axis = 0.6, cex.text = 0.7) {
+  plot.Timeline<-function( patID , table.format.date="%d/%m/%Y",output.format.date = "%d/%m/%Y",cex.axis = 0.6, cex.text = 0.7) {
 
    matrice <- cbind( pat.process[[ as.character(patID) ]][[param.dateColumnName]],
                          pat.process[[ as.character(patID) ]][[param.EVENTName]]) 
-   
+   # browser()
    # vedi stessa cosa in order.list.by.date
    newdate <- strptime(as.character(matrice[,1]), input.format.date)
-   matrice[,1] <- format(newdate, output.format.date)
+   matrice[,1] <- format(newdate, table.format.date)
    
-   plotTimeline(eventTable = matrice, output.format.date = output.format.date, cex.axis = cex.axis,cex.text = cex.text )
+   # plotTimeline(eventTable = matrice, output.format.date = output.format.date, cex.axis = cex.axis,
+   #              cex.text = cex.text )
+   plotTimeline(eventTable = matrice, table.format.date = table.format.date, output.format.date = output.format.date, 
+               cex.axis = cex.axis,
+                cex.text = cex.text )   
   }
   #=================================================================================
   # plot.time.probability
