@@ -11,11 +11,8 @@
 #'                \item \code{plot( ) } plot the internal model
 #'                \item \code{distanceFrom( ) } calculate the scalar distance to another passed FOMM model, passed as argument. The default metric returns a scalar value
 #'                \item \code{getModel( ) } return the trained internal FOMM model
-#'                \item \code{getLogObj( ) } return an XML containing the execution-log of a \code{firstOrderMarkovModel::play()}  computation
 #'                \item \code{getInstanceClass( ) } return the instance class Name and description (version, etc.)
 #'                \item \code{plot.delta.graph( ) } plot a graph, in the desired modality, representing the difference between the internal FOMM and a passed one.
-#'                \item \code{get.transition.Prob( ) } calculate the probability to go in a given number of transitions, from a state to another
-#'                \item \code{get.time.transition.Prob( ) } calculate the probability to go in a given time, from a state to another
 #'                \item \code{build.PWF( ) } build automatically a PWF XML definition script.
 #'                \item \code{findReacheableNodes( ) } and return the array containing the reacheable states, starting from the passed one.
 #'                }
@@ -67,7 +64,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   MMatrix<-''
   footPrint<-''
   model.grViz<-'';
-  model.XML<-'';
+  # model.XML<-'';
   is.dataLoaded<-FALSE  
   parameters<-list()
   MMatrix.perc<-NA
@@ -268,8 +265,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     bb[ which(bb<=threshold,arr.ind = T) ]<-0
     for( i in seq( 1 , nrow(aa)) ) {if(sum(aa[i,])>0)  {aa[i,]<-aa[i,]/sum(aa[i,]);} } 
     MMatrix.perc<<-aa ; MMatrix<<-bb
-    
-    grafo<-build.graph.from.table( MM = MM, threshold  = threshold)
+    # browser()
+    grafo<-build.graph.from.table( MM = MMatrix.perc, threshold  = threshold)
     
     model.grViz<<-grafo;
   }
@@ -383,12 +380,12 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # getModel
   #===========================================================
   getModel<-function(kindOfOutput) {
-    if(kindOfOutput=="XML") return( model.XML )
+    # if(kindOfOutput=="XML") return( model.XML )
     if(kindOfOutput=="grViz") return( model.grViz )
     if(kindOfOutput=="MMatrix") return( MMatrix )
     if(kindOfOutput=="MMatrix.perc") return( MMatrix.perc )
 
-    obj.log$sendLog(msg= "The requested model is not available yet" , type="NMI" )
+    obj.log$sendLog( msg = c("The requested model is not available yet! Only 'grViz', 'MMatrix' and 'MMatrix.perc' are admitted. ")  ,type="ERR");
   }
   #===========================================================
   # plot
@@ -400,7 +397,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # setIstanceClass
   #===========================================================
   setInstanceClass<-function( className, classType = "default") {
-    istanceClass[[classType]]<-className
+    istanceClass[[classType]]<<-className
   }
   #===========================================================
   # setIstanceClass
@@ -408,12 +405,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   getInstanceClass<-function( className, classType = "default") {
     return(istanceClass[[classType]])
   }  
-  #===========================================================
-  # getLogObj
-  #===========================================================  
-  getLogObj<-function() {
-    return(obj.log)
-  }
   # ***************************************************************************************************
   # MODEL SPECIFIC PUBLIC METHODS
   # ***************************************************************************************************   
@@ -847,7 +838,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     MMatrix<<-''
     footPrint<<-''
     model.grViz<<-'';
-    model.XML<<-'';
+    # model.XML<<-'';
     is.dataLoaded<<-FALSE
     parameters<<-parametersFromInput
     MMatrix.perc<<-NA
@@ -871,11 +862,10 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     "plot"=plot,
     "distanceFrom"=distanceFrom,
     
-    "getLogObj"=getLogObj,
     "getInstanceClass"=getInstanceClass,
     "plot.delta.graph"=plot.delta.graph,
-    "get.transition.Prob"=get.transition.Prob,
-    "get.time.transition.Prob"=get.time.transition.Prob,
+    # "get.transition.Prob"=get.transition.Prob,
+    # "get.time.transition.Prob"=get.time.transition.Prob,
     "build.PWF"=build.PWF,
     "findReacheableNodes"=findReacheableNodes
   ) )  

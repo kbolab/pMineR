@@ -12,7 +12,7 @@ plotTimeline<-function( eventTable , table.format.date="%d/%m/%Y", output.format
   
   colnames(eventTable)<-c("DATA","DES");
   df<-as.data.frame(eventTable)
-  
+  # browser()
   
   df$DATA<-as.character.factor(df$DATA)
   df$DES<-as.character.factor(df$DES)
@@ -22,10 +22,14 @@ plotTimeline<-function( eventTable , table.format.date="%d/%m/%Y", output.format
   min.data <- df$DATA[1]
   max.data <- df$DATA[length(df$DATA)]
   
-  delta.date <- as.numeric(difftime(as.POSIXct(max.data, format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(min.data, format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
-  arr.delta.date <- as.numeric(difftime(as.POSIXct(df$DATA, format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(rep(min.data,length(df$DATA)), format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
+  # delta.date <- as.numeric(difftime(as.POSIXct(max.data, format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(min.data, format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
+  # arr.delta.date <- as.numeric(difftime(as.POSIXct(df$DATA, format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(rep(min.data,length(df$DATA)), format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
   
-  # browser()
+  delta.date <- as.numeric(difftime(as.POSIXct(max.data, format = table.format.date),as.POSIXct(min.data, format = table.format.date),units = 'mins'))
+  arr.delta.date <- as.numeric(difftime(as.POSIXct(df$DATA, format = table.format.date),as.POSIXct(rep(min.data,length(df$DATA)), format = table.format.date),units = 'mins'))
+  
+  
+    # browser()
   color.bar = "#5B7FA3";
   col.vert.ar <- "#5B7FA3"
   col.stanga <- "gray80"
@@ -52,43 +56,5 @@ plotTimeline<-function( eventTable , table.format.date="%d/%m/%Y", output.format
   }
 } 
 
-old.plotTimeline<-function( eventTable , output.format.date = "%d/%m/%Y" ,cex.axis = 0.6, cex.text = 0.7) {
 
-  colnames(eventTable)<-c("DATA","DES");
-  df<-as.data.frame(eventTable)
-  
-  df$DATA<-as.character.factor(df$DATA)
-  
-  df$YM <- as.Date(df$DATA, format=output.format.date)
-  
-  rangeYM <- range(df$YM)
-  
-  plot(NA,ylim=c(-1,1),xlim=rangeYM,ann=FALSE,axes=FALSE)
-  abline(h=0,lwd=2,col="#5B7FA3")
-  
-  ypts <- rep_len(c(-1,-0.7,0.3,0.3,0.7,1), length.out=nrow(df))
-  txtpts <- rep_len(c(1,3), length.out=nrow(df))
-  segments(df$YM,0,df$YM,ypts,col="gray80")
-  # browser()
-  axis.Date(
-    1,
-    at=seq.Date(rangeYM[1],rangeYM[2],by="months"),
-    format=output.format.date,
-    cex.axis=cex.axis,
-    pos=0,
-    lwd=0,
-    lwd.tick=2,
-    col="#5B7FA3",
-    font=2
-  )
-  
-  points(df$YM,y=ypts, pch="-", cex=1.5, col="#5B7FA3")
-  par(xpd=NA)
-  text(
-    df$YM, y=ypts,
-    labels=paste(df$DES,df$DATA,sep="\n"), cex=cex.text, pos=txtpts
-  )
-  par(xpd=FALSE)
-  
-}
 
