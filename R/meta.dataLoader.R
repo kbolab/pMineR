@@ -95,6 +95,13 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
     return(  list.dataLoader[[ view ]]$getData()  )
   }
   #=================================================================================
+  # getDataLoader
+  # returns the dataLoader Obj
+  #=================================================================================  
+  getDataLoader<-function( view = "main") {
+    return(  list.dataLoader[[ view ]]  )
+  }  
+  #=================================================================================
   # copyView
   # it makes a copy of a view
   #=================================================================================  
@@ -155,8 +162,13 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
   # plot.Timeline
   # plots the event log timeline for the specified patientID
   #=================================================================================   
-  plot.Timeline<-function( patID , view='main' ) {
-    list.dataLoader[[ view ]]$plot.Timeline( patID = patID)
+  # plot.Timeline<-function( patID , view='main' ) {
+  plot.Timeline<-function( patID , table.format.date="%d/%m/%Y",
+                           output.format.date = "%d/%m/%Y",cex.axis = 0.6, cex.text = 0.7,
+                           view='main') {    
+    list.dataLoader[[ view ]]$plot.Timeline( patID = patID , table.format.date = table.format.date,
+                                             output.format.date = output.format.date, cex.axis= cex.axis,
+                                             cex.text = cex.text)
   }  
   #=================================================================================
   # translate
@@ -190,6 +202,7 @@ meta.dataLoader<-function( verbose.mode = TRUE ) {
     "load.csv"=load.csv,
     "load.data.frame"=load.data.frame,
     "getData"=getData,
+    "getDataLoader"=getDataLoader,
     "keepOnlyEvents"=keepOnlyEvents,
     "removeEvents"=removeEvents,
     "translate"=translate,
