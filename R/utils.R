@@ -22,7 +22,16 @@ utils<-function() {
     if(sum(is.element(a,b)) == length(a)) return(TRUE)
     else return(FALSE)
   }
-  
+  cleanUTF <- function( dati , colonna.evento , def.val.to.substitute = 95 ){
+    # cat("clearing non UTF-8 characters...")
+    for (riga in 1:nrow(dati)){
+      # browser()
+      arr <- as.numeric(charToRaw(x = as.character(dati[riga,colonna.evento]) ))
+      arr[ which(arr > 127)]<-def.val.to.substitute 
+      dati[riga,colonna.evento] <- intToUtf8(arr)
+    }
+    return(dati)
+  }  
   format.data.for.csv<-function(listaProcessi, lista.validi, typeOfRandomDataGenerator="dayAfterDay") { 
     big.csv<-c()
     ct <- 1
@@ -54,7 +63,8 @@ utils<-function() {
   return(list(
     "dectobin" = dectobin,
     "is.included" = is.included,
-    "format.data.for.csv" = format.data.for.csv
+    "format.data.for.csv" = format.data.for.csv,
+    "cleanUTF"=cleanUTF
   ))
 }
 textObj<-function() {

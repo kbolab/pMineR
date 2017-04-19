@@ -608,6 +608,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           }
           
           # aggiungi le righe alla matrice che definisce le azioni
+          browser()
           for(i in seq(1,length(array.to.set))) {
             tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.set[i],"set",pri  )   )
           }
@@ -1236,7 +1237,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                       max.word.length=100, howToBuildBad="resample", 
                       toReturn="csv", debug.mode = FALSE, output.format.date = "%d/%m/%Y",
                       typeOfRandomDataGenerator="dayAfterDay") {
-    
+    # cat("\n (1)")
     # Aggiorna il formato data dell'ultimp PLAY
     play.output.format.date <<- output.format.date
     
@@ -1250,6 +1251,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                max.word.length = max.word.length, howToBuildBad = howToBuildBad,
                                output.format.date = output.format.date , typeOfRandomDataGenerator=typeOfRandomDataGenerator)
     }
+    # cat("\n (2)")
     # browser()
     if(quante.da.sbagliare>0) {
       totalizzati = 0
@@ -1264,7 +1266,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         }
       }
     }
-
+    # cat("\n (3)")
     # Restituisci cio' che serve venga restituito
     # nel caso del CSV
     if(toReturn=="csv") {

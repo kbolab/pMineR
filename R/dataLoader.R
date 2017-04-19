@@ -230,10 +230,13 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     close(pb)
     return(listToBeOrdered);
   } 
-  load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, format.column.date = "%d/%m/%Y %H:%M:%S") {
+  load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, 
+                             format.column.date = "%d/%m/%Y %H:%M:%S", 
+                             convertUTF = TRUE, suppress.invalid.date = TRUE) {
     # clear all the attributes
+    obj.Utils <- utils()
     clearAttributes( );
-    aaaaaaa <- mydata
+    # aaaaaaa <- mydata
     # browser()
     if(length(mydata[[dateColumnName]]) == 0) { obj.LH$sendLog( c("dateColumnName '",dateColumnName,"' not present! ")  ,"ERR"); return() }
     if(length(mydata[[EVENTName]]) == 0) { obj.LH$sendLog( c("EVENTName '",EVENTName,"' not present! ")  ,"ERR"); return() }
@@ -251,6 +254,10 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     mydata[[dateColumnName]] <- format(mydata[[dateColumnName]],"%d/%m/%Y %H:%M:%S")
     format.column.date <- "%d/%m/%Y %H:%M:%S"
     
+    if(suppress.invalid.date==TRUE) {
+      mydata <- mydata[ which(mydata[[dateColumnName]]!="" ),]
+    }
+    
     # browser()
     
     # Just to have then an idea of the passed parameters...
@@ -264,6 +271,14 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     EVENT.list.names<-EVENTName    
 
     mydata[[EVENT.list.names]]<-as.character(mydata[[EVENT.list.names]])
+    
+    if(convertUTF == TRUE) {
+      mydata <- obj.Utils$cleanUTF(mydata,EVENT.list.names)
+      mydata[[EVENT.list.names]] <- gsub("\"", "", mydata[[EVENT.list.names]])
+      mydata[[EVENT.list.names]] <- gsub("$", "", mydata[[EVENT.list.names]])
+      mydata[[EVENT.list.names]] <- gsub("'", "", mydata[[EVENT.list.names]])
+    }
+    
     mydata[[ID.list.names]]<-as.character(mydata[[ID.list.names]])
     if(!is.na(dateColumnName)) {
       mydata[[dateColumnName]]<-as.character(mydata[[dateColumnName]])
@@ -327,7 +342,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   # load.csv
   #=================================================================================  
   load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, 
-                      format.column.date="%d/%m/%Y %H:%M:%S") {
+                      format.column.date="%d/%m/%Y %H:%M:%S", convertUTF = TRUE) {
     
     # load the file
     if(!file.exists(nomeFile)) { obj.LH$sendLog(c( "'",nomeFile,"' does not exist!\n" ),"ERR"); return() }
@@ -338,7 +353,8 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     
     # Now "load" the data.frame
     load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName, 
-                     dateColumnName = dateColumnName , format.column.date = format.column.date)
+                     dateColumnName = dateColumnName , format.column.date = format.column.date, 
+                     convertUTF = convertUTF)
   }
   #=================================================================================
   # plotTimeline
