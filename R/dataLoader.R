@@ -53,6 +53,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   param.dateColumnName<-''  
   param.verbose<-''
   param.max.char.length.label<-'';
+  param.column.names<-''
   obj.LH<-''
   #=================================================================================
   # clearAttributes
@@ -102,35 +103,136 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     return(new.myData)
   }
   #=================================================================================
+  # ricalcolaCSV
+  # Ricalcola il CSV togliendo pazienti e/o eventi a piacere
+  #=================================================================================   
+  ricalcolaCSV<-function( 
+            array.events.to.remove=c(), 
+            array.events.to.keep=c(), 
+            array.pazienti.to.remove=c(),
+            array.pazienti.to.keep=c()  ) {
+    matriciona <- c()
+    # browser()
+    # Costruisci la lista dei pazienti da analizzare
+    ID.Pazienti.Validi<-names(pat.process)
+    if( length(array.pazienti.to.keep) > 0  )   { ID.Pazienti.Validi <- array.pazienti.to.keep }
+    else {ID.Pazienti.Validi <- names(pat.process)[ !( names(pat.process) %in% array.pazienti.to.remove )  ]  }
+    
+    # loopa
+    if(verbose.mode == TRUE) obj.LH$sendLog(" 0) Cleaning original dataset :\n")
+    pb <- txtProgressBar(min = 0, max = length(ID.Pazienti.Validi), style = 3)
+    pb.ct <- 1
+    for(patID in ID.Pazienti.Validi  ) {
+      
+      pb.ct <- pb.ct + 1; setTxtProgressBar(pb, pb.ct)
+      
+      if(length(array.events.to.remove)>0) {
+        submatrix <- pat.process[[patID]][ which( !(pat.process[[patID]][ ,param.EVENTName ] %in% array.events.to.remove  )), param.column.names]
+      }
+      if(length(array.events.to.keep)>0) {
+        submatrix <- pat.process[[patID]][ which( (pat.process[[patID]][ ,param.EVENTName ] %in% array.events.to.keep  )), param.column.names]
+      }
+      if(length(array.events.to.keep)==0 & length(array.events.to.remove)==0) {
+        submatrix <- pat.process[[patID]][ , param.column.names]
+      }
+
+      matriciona <- rbind( matriciona, submatrix ) 
+    }
+    close(pb)
+    
+    return(matriciona)
+  }
+  #=================================================================================
+  # applyFilter
+  #================================================================================= 
+  applyFilter<-function(
+                                   array.events.to.keep=c(), 
+                                   array.events.to.remove=c(),
+                                   array.pazienti.to.keep=c(),
+                                   array.pazienti.to.remove=c(),
+                                   whatToReturn="itself") {
+    
+    if(!(whatToReturn %in% c( "itself" , "csv" ,"dataLoader" ) ) ) {
+      obj.LH$sendLog( c(" 'whatToReturn can only be 'itself', 'csv' or 'dataLoader'! ")  ,"ERR"); return()
+    }
+    matriciona <- as.data.frame(ricalcolaCSV( array.events.to.remove = array.events.to.remove,
+                                              array.events.to.keep = array.events.to.keep,
+                                              array.pazienti.to.remove = array.pazienti.to.remove,
+                                              array.pazienti.to.keep = array.pazienti.to.keep)) 
+    
+    IDName <- param.IDName
+    EVENTName <- param.EVENTName
+    dateColumnName <- param.dateColumnName
+    if( whatToReturn == "itself"){
+      load.data.frame( mydata = matriciona, IDName = IDName, EVENTName = EVENTName, 
+                       dateColumnName = dateColumnName , format.column.date = "%d/%m/%Y %H:%M:%S", 
+                       convertUTF = FALSE, suppress.invalid.date = FALSE)  
+    }
+    if( whatToReturn == "csv"){
+      return(matriciona);  
+    }    
+    if( whatToReturn == "dataLoader"){
+      newObj <- dataLoader();
+      newObj$load.data.frame( mydata = matriciona, IDName = IDName, EVENTName = EVENTName, 
+                       dateColumnName = dateColumnName , format.column.date = "%d/%m/%Y %H:%M:%S", 
+                       convertUTF = FALSE, suppress.invalid.date = FALSE)        
+      return(newObj);  
+    }      
+    
+  }
+  #=================================================================================
   # removeEvents
   # array.events: the array of Events to remove
   # min.abs.freq: the threshold to keep an event (absolute frequences): NOT YET IMPLEMENTED
   #================================================================================= 
   removeEvents<-function( array.events=NA) {
-    bbb<-array.events
-    arrayAssociativo<<-arrayAssociativo[!(arrayAssociativo %in% bbb)]
-    if(is.matrix(footPrint)) { 
-      footPrint<<-footPrint[ !(rownames(footPrint) %in% bbb),!(colnames(footPrint) %in% bbb) ]
-    }
-    MMatrix<<-MMatrix[ !(rownames(MMatrix) %in% bbb),!(colnames(MMatrix) %in% bbb) ]
-    MM.mean.time<<- MM.mean.time[ !(rownames(MM.mean.time) %in% bbb),!(colnames(MM.mean.time) %in% bbb) ]
     
-    new.list.density<-list()
-    for(i in seq(1,length(pat.process))) {
-      pat.process[[i]]<<-pat.process[[i]][which(!(pat.process[[i]][[param.EVENTName]] %in% array.events)),]
-      wordSequence.raw[[i]]<<-wordSequence.raw[[i]][  !( wordSequence.raw[[i]] %in% array.events)]
-    }
-    for( name.from in names(MM.density.list)) {
-      if( !(name.from %in% array.events)) {
-        if(is.null(new.list.density[[name.from]])) new.list.density[[name.from]]<-list()
-        for( name.to in names(new.list.density[[name.from]])) {
-          if(!(name.to %in% array.events )) {
-            new.list.density[[name.from]][[name.to]]<-MM.density.list[[name.from]][[name.to]]
-          }  
-        }
-      }
-    }
-    MM.density.list<<-new.list.density
+    matriciona <- as.data.frame(ricalcolaCSV( array.events.to.remove = array.events))
+    IDName <- param.IDName
+    EVENTName <- param.EVENTName
+    dateColumnName <- param.dateColumnName
+    
+    load.data.frame( mydata = matriciona, IDName = IDName, EVENTName = EVENTName, 
+                     dateColumnName = dateColumnName , format.column.date = "%d/%m/%Y %H:%M:%S", 
+                     convertUTF = FALSE, suppress.invalid.date = FALSE)    
+    # browser()
+    # 
+    # 
+    # 
+    # bbb<-array.events
+    # 
+    # # (1) arrayAssociativo
+    # arrayAssociativo<<-arrayAssociativo[!(arrayAssociativo %in% bbb)]
+    # if(is.matrix(footPrint)) { 
+    #   footPrint<<-footPrint[ !(rownames(footPrint) %in% bbb),!(colnames(footPrint) %in% bbb) ]
+    # }
+    # 
+    # # (2) MMatrix
+    # MMatrix<<-MMatrix[ !(rownames(MMatrix) %in% bbb),!(colnames(MMatrix) %in% bbb) ]
+    # 
+    # # (3) MM.mean.time
+    # MM.mean.time<<- MM.mean.time[ !(rownames(MM.mean.time) %in% bbb),!(colnames(MM.mean.time) %in% bbb) ]
+    # 
+    # # (4) wordSequence.raw
+    # # (5) pat.process
+    # new.list.density<-list()
+    # for(i in seq(1,length(pat.process))) {
+    #   pat.process[[i]]<<-pat.process[[i]][which(!(pat.process[[i]][[param.EVENTName]] %in% array.events)),]
+    #   wordSequence.raw[[i]]<<-wordSequence.raw[[i]][  !( wordSequence.raw[[i]] %in% array.events)]
+    # }
+    # 
+    # # (6) MM.density.list
+    # for( name.from in names(MM.density.list)) {
+    #   if( !(name.from %in% array.events)) {
+    #     if(is.null(new.list.density[[name.from]])) new.list.density[[name.from]]<-list()
+    #     for( name.to in names(new.list.density[[name.from]])) {
+    #       if(!(name.to %in% array.events )) {
+    #         new.list.density[[name.from]][[name.to]]<-MM.density.list[[name.from]][[name.to]]
+    #       }  
+    #     }
+    #   }
+    # }
+    # MM.density.list<<-new.list.density
   } 
   #=================================================================================
   # keepOnlyEvents
@@ -179,7 +281,6 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
       
       pb.ct <- pb.ct + 1; setTxtProgressBar(pb, pb.ct)
       # prendi i soli record che afferiscono al paziente in esame
-      # aaa<-mydata[ which(mydata[[ID.list.names]]==i  ), ]
       ID.act.group[[i]]<-mydata[ which(mydata[[ID.list.names]]==i  ), ]
       if(nrow(ID.act.group[[i]])>2) {paziente.da.tenere <- c(paziente.da.tenere,i) }
     }    
@@ -212,11 +313,9 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
       setTxtProgressBar(pb, paziente)
       # Estrai la matrice
       matrice.date<-listToBeOrdered[[paziente]]
-# browser()
       # Leggi la colonna data secondo la formattazione indicata in ingresso e riscrivila nel formato %d/%m/%Y (lo stesso viene fatto in plot.Timeline)
       newdate <- strptime(as.character(matrice.date[,dateColumnName]), format.column.date)
       matrice.date[,dateColumnName] <- format(newdate, "%d/%m/%Y %H:%M:%S")
-    # browser()
       # Calcola la colonna delle differenze di date rispetto ad una data di riferimento ed azzera rispetto al minore
       # colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y"),as.POSIXct("01/01/2001", format = "%d/%m/%Y"),units = 'days'))
       colonna.delta.date.TMPh898h98h9<-as.numeric(difftime(as.POSIXct(matrice.date[, dateColumnName], format = "%d/%m/%Y %H:%M:%S"),as.POSIXct("01/01/2001 00:00:00", format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
@@ -236,8 +335,9 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     # clear all the attributes
     obj.Utils <- utils()
     clearAttributes( );
+    param.column.names<<-colnames(mydata)
+    
     # aaaaaaa <- mydata
-    # browser()
     if(length(mydata[[dateColumnName]]) == 0) { obj.LH$sendLog( c("dateColumnName '",dateColumnName,"' not present! ")  ,"ERR"); return() }
     if(length(mydata[[EVENTName]]) == 0) { obj.LH$sendLog( c("EVENTName '",EVENTName,"' not present! ")  ,"ERR"); return() }
     if(length(mydata[[IDName]]) == 0) { obj.LH$sendLog( c("IDName '",IDName,"' not present! ")  ,"ERR"); return() }    
@@ -257,8 +357,6 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     if(suppress.invalid.date==TRUE) {
       mydata <- mydata[ which(mydata[[dateColumnName]]!="" ),]
     }
-    
-    # browser()
     
     # Just to have then an idea of the passed parameters...
     param.IDName<<-IDName
@@ -284,7 +382,6 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
       mydata[[dateColumnName]]<-as.character(mydata[[dateColumnName]])
     }
     if(verbose.mode == TRUE) obj.LH$sendLog("\n 1) internal Grouping (1/3):\n")
-      # cat("\n 1) internal Grouping")
     # group the log of the patient in a structure easier to handle
     ooo <- groupPatientLogActivity(mydata, ID.list.names) 
     ID.act.group<-ooo$ID.act.group
@@ -342,7 +439,8 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   # load.csv
   #=================================================================================  
   load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, 
-                      format.column.date="%d/%m/%Y %H:%M:%S", convertUTF = TRUE) {
+                      format.column.date="%d/%m/%Y %H:%M:%S", 
+                      convertUTF = TRUE, suppress.invalid.date = TRUE) {
     
     # load the file
     if(!file.exists(nomeFile)) { obj.LH$sendLog(c( "'",nomeFile,"' does not exist!\n" ),"ERR"); return() }
@@ -354,7 +452,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     # Now "load" the data.frame
     load.data.frame( mydata = mydata, IDName = IDName, EVENTName = EVENTName, 
                      dateColumnName = dateColumnName , format.column.date = format.column.date, 
-                     convertUTF = convertUTF)
+                     convertUTF = convertUTF, suppress.invalid.date = suppress.invalid.date)
   }
   #=================================================================================
   # plotTimeline
@@ -363,7 +461,6 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
 
    matrice <- cbind( pat.process[[ as.character(patID) ]][[param.dateColumnName]],
                          pat.process[[ as.character(patID) ]][[param.EVENTName]]) 
-   # browser()
    # vedi stessa cosa in order.list.by.date
    newdate <- strptime(as.character(matrice[,1]), input.format.date)
    matrice[,1] <- format(newdate, table.format.date)
@@ -451,6 +548,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
       "MM.density.list"=MM.density.list,
       "MM.den.list.high.det"=MM.den.list.high.det,
       "MM.mean.outflow.time"=MM.mean.outflow.time,
+      "csv.column.names" = param.column.names,
       "csv.IDName"=param.IDName,
       "csv.EVENTName"=param.EVENTName,
       "csv.dateColumnName"=param.dateColumnName,
@@ -478,6 +576,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     param.EVENTName<<-''
     param.dateColumnName<<-''
     param.verbose<<-verbose.mode
+    param.column.names<<-''
     param.max.char.length.label<<-max.char.length.label
     
     obj.LH<<-logHandler()
@@ -490,8 +589,9 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     "load.csv"=load.csv,
     "load.data.frame"=load.data.frame,
     "getData"=getData,
-    "removeEvents"=removeEvents,
-    "keepOnlyEvents"=keepOnlyEvents,
+    "applyFilter"=applyFilter,
+    # "removeEvents"=removeEvents,
+    # "keepOnlyEvents"=keepOnlyEvents,
     "addDictionary"=addDictionary,
     "getTranslation"=getTranslation,
     "plot.Timeline"=plot.Timeline,
