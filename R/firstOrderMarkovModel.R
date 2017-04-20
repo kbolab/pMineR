@@ -126,22 +126,27 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
       data.ora.tm2 <- as.POSIXct("01/01/2000 00:00:01", format = "%d/%m/%Y %H:%M:%S")
       data.ora[[chiave]] <- c( as.character(data.ora.tm2)  )
       
-      for( contatore in seq(1,length(res[[chiave]])-1 ) ) {
-        # browser()
-        ppp <- MM.den.list.high.det[[ res[[chiave]][contatore] ]][[ res[[chiave]][contatore+1] ]]
-        min.cum.sum = cumsum(density(ppp)$y)
-        # Normalizza a 1
-        min.cum.sum <- min.cum.sum / max(min.cum.sum) 
-        dado.lanciato <- runif(n = 1,min = min(min.cum.sum+0.001),max = .95)
-        deltaMinuti <- max(density(ppp)$x[( min.cum.sum<dado.lanciato )])
-        # if(deltaMinuti == -Inf) browser();
-        deltaMinuti <- max(0,deltaMinuti)
-        # browser()
-        # stop("\n\n\ FAVA!!! CASTA GLI ESTREMI DEL DADO!!!! \n\n\n")
-        tempo[[chiave]] <- c(tempo[[chiave]],deltaMinuti)
-        data.ora.tm2 <- data.ora.tm2 + 60 * deltaMinuti
-        if(is.na(data.ora.tm2)) browser()
-        data.ora[[chiave]] <- c(data.ora[[chiave]],as.character(data.ora.tm2))
+      if(length(res[[chiave]])>=2) {
+        for( contatore in seq(1,length(res[[chiave]])-1 ) ) {
+          # browser()
+          ppp <- MM.den.list.high.det[[ res[[chiave]][contatore] ]][[ res[[chiave]][contatore+1] ]]
+          
+          min.cum.sum = cumsum(density(ppp)$y)
+          # Normalizza a 1
+          min.cum.sum <- min.cum.sum / max(min.cum.sum) 
+          dado.lanciato <- runif(n = 1,min = min(min.cum.sum+0.001),max = .95)
+          
+          # browser()
+          deltaMinuti <- max(density(ppp)$x[( min.cum.sum<dado.lanciato )])
+          # if(deltaMinuti == -Inf) browser();
+          deltaMinuti <- max(0,deltaMinuti)
+          # browser()
+          # stop("\n\n\ FAVA!!! CASTA GLI ESTREMI DEL DADO!!!! \n\n\n")
+          tempo[[chiave]] <- c(tempo[[chiave]],deltaMinuti)
+          data.ora.tm2 <- data.ora.tm2 + 60 * deltaMinuti
+          if(is.na(data.ora.tm2)) browser()
+          data.ora[[chiave]] <- c(data.ora[[chiave]],as.character(data.ora.tm2))
+        }
       }
     }
 
