@@ -67,21 +67,27 @@ cluster_expectationMaximization <- function() {
   #===========================================================
   # calculateClusters
   #===========================================================  
-  calculateClusters<-function(num, typeOfModel="firstOrderMarkovModel") {
+  calculateClusters<-function(num, init.centroids.random=T , init.centroids  , typeOfModel="firstOrderMarkovModel") {
     
     if(typeOfModel == "firstOrderMarkovModel"){
       
+      logNotes <<- list()
       
       #initialize k = num random matrices
-      clusterM <- list()
-      logNotes <<- list()
-      nRows <- length(eventType)
-      nCols <- length(eventType)
-        for (k in seq(1:num)){
-          clusterM[[k]] <- matrix(runif(nRows*nCols), nrow=nRows,ncol=nCols)
-          rownames(clusterM[[k]]) <- eventType
-          colnames(clusterM[[k]]) <- eventType
-        }
+      if (init.centroids.random==T){
+        clusterM <- list()
+        nRows <- length(eventType)
+        nCols <- length(eventType)
+          for (k in seq(1:num)){
+            clusterM[[k]] <- matrix(runif(nRows*nCols), nrow=nRows,ncol=nCols)
+            rownames(clusterM[[k]]) <- eventType
+            colnames(clusterM[[k]]) <- eventType
+          }
+      }
+      
+      else{
+        clusterM <- init.centroids
+      }
       
       # make first iteration
       iter <- 1
@@ -123,7 +129,7 @@ cluster_expectationMaximization <- function() {
           }
         logNotes[[iter]] <<- list("iteration"=iter, "expectation"=aa[[iter]], "maximization"=M[[iter]], "control parameter"=comp)
         # some convergence threshold
-          if(sum(comp) < .00001){
+          if(sum(comp) < .000000000001){
             break
           }
       }
