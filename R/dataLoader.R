@@ -478,25 +478,35 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
                                               col.dens = 'BLUE',
                                               prob.cumulative = TRUE, prob.density = TRUE,
                                               plotIT = TRUE, returnValues=FALSE) {
-
+# browser()
     ppp <- MM.den.list.high.det[[ from.state ]][[ to.state ]]
-    delta.x <- density(ppp)$x[ 2 ] - density(ppp)$x[ 1 ]
-    min.cum.sum = cumsum(density(ppp)$y)
+    density.pp <- density(ppp,from = 0)
+    # delta.x <- density(ppp)$x[ 2 ] - density(ppp)$x[ 1 ]
+    delta.x <- density.pp$x[ 2 ] - density.pp$x[ 1 ]
+    # min.cum.sum = cumsum(density(ppp)$y)
+    min.cum.sum = cumsum(density.pp$y)
     min.cum.sum <- min.cum.sum * delta.x
+    # normalizza a '1'
+    min.cum.sum <- (1/max(min.cum.sum)) * min.cum.sum
     
     if( plotIT == TRUE ) {
       main <- paste(  c("Time-Transition Probability\n(",from.state," => ",to.state,")") ,collapse='')
-      plot(0,0,ylab='Prob.',xlab='Time (mins)',xlim = range(density(ppp)$x),ylim=c(0,1),col='white',main=main)
-      points(y = min.cum.sum, x = density(ppp)$x,type='l',col = col.cum)
+      # plot(0,0,ylab='Prob.',xlab='Time (mins)',xlim = range(density(ppp)$x),ylim=c(0,1),col='white',main=main)
+      plot(0,0,ylab='Prob.',xlab='Time (mins)',xlim = range(density.pp$x),ylim=c(0,1),col='white',main=main)
+      # points(y = min.cum.sum, x = density(ppp)$x,type='l',col = col.cum)
+      points(y = min.cum.sum, x = density.pp$x,type='l',col = col.cum)
       par(new=TRUE)
-      plot(y = density(ppp)$y, x = density(ppp)$x,type='l', axes = FALSE, bty = "n", xlab = "", ylab = "", col = col.dens)
+      # plot(y = density(ppp)$y, x = density(ppp)$x,type='l', axes = FALSE, bty = "n", xlab = "", ylab = "", col = col.dens)
+      plot(y = density.pp$y, x = density.pp$x,type='l', axes = FALSE, bty = "n", xlab = "", ylab = "", col = col.dens)
       axis(4)
     }
     
     if(returnValues == TRUE) {
       return(list(
-        "x" = density(ppp)$x,
-        "density" = density(ppp)$y,
+        # "x" = density(ppp)$x,
+        # "density" = density(ppp)$y,
+        "x" = density.pp$x,
+        "density" = density.pp$y,
         "cumulative" = min.cum.sum
       ))
     }

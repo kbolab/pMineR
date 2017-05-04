@@ -130,7 +130,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
         for( contatore in seq(1,length(res[[chiave]])-1 ) ) {
           # browser()
           ppp <- MM.den.list.high.det[[ res[[chiave]][contatore] ]][[ res[[chiave]][contatore+1] ]]
-          
+          # if(!length(ppp)>2) browser()
           min.cum.sum = cumsum(density(ppp)$y)
           # Normalizza a 1
           min.cum.sum <- min.cum.sum / max(min.cum.sum) 

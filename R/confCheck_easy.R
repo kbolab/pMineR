@@ -167,7 +167,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # replay (ex playLoadedData)
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================    
-  replay<-function( number.perc = 1 , event.interpretation = "soft") {
+  replay<-function( number.perc = 1 , event.interpretation = "soft", UM="days") {
     
     # Chiama addNote, che via via popola una stringa 
     # che alla fine conterra' l'intero XML
@@ -193,7 +193,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                    col.eventName = dataLog$csv.EVENTName, 
                                    col.dateName = dataLog$csv.dateColumnName , 
                                    IDPaz = indice,
-                                   event.interpretation = event.interpretation)
+                                   event.interpretation = event.interpretation,
+                                   date.format = dataLog$csv.date.format, UM = UM )
+        # browser()
         if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
         addNote(msg = "\n\t\t<atTheEnd>")
         for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
@@ -219,16 +221,21 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
 
     # prendo la lista dei nodi END
     arr.nodi.end <- WF.struct[[ "info" ]][[ "arr.nodi.end" ]]
+    arr.nodi.end <- str_replace_all(string = arr.nodi.end, pattern  = "'",replacement = "")
     
     doc <- xmlInternalTreeParse(file = get.XML.replay.result(),asText = TRUE)
     arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
     array.fired.trigger<-c()
     final.states<-c()
     fired.trigger<-c()
-
+ # browser()
     for( i in arr.Computazioni) {
       arr.step<-unlist(xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step'),collapse = ""),xmlGetAttr,"n"))
-
+      
+      array.fired.trigger<-c()
+      final.states<-c()
+      fired.trigger<-c()    
+      
       # Scorri tutti gli step di quella computazione
       for( s  in arr.step) {
         trg<-xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step[@n="',s,'"]'),collapse = ""),xmlGetAttr,"trg")[[1]]
@@ -243,6 +250,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       list.fired.trigger[[i]] <-array.fired.trigger
       list.final.states[[i]] <- final.states
       
+      # browser()
       if(sum(final.states %in% arr.nodi.end)>0) { termination.END.states[[i]] <- TRUE }
       else { termination.END.states[[i]] <- FALSE }
     }
@@ -253,20 +261,20 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       "termination.END.states"=termination.END.states
     ))
   }
-  incrementa.tempo<-function( tempo , timeDetail )   {
-    if(timeDetail=="days") tempo.new <- tempo + days(1)
-    if(timeDetail=="hours") tempo.new <- tempo + hours(1)
-    if(timeDetail=="weeks") tempo.new <- tempo + weeks(1)
-    if(timeDetail=="months") tempo.new <- tempo + months(1)  
-    return(tempo.new);
-  }
+  # incrementa.tempo<-function( tempo , timeDetail )   {
+  #   if(timeDetail=="days") tempo.new <- tempo + days(1)
+  #   if(timeDetail=="hours") tempo.new <- tempo + hours(1)
+  #   if(timeDetail=="weeks") tempo.new <- tempo + weeks(1)
+  #   if(timeDetail=="months") tempo.new <- tempo + months(1)  
+  #   return(tempo.new);
+  # }
   #===========================================================  
   # playSingleSequence
   # esegue il conformanche checking con una specifica sequenza 
   # di LOG (di un paziente)
   #===========================================================    
   playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz, 
-                                event.interpretation="soft" , timeUM = "dmy") {
+                                event.interpretation="soft" , date.format="%d/%m/%Y %H:%M:%S", UM="days") {
     # Cerca lo stato che viene triggerato dal BEGIN
     st.LAST<-""
     st.DONE<-c("")
@@ -305,30 +313,41 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # ORA scorri i giorni che passano fra l'evento precedente e quello in esame
       # Va fatto PRIMA di attivare il controllo sull'effetto dell'evento
       if( indice.di.sequenza > 1 ) {
+        
         data.iniziale <- matriceSequenza[ ,col.dateName ][ indice.di.sequenza - 1 ]
         data.finale <- matriceSequenza[ ,col.dateName ][ indice.di.sequenza ]
 
-        if(timeUM == "dmy") {
-          data.iniziale <- dmy(matriceSequenza[ ,col.dateName ][ indice.di.sequenza - 1 ])
-          data.finale <- dmy(matriceSequenza[ ,col.dateName ][ indice.di.sequenza ])
-        }
-        if(timeUM == "ymd") {
-          data.iniziale <- ymd(matriceSequenza[ ,col.dateName ][ indice.di.sequenza - 1 ])
-          data.finale <- ymd(matriceSequenza[ ,col.dateName ][ indice.di.sequenza ])
-        }
         data.attuale <- data.iniziale
         fired.trigger.in.this.iteration <- TRUE
         
-        # Cicla per tutti i giorni dall'inizio alla fine
-        while(  as.integer(difftime(data.attuale, data.finale)[ 1 ])<0 ) {
+        # Cicla per tutti i giotni/ore/settimane dall'inizio alla fine
+        # per vedere che non partano trigger legati a qualche DURATA
+        while(  as.numeric(difftime(as.POSIXct(data.finale, format = date.format),
+                                    as.POSIXct(data.attuale, format = date.format),units = 'mins')) > 0 ) {
 
+          
+          if(UM=="mins")
+            data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + min(1),format = date.format)
+          if(UM=="days")
+            data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + days(1),format = date.format)
+          if(UM=="hours")
+            data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + hours(1),format = date.format)
+          if(UM=="weeks")
+            data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + weeks(1),format = date.format)
+          
+          
+                    
+          # cat("\n =========================================== \n Data Attuale ",data.attuale)
+          # cat("\n st.ACTIVE.time = ",st.ACTIVE.time)
+          # browser()
             # continua a ripetere fino a che per quel giorno non ci sono più trigger
             # Setta a FALSE la variabile per uscire dal loop
             # Cerca se c'è un trigger per questa data
+          # browser()
             newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE, 
                                       st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                       st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                      EOF = FALSE   )
+                                      EOF = FALSE , UM = UM  )
             # Se c'e' un errore, ferma tutto
             if(newHop$error==TRUE) {
               note.set.error(error = newHop$error)
@@ -344,7 +363,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
               note.setStep(number = ct)              
               note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
               note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
-              note.setEvent(eventType = '', eventDate = as.character(format(data.attuale,play.output.format.date)) )
+              note.setEvent(eventType = '', eventDate = as.character(data.attuale) )
               note.flush()              
               
               # Aggiorna le variabili
@@ -358,20 +377,31 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
               st.ACTIVE.time [ stati.da.resettare ] <- 0  
 
             }            
-            
-            data.attuale <- data.attuale + 1
+
+            # if(UM=="mins")
+            #   data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + min(1),format = date.format)
+            # if(UM=="days")
+            #   data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + days(1),format = date.format)
+            # if(UM=="hours")
+            #   data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + hours(1),format = date.format)
+            # if(UM=="weeks")
+            #   data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + weeks(1),format = date.format)
             
             # Aggiungi il delta data a quelli da aggiornare
             st.ACTIVE.time.cum [ stati.da.uppgradare ] <- st.ACTIVE.time.cum [ stati.da.uppgradare ] + 1
             st.ACTIVE.time [ stati.da.uppgradare ] <- st.ACTIVE.time [ stati.da.uppgradare ] + 1
             
             # Azzera il tempo di eventuali stati che sono stati resettati
+            # si intende il "tempo" da cui sono ATTIVI (per valutare nel prossimo giro, se le durate superano
+            # una certa threshold)
             stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
             stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
             st.ACTIVE.time [ stati.da.resettare ] <- 0 
         }
       }
-      
+      # browser()
+      # cat("\n NOW PROCESSING: ",unlist(matriceSequenza[ indice.di.sequenza, c("event","date")]))
+      # browser()
       # Azzera il tempo di eventuali stati che sono stati resettati
       stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
       stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
@@ -395,7 +425,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, 
                                 st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                 st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                EOF = FALSE   )
+                                EOF = FALSE  , UM = UM )
       history.hop[[indice.di.sequenza.ch]]$active.trigger<-newHop$active.trigger
       history.hop[[indice.di.sequenza.ch]]$ev.NOW<-ev.NOW
       history.hop[[indice.di.sequenza.ch]]$st.ACTIVE<-newHop$st.ACTIVE
@@ -445,7 +475,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = "", st.DONE = st.DONE, 
                                   st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                   st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                  EOF = FALSE   )
+                                  EOF = FALSE  , UM = UM )
         # inzializza il log in caso di errore o in caso di trigger
         if(newHop$error==TRUE | length(newHop$active.trigger)!=0) {
           ct <- ct + 1
@@ -488,6 +518,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       }
       
     }
+    
+    # browser()
+    
     # Se la computazione non e', per qualche motivo, interrotta
     if( stop.computation == FALSE  & sum(arr.nodi.end %in% st.ACTIVE) == 0) {
       # Now process the EOF !!
@@ -530,6 +563,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         stop.computation <- TRUE 
       }
     }
+    
+    # browser() 
     # Ritorna
     return( list( "st.ACTIVE"=st.ACTIVE,
                   "error"=error,
@@ -549,7 +584,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #   st.ACTIVE.time.cum - il tempo di 'uptime' degli stati (cumulativo)
   #   EOF - 'TRUE' indica che la computazione è finita
   #===========================================================    
-  attiva.trigger<-function( st.LAST, ev.NOW, st.DONE, st.ACTIVE, st.ACTIVE.time, st.ACTIVE.time.cum, EOF  ) {
+  attiva.trigger<-function( st.LAST, ev.NOW, st.DONE, st.ACTIVE, st.ACTIVE.time, st.ACTIVE.time.cum, EOF , UM="days" ) {
     # inizializza
     new.st.DONE<-st.DONE;
     new.st.LAST<-c()
@@ -584,7 +619,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         stringa.to.eval <- parse.for.temporal.conditions(
                                   stringa = stringa.to.eval,
                                   st.ACTIVE.time = st.ACTIVE.time,
-                                  st.ACTIVE.time.cum = st.ACTIVE.time.cum) 
+                                  st.ACTIVE.time.cum = st.ACTIVE.time.cum,
+                                  UM = UM) 
         
         # Parsa la stringa
         if(stringa.to.eval=="") risultato <- TRUE
@@ -608,7 +644,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           }
           
           # aggiungi le righe alla matrice che definisce le azioni
-          browser()
+          # browser()
           for(i in seq(1,length(array.to.set))) {
             tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.set[i],"set",pri  )   )
           }
@@ -698,16 +734,38 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # funzione a parte per facilitare la visibilità della funzione chiamante (ben 
   # più importante)
   #===========================================================    
-  parse.for.temporal.conditions <- function(stringa , st.ACTIVE.time , st.ACTIVE.time.cum ) {
+  parse.for.temporal.conditions <- function(stringa , st.ACTIVE.time , st.ACTIVE.time.cum , UM = "days") {
 
     stringa.run <- stringa
     
     lista.comandi.condition <- list(
+      "afmth" = ".afmth\\([0-9]+\\)",
+      "afmeth" = ".afmeth\\([0-9]+\\)",      
       "afmtd" = ".afmtd\\([0-9]+\\)",
       "afmetd" = ".afmetd\\([0-9]+\\)",
+      "afmtw" = ".afmtw\\([0-9]+\\)",
+      "afmetw" = ".afmetw\\([0-9]+\\)",      
+      "afmtm" = ".afmtm\\([0-9]+\\)",
+      "afmetm" = ".afmetm\\([0-9]+\\)",      
+      "aflth" = ".aflth\\([0-9]+\\)",
+      "afleth" = ".afleth\\([0-9]+\\)",
       "afltd" = ".afltd\\([0-9]+\\)",
-      "afletd" = ".afletd\\([0-9]+\\)"
+      "afletd" = ".afletd\\([0-9]+\\)",
+      "afltw" = ".afltw\\([0-9]+\\)",
+      "afletw" = ".afletw\\([0-9]+\\)",      
+      "afltm" = ".afltm\\([0-9]+\\)",
+      "afletm" = ".afletm\\([0-9]+\\)"      
     )
+    
+    # Passa il contenuto di st.ACTIVE.time e st.ACTIVE.time.cum in minuti
+    
+    if( UM == "mins")  moltiplicatore <- 1
+    if( UM == "hours") moltiplicatore <- 60
+    if( UM == "days")  moltiplicatore <- 60 * 24
+    if( UM == "weeks") moltiplicatore <- 60 * 24 * 7
+    
+    st.ACTIVE.time <- st.ACTIVE.time * moltiplicatore
+    st.ACTIVE.time.cum <- st.ACTIVE.time.cum * moltiplicatore
     
     for( comandoToCheck in names(lista.comandi.condition) ) {
 
@@ -734,19 +792,29 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           nomeStato <- str_sub(string = nomeStato,
                                start = subMatrix.nomeStato[ nrow(subMatrix.nomeStato)-1, "start"]+1,
                                end = subMatrix.nomeStato[ nrow(subMatrix.nomeStato), "start"]-1)
-          
+          # browser()
           # Ora fai due riflessioni...
-          if(comandoToCheck == "afmtd") { esito = st.ACTIVE.time[ nomeStato ] > quantita }
-          if(comandoToCheck == "afmetd") { esito = st.ACTIVE.time[ nomeStato ] >= quantita }
-          if(comandoToCheck == "afmtw") { esito = st.ACTIVE.time[ nomeStato ] > quantita/7 }
-          if(comandoToCheck == "afmetw") { esito = st.ACTIVE.time[ nomeStato ] >= quantita/7 }
-          if(comandoToCheck == "afmtm") { esito = st.ACTIVE.time[ nomeStato ] > quantita/30 }
-          if(comandoToCheck == "afmetm") { esito = st.ACTIVE.time[ nomeStato ] >= quantita/30 }
-          if(comandoToCheck == "afmty") { esito = st.ACTIVE.time[ nomeStato ] > quantita/365 }
-          if(comandoToCheck == "afmety") { esito = st.ACTIVE.time[ nomeStato ] >= quantita/365 }
+          if(comandoToCheck == "afmth") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 ) }
+          if(comandoToCheck == "afmeth") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 ) }
+          if(comandoToCheck == "afmtd") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24) }
+          if(comandoToCheck == "afmetd") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24) }
+          if(comandoToCheck == "afmtw") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24 * 7) }
+          if(comandoToCheck == "afmetw") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24 * 7) }
+          if(comandoToCheck == "afmtm") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24 * 30) }
+          if(comandoToCheck == "afmetm") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24 * 30) }
+
           
-          if(comandoToCheck == "afltd") { esito = st.ACTIVE.time[ nomeStato ] < quantita }
-          if(comandoToCheck == "afletd") { esito = st.ACTIVE.time[ nomeStato ] <= quantita }
+          if(comandoToCheck == "aflth") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 ) }
+          if(comandoToCheck == "afleth") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 ) }
+          if(comandoToCheck == "afltd") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24) }
+          if(comandoToCheck == "afletd") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24) }
+          if(comandoToCheck == "afltw") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24 * 7) }
+          if(comandoToCheck == "afletw") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24 * 7) }  
+          if(comandoToCheck == "afltm") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24 * 30) }
+          if(comandoToCheck == "afletm") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24 * 30) }    
+
+          # cat("\n ",st.ACTIVE.time[ nomeStato ], "  quantita = ",quantita )
+          # if( esito == TRUE ) browser()
           
           # stringa.run <- paste( c( str_sub(stringa.run,end = matrice.match[riga, "start"]-1),' == \'',nomeStato,'\' ',str_sub(stringa.run,start = matrice.match[riga, "end"]+1) )    , collapse='')
           # browser()
@@ -767,8 +835,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # get.XML.replay.result (ex getXML)
   # it returns the XML file
   #===========================================================  
-  get.XML.replay.result<-function(notebook.name='computationLog'){
-    return(notebook[[notebook.name]])
+  get.XML.replay.result<-function(notebook.name='computationLog', writeToFile = FALSE, fileName="./output.xml"){
+    
+    # if the output is not on file
+    if( writeToFile == FALSE )    return(notebook[[notebook.name]])
+
+    # otherwise, write a file
+    fileConn<-file(fileName)
+    writeLines(notebook[[notebook.name]], fileConn)
+    close(fileConn)
   }
   #===========================================================  
   # getPatientLog
@@ -1298,7 +1373,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     return(a)
   }
   play.easy.impreciso<-function(number.of.cases, min.num.of.valid.words=NA, max.word.length=100, 
-                                howToBuildBad="resample", output.format.date = "%d/%m/%Y", 
+                                howToBuildBad="resample", output.format.date = "%d/%m/%Y %H:%M:%S", 
+                                date.format = "%d/%m/%Y %H:%M:%S", UM="days",
                                 typeOfRandomDataGenerator="dayAfterDay") {
     obj.utils <- utils()
     if(is.na(min.num.of.valid.words)) min.num.of.valid.words = as.integer(number.of.cases/2)
@@ -1354,7 +1430,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         res <- playSingleSequence( matriceSequenza = marice.dati, 
                                    col.eventName = "evento", 
                                    col.dateName = "data" , 
-                                   IDPaz = indice.parola  )
+                                   IDPaz = indice.parola,
+                                   date.format = date.format, UM = UM )
         # scorri tutta la storia alla ricerca di qualche hop che non ha 
         # scatenato un trigger. Se lo trovi, la parola e' sbagliata!
         parola.corretta <- TRUE
