@@ -125,7 +125,6 @@ dataProcessor<-function() {
     # per ogni paziente
     pb <- txtProgressBar(min = 0, max = length(ID.act.group), style = 3)
     for(patID in seq(1,length(ID.act.group))) {
-      # cat("\n processing :",patID)
       setTxtProgressBar(pb, patID)
       # su ogni elemento del percorso clinico
       # t e' il "tempo" in senso di "step"
@@ -142,14 +141,10 @@ dataProcessor<-function() {
         }
         # tutti gli altri
         if( t < nrow(ID.act.group[[patID]])) {
-          
           nomeCampo.pre<-ID.act.group[[patID]][t,EVENT.list.names]
           nomeCampo.post<-ID.act.group[[patID]][t+1,EVENT.list.names]
           MM[ nomeCampo.pre, nomeCampo.post ]<-MM[ nomeCampo.pre, nomeCampo.post ]+1
-          # if(nomeCampo.pre == "DIMISSIONE" & nomeCampo.post=="TRIAGE") browser()
-          # if(param.dateColumnName!='' & ! is.na(param.dateColumnName)){
           if(EVENTDateColumnName!='' & ! is.na(EVENTDateColumnName)){
-            # browser()
             delta.date<-as.numeric(difftime(as.POSIXct(ID.act.group[[patID]][t+1,EVENTDateColumnName], format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(ID.act.group[[patID]][t,EVENTDateColumnName], format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
             if(length(MM.den.list[[ nomeCampo.pre]])==0) MM.den.list[[ nomeCampo.pre]]<-list()
             if(length(MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]])==0) MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c()
@@ -158,7 +153,6 @@ dataProcessor<-function() {
         }    
       }
       # invoca il programma in C per estrarre i tempi reciproci fra TUTTI
-      # browser()
       iii <- unlist(lapply(ID.act.group[[patID]][,EVENT.list.names] , function(x) which(colnames(MM)==x) ))
       massimo <-max(iii)
       out.MM<-rep( 0 , (massimo)*(massimo) )
@@ -169,24 +163,14 @@ dataProcessor<-function() {
       
       mm.in <- matrix(c(iii,ID.act.group[[patID]][,"pMineR.deltaDate"]),nrow=2,byrow = T)
       mm.out <- t(matrix(c(aaa$from,aaa$to,aaa$time),nrow=3,byrow = T))
-      # if(patID == 10 ) browser()
       for( riga in seq(1,nrow(mm.out))) {
         int.from <-colnames(MM)[mm.out[riga,1]];
         int.to <-colnames(MM)[mm.out[riga,2]];
-        # browser()
         delta.tempo <-mm.out[riga,3];
         if(length(MM.den.list.high.det[[ int.from ]])==0) MM.den.list.high.det[[ int.from]]<-list()
         if(length(MM.den.list.high.det[[ int.from]][[ int.to ]])==0) MM.den.list.high.det[[ int.from]][[ int.to ]]<-c()
         MM.den.list.high.det[[ int.from]][[ int.to ]]<-c(MM.den.list.high.det[[ int.from]][[ int.to ]],delta.tempo)
       }
-      # browser()
-      # aa<-.C("rilevaTempiTransizioni",
-      #        as.integer(iii),
-      #        as.double(ID.act.group[[patID]][,"pMineR.deltaDate"]),
-      #        as.integer( length(iii) ),
-      #        as.integer( massimo ),
-      #        as.integer(out.MM))
-# browser()
     }
     close(pb)
     quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
