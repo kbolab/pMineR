@@ -5,3 +5,7 @@ transitionsTime <- function(listaEventi, tempiTransizione, max_valore_evento) {
     .Call('pMineR_transitionsTime', PACKAGE = 'pMineR', listaEventi, tempiTransizione, max_valore_evento)
 }
 
+getInterestingSinglePatientData <- function(inputDF) {
+    .Call('pMineR_getInterestingSinglePatientData', PACKAGE = 'pMineR', inputDF)
+}
+

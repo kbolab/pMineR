@@ -120,6 +120,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     for(i in seq(1,numberOfPlays)) {
       chiave <- as.character(i)
       res[[chiave]]<-play.Single()
+      # browser()
       # costruisci le parole
       
       tempo[[chiave]]<-c(0)
@@ -128,24 +129,29 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
       
       if(length(res[[chiave]])>=2) {
         for( contatore in seq(1,length(res[[chiave]])-1 ) ) {
-          # browser()
           ppp <- MM.den.list.high.det[[ res[[chiave]][contatore] ]][[ res[[chiave]][contatore+1] ]]
-          # if(!length(ppp)>2) browser()
-          min.cum.sum = cumsum(density(ppp)$y)
-          # Normalizza a 1
-          min.cum.sum <- min.cum.sum / max(min.cum.sum) 
-          dado.lanciato <- runif(n = 1,min = min(min.cum.sum+0.001),max = .95)
+          # browser()
+          if( length(ppp)==1)  {  
+            deltaMinuti <- ppp
+            tempo[[chiave]]  <- c(tempo[[chiave]],deltaMinuti)
+            data.ora.tm2 <- data.ora.tm2 + 60 * deltaMinuti
+            if(is.na(data.ora.tm2)) browser()
+            data.ora[[chiave]] <- c(data.ora[[chiave]],as.character(data.ora.tm2))            
+          }
+          else {
+            min.cum.sum = cumsum(density(ppp)$y)
+            # Normalizza a 1
+            min.cum.sum <- min.cum.sum / max(min.cum.sum) 
+            dado.lanciato <- runif(n = 1,min = min(min.cum.sum+0.001),max = .95)
+            
+            deltaMinuti <- max(density(ppp)$x[( min.cum.sum<dado.lanciato )])
+            deltaMinuti <- max(0,deltaMinuti)
           
-          # browser()
-          deltaMinuti <- max(density(ppp)$x[( min.cum.sum<dado.lanciato )])
-          # if(deltaMinuti == -Inf) browser();
-          deltaMinuti <- max(0,deltaMinuti)
-          # browser()
-          # stop("\n\n\ FAVA!!! CASTA GLI ESTREMI DEL DADO!!!! \n\n\n")
-          tempo[[chiave]] <- c(tempo[[chiave]],deltaMinuti)
-          data.ora.tm2 <- data.ora.tm2 + 60 * deltaMinuti
-          if(is.na(data.ora.tm2)) browser()
-          data.ora[[chiave]] <- c(data.ora[[chiave]],as.character(data.ora.tm2))
+            tempo[[chiave]] <- c(tempo[[chiave]],deltaMinuti)
+            data.ora.tm2 <- data.ora.tm2 + 60 * deltaMinuti
+            if(is.na(data.ora.tm2)) browser()
+            data.ora[[chiave]] <- c(data.ora[[chiave]],as.character(data.ora.tm2))
+          }
         }
       }
     }
@@ -172,7 +178,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
         }
       }
     }
-
+    if(length(res) == 0 ) { cat("\n WARNING: no sequences generated...."); return(); }
     res <- local.format.data.for.csv(listaProcessi = res, 
                                       lista.validi = rep(TRUE,numberOfPlays),
                                       data.ora = data.ora)
@@ -570,8 +576,9 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     res<-c();
     if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
     else considerAutoLoop<-TRUE  
-
+# browser()
     if ( !("END" %in% findReacheableNodes(nodoDiPatenza = "BEGIN") )) {
+      cat("\n WARNING: END is not reacheable from 'BEGIN'! Maybe the threshold is too high? ")
       return(c() ) ;
     }
     

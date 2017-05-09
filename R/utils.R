@@ -139,6 +139,9 @@ dataProcessor<-function() {
           nomeCampo<-ID.act.group[[patID]][t,EVENT.list.names]
           MM[nomeCampo,"END"]<-MM[nomeCampo,"END"]+1
         }
+        # browser()
+        # tmp.uuu <- getInterestingSinglePatientData( ID.act.group[[patID]] );
+        # cat("\n",tmp.uuu)
         # tutti gli altri
         if( t < nrow(ID.act.group[[patID]])) {
           nomeCampo.pre<-ID.act.group[[patID]][t,EVENT.list.names]
