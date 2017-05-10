@@ -120,9 +120,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     for(i in seq(1,numberOfPlays)) {
       chiave <- as.character(i)
       res[[chiave]]<-play.Single()
-      # browser()
-      # costruisci le parole
       
+      # costruisci le parole
       tempo[[chiave]]<-c(0)
       data.ora.tm2 <- as.POSIXct("01/01/2000 00:00:01", format = "%d/%m/%Y %H:%M:%S")
       data.ora[[chiave]] <- c( as.character(data.ora.tm2)  )
@@ -203,33 +202,16 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     big.csv<-c()
     ct <- 1
     
-    # for(i in names(listaProcessi)) {
     for(posizione in seq(1,length(listaProcessi))) {
       
       i <- names(listaProcessi)[posizione]
-      
       numeroElementi<-length(listaProcessi[[i]])
-      # browser()
-      # ppp <- MM.den.list.high.det[[names(listaProcessi)[posizione]]][[names(listaProcessi)[posizione+1]]]
-      # max(density(ppp)$x[(cumsum(density(ppp)$y)<runif(n = 1,min = 0,max = 1) )])
-      # if(typeOfRandomDataGenerator=="dayAfterDay") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=1))
-      # if(typeOfRandomDataGenerator=="randomDay1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) )
-      # if(typeOfRandomDataGenerator=="randomWeek1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) * 7)
-      # if(typeOfRandomDataGenerator=="randomMonth1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) * 30)
-      
-      # matrice<-cbind(rep(ct,numeroElementi),listaProcessi[[i]],rep("01/01/1999",numeroElementi),rep(as.character(lista.validi[ct]),numeroElementi) )
-      # array.Date <- as.character(format(as.Date("01/01/2000",format="%d/%m/%Y") + seq(1,numeroElementi) ,format="%d/%m/%Y") )
-      # browser()
       array.Date <- data.ora[[i]]
-      # array.Date <- as.character(format(as.Date("01/01/2000",format="%d/%m/%Y %H:%M:%S") + cumsum(giorni.da.sommare) ,format="%d/%m/%Y %H:%M:%S") )
       matrice<-cbind(rep(ct,numeroElementi),listaProcessi[[i]],array.Date,rep(as.character(lista.validi[ct]),numeroElementi) )
       big.csv<-rbind(big.csv,matrice )
       ct <- ct + 1
     }
-    # cat("\n",dim(big.csv))
     if(!is.null(dim(big.csv))) {
-      # cat("\n DIM(big.csv)=",dim(big.csv))
-      # if(dim(big.csv)[2]==1) browser()
       colnames(big.csv)<-c("patID","event","date","valido")
     }
     return(big.csv)
@@ -276,7 +258,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     bb[ which(bb<=threshold,arr.ind = T) ]<-0
     for( i in seq( 1 , nrow(aa)) ) {if(sum(aa[i,])>0)  {aa[i,]<-aa[i,]/sum(aa[i,]);} } 
     MMatrix.perc<<-aa ; MMatrix<<-bb
-    # browser()
     grafo<-build.graph.from.table( MM = MMatrix.perc, threshold  = threshold)
     
     model.grViz<<-grafo;
@@ -284,25 +265,28 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   #===========================================================
   # replay
   #===========================================================
-  replay<-function( dataList , debugMode = FALSE, col.toCheckPerformances=NA ) {
+  replay<-function( dataList ,  col.toCheckPerformances=NA ) {
     res<-list()
     res$words<-list()
     res$success<-c()
     declared.correctness<- c()
-    if(debugMode == TRUE) browser()
+    
+    if( !is.na(col.toCheckPerformances) )  {
+      if( !(col.toCheckPerformances %in% colnames(dataList$pat.process[[1]])) ) {
+        obj.log$sendLog( msg = c("The indicated column name (in 'col.toCheckPerformances') does not exist in the dataset!")  ,type="ERR");
+        return();
+      }
+    }
+    
     for(patId in names(dataList$pat.process)) {
       parola <- unlist(dataList$pat.process[[patId]][[dataList$csv.EVENTName]])
       parola <- c("BEGIN",parola)
       success <- TRUE;
       path.attuale<-c()
-      # if(patId==82) browser()
       for( caratt.i in seq(1,(length(parola)-1)) ) {
-        # if( parola[ caratt.i  ] =="RX" & parola[ caratt.i+1 ] =="RX" ) browser()
         caratt.s <- parola[ caratt.i  ]
         if(!(caratt.s %in% colnames(MMatrix.perc))) { success = FALSE; break; }
         if(!(parola[ caratt.i +1 ] %in% colnames(MMatrix.perc))) { success = FALSE; break; }
-        
-        # jump.prob <- dataList$MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
         
         jump.prob <- MMatrix.perc[ parola[ caratt.i  ], parola[ caratt.i+1 ]  ]
         if(jump.prob>0) path.attuale <- c(path.attuale,parola[ caratt.i  ])
@@ -372,7 +356,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     
     lista.nodi <- colnames(MMatrix.perc)
     nodi.raggiunti <- unique(c(nodi.raggiunti,nodoAttuale))
-     # browser()
     for( nodoDestinazione in lista.nodi) {
       if( !(nodoDestinazione %in% nodi.raggiunti ) & MMatrix.perc[nodoAttuale,nodoDestinazione]>0) {
         aa <- findReacheableNodes.recursiveLoop( nodoAttuale = nodoDestinazione , 
@@ -480,7 +463,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     if( timeAttuale > maxTime & (statoAttuale!=statoGoal) ) {
       return( 1 );
     }  
-    # MMPerc<-getAttribute(attributeName = matriceDaConsiderare)
     if( killAutoLoop == FALSE ) { MMPerc<-MMatrix.mean.time; MMProb<-MMatrix.perc }
     if( killAutoLoop == TRUE ) { stop("Not yet implemented err.cod -hg85h78g4578") }
     prob<-0; 
@@ -554,7 +536,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     if( stepAttuale == maxNumStep & (statoAttuale!=statoGoal) ) {
       return( 0 );
     }  
-    # MMPerc<-getAttribute(attributeName = matriceDaConsiderare)
     if( killAutoLoop == FALSE ) MMPerc<-MMatrix.perc
     if( killAutoLoop == TRUE ) MMPerc<-MMatrix.perc.noLoop
     prob<-0; 
@@ -576,7 +557,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     res<-c();
     if(!is.null(parameters$considerAutoLoop)) considerAutoLoop<-parameters$considerAutoLoop
     else considerAutoLoop<-TRUE  
-# browser()
     if ( !("END" %in% findReacheableNodes(nodoDiPatenza = "BEGIN") )) {
       cat("\n WARNING: END is not reacheable from 'BEGIN'! Maybe the threshold is too high? ")
       return(c() ) ;
@@ -586,24 +566,18 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     # da maneggiare (almeno come nome)
     if ( considerAutoLoop == TRUE) MM<-MMatrix.perc
     else MM<-MMatrix.perc.noLoop
-    # cat("\n iniziato un single play")
     statoAttuale<-"BEGIN"
     while( statoAttuale != "END") {
-      # print(statoAttuale)
       sommaCum<-cumsum(MM[statoAttuale,])
       dado<-runif(n = 1,min = 0,max = 0.99999999999999)
-      # dado<-runif(n = 1,min = 0,max = max(sommaCum)-0.00001)
       posizione<-which( (cumsum(MM[statoAttuale,])-dado)>=0  )[1]
       nuovoStato<-colnames(MM)[posizione]
-      # cat("\n",nuovoStato)
       if(is.na(nuovoStato)) browser()
       if ( ("END" %in% findReacheableNodes(nodoDiPatenza = nuovoStato) )) {
         res<-c(res,statoAttuale)
         statoAttuale<-nuovoStato
       }
-      
 
-      # cat("\n ------------------------------------------\n ",res)
     }
     res<-c(res,"END")
     res<-res[ which( !(res %in%  c('BEGIN','END') ))    ] 
@@ -619,10 +593,8 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     # prendi la lista dei nomi
     listaNodi<-colnames(MM)
     # la lista dei nodi raggiungibili da BEGIN
-    #listaNodiFromBegin<-listaNodi[which(MM["BEGIN",]!=threshold)]
     listaNodiFromBegin<-listaNodi[which(MM["BEGIN",]>threshold)]
     # la lista dei nodi che vanno a END
-    #listaNodiToEnd<-listaNodi[which(MM[,"END"]!=threshold)]
     listaNodiToEnd<-listaNodi[which(MM[,"END"]>threshold)]
     
     rigaBEGIN<-''
@@ -637,20 +609,17 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     
     stringaNodiComplessi<-''
     for(i in seq(1,nrow(MM))) {
-      #listaNodiRiga<-listaNodi[which(MM[i,]!=threshold)]
       listaNodiRiga<-listaNodi[which(MM[i,]>=threshold)]
       if(length(listaNodiRiga)>0) {
         for( ct in seq(1,length(listaNodiRiga))) {
 
           peso<-round(as.numeric(MM[i, listaNodiRiga[ct]]),digits = 2)
-          # if(peso==0) peso = 0.01
           penwidth<- peso*3 + 0.01
           if(penwidth<0.4) penwidth=0.4
           fontSize = 5+peso*9
           colore = as.integer(100-(30+peso*70))
           if( type.of.graph == "overlapped") {
             second.peso<-round(as.numeric(second.MM[i, listaNodiRiga[ct]]),digits = 2)
-            # if(second.peso==0) second.peso = 0.01
             if( abs(peso - second.peso) >= threshold.second.MM ) {
               delta.peso<-round(as.numeric((peso - second.peso)),digits = 2)
               penwidth<- max(peso,abs(delta.peso))*3 + 0.01
@@ -700,17 +669,14 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
              ",stringaNodiComplessi,"
     }"), collapse='')       
     return(a)
-    #model.grViz<<-a;
-    #    model.XML<<-strutturaXML    
+
   }   
   old.build.graph.from.table<-function(MM, threshold, second.MM = NA, threshold.second.MM=.3) {
     # prendi la lista dei nomi
     listaNodi<-colnames(MM)
     # la lista dei nodi raggiungibili da BEGIN
-    #listaNodiFromBegin<-listaNodi[which(MM["BEGIN",]!=threshold)]
     listaNodiFromBegin<-listaNodi[which(MM["BEGIN",]>threshold)]
     # la lista dei nodi che vanno a END
-    #listaNodiToEnd<-listaNodi[which(MM[,"END"]!=threshold)]
     listaNodiToEnd<-listaNodi[which(MM[,"END"]>threshold)]
     
     rigaBEGIN<-''
@@ -725,7 +691,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     
     stringaNodiComplessi<-''
     for(i in seq(1,nrow(MM))) {
-      #listaNodiRiga<-listaNodi[which(MM[i,]!=threshold)]
       listaNodiRiga<-listaNodi[which(MM[i,]>threshold)]
       if(length(listaNodiRiga)>0) {
         for( ct in seq(1,length(listaNodiRiga))) {
@@ -741,7 +706,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
           }
         }
       }
-      #      stringaNodiComplessi<-paste( c(stringaNodiComplessi, "\n"), collapse='') 
     }
     listaNodiToPrint<-''
     for(i in seq(1,length(listaNodi))) {
@@ -774,8 +738,6 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
              ",stringaNodiComplessi,"
     }"), collapse='')       
     return(a)
-    #model.grViz<<-a;
-    #    model.XML<<-strutturaXML    
   }   
   #===========================================================
   # distanceFrom.default
