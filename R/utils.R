@@ -24,8 +24,8 @@ utils<-function() {
   }
   cleanUTF <- function( dati , colonna.evento , def.val.to.substitute = 95 ){
     # cat("clearing non UTF-8 characters...")
+    # browser()
     for (riga in 1:nrow(dati)){
-      # browser()
       arr <- as.numeric(charToRaw(x = as.character(dati[riga,colonna.evento]) ))
       arr[ which(arr > 127)]<-def.val.to.substitute 
       dati[riga,colonna.evento] <- intToUtf8(arr)
@@ -98,7 +98,8 @@ dataProcessor<-function() {
   buildMMMatrices.and.other.structures<-function(mydata, EVENT.list.names, 
                                                  EVENTName, EVENTDateColumnName=NA, 
                                                  ID.act.group,
-                                                 max.char.length.label = 50) {
+                                                 max.char.length.label = 50,
+                                                 verbose.mode = TRUE) {
 
     # costruisci la matrice
     MM<-matrix(0, ncol=length(unique(mydata[[EVENT.list.names]]))+2, nrow=length(unique(mydata[[EVENT.list.names]]))+2 )
@@ -123,9 +124,9 @@ dataProcessor<-function() {
    
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
     # per ogni paziente
-    pb <- txtProgressBar(min = 0, max = length(ID.act.group), style = 3)
+    if( verbose.mode == TRUE ) pb <- txtProgressBar(min = 0, max = length(ID.act.group), style = 3)
     for(patID in seq(1,length(ID.act.group))) {
-      setTxtProgressBar(pb, patID)
+      if( verbose.mode == TRUE ) setTxtProgressBar(pb, patID)
       # su ogni elemento del percorso clinico
       # t e' il "tempo" in senso di "step"
       for(t in seq(1,nrow(ID.act.group[[patID]]))) {
@@ -175,7 +176,7 @@ dataProcessor<-function() {
         MM.den.list.high.det[[ int.from]][[ int.to ]]<-c(MM.den.list.high.det[[ int.from]][[ int.to ]],delta.tempo)
       }
     }
-    close(pb)
+    if( verbose.mode == TRUE ) close(pb)
     quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
 
     # Calcola la matrice delle medie dei tempi

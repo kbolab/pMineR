@@ -73,10 +73,9 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   #=================================================================================
   # getTranslation
   #=================================================================================   
-  getTranslation<-function(  column.name , dict.name = 'main') {
+  getTranslation<-function(  column.name , dict.name = 'main', toReturn="csv") {
     # Se era stato indicato un dizionario (e la relativa colonna) caricalo
     # e popola una colonna aggiuntiva
-    
     new.myData<-c()
     for(idPaz in names(pat.process)) {
       matrice<-pat.process[[idPaz]]
@@ -100,7 +99,15 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
         
       new.myData <- rbind(new.myData,matrice)
     }
-    return(new.myData)
+    if(toReturn=="csv") { daRestituire <- new.myData  }
+    if(toReturn=="dataLoader"){
+      # Istanzia un oggetto dataLoader che eridita il parametro "verbose"
+      daRestituire<-dataLoader()
+      daRestituire$load.data.frame(mydata = new.myData,
+                                   IDName = param.IDName,EVENTName = param.EVENTName,
+                                   dateColumnName = param.dateColumnName,format.column.date = "%d/%m/%Y %H:%M:%S")      
+    }    
+    return(daRestituire)
   }
   #=================================================================================
   # ricalcolaCSV
@@ -119,12 +126,13 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     else {ID.Pazienti.Validi <- names(pat.process)[ !( names(pat.process) %in% array.pazienti.to.remove )  ]  }
     
     # loopa
-    if(verbose.mode == TRUE) obj.LH$sendLog(" 0) Cleaning original dataset :\n")
-    pb <- txtProgressBar(min = 0, max = length(ID.Pazienti.Validi), style = 3)
+    if(param.verbose == TRUE) obj.LH$sendLog(" 0) Cleaning original dataset :\n")
+    if(param.verbose == TRUE) pb <- txtProgressBar(min = 0, max = length(ID.Pazienti.Validi), style = 3)
     pb.ct <- 1
     for(patID in ID.Pazienti.Validi  ) {
       
-      pb.ct <- pb.ct + 1; setTxtProgressBar(pb, pb.ct)
+      pb.ct <- pb.ct + 1; 
+      if(param.verbose == TRUE) setTxtProgressBar(pb, pb.ct)
       
       if(length(array.events.to.remove)>0) {
         submatrix <- pat.process[[patID]][ which( !(pat.process[[patID]][ ,param.EVENTName ] %in% array.events.to.remove  )), param.column.names]
@@ -138,7 +146,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
 
       matriciona <- rbind( matriciona, submatrix ) 
     }
-    close(pb)
+    if(param.verbose == TRUE) close(pb)
     
     return(matriciona)
   }
@@ -275,16 +283,17 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     ID.list<-unique(mydata[[ID.list.names]])
     ID.act.group<-list();
     paziente.da.tenere<-c()
-    pb <- txtProgressBar(min = 0, max = length(ID.list), style = 3)
+    if(param.verbose == TRUE) pb <- txtProgressBar(min = 0, max = length(ID.list), style = 3)
     pb.ct <- 0
     for(i in ID.list) {
       
-      pb.ct <- pb.ct + 1; setTxtProgressBar(pb, pb.ct)
+      pb.ct <- pb.ct + 1; 
+      if( param.verbose == TRUE ) setTxtProgressBar(pb, pb.ct)
       # prendi i soli record che afferiscono al paziente in esame
       ID.act.group[[i]]<-mydata[ which(mydata[[ID.list.names]]==i  ), ]
       if(nrow(ID.act.group[[i]])>2) {paziente.da.tenere <- c(paziente.da.tenere,i) }
     }    
-    close(pb)
+    if(param.verbose == TRUE) close(pb)
     return(
       list(
         "ID.act.group" = ID.act.group,
@@ -307,10 +316,10 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   order.list.by.date<-function(   listToBeOrdered, dateColumnName, deltaDate.column.name='pMineR.deltaDate', 
                                   format.column.date = "%d/%m/%Y %H:%M:%S" ) {
 
-    pb <- txtProgressBar(min = 0, max = length(listToBeOrdered), style = 3)
+    if(param.verbose == TRUE) pb <- txtProgressBar(min = 0, max = length(listToBeOrdered), style = 3)
     # Cicla per ogni paziente
     for( paziente in seq(1,length(listToBeOrdered)) ) {
-      setTxtProgressBar(pb, paziente)
+      if( param.verbose == TRUE ) setTxtProgressBar(pb, paziente)
       # Estrai la matrice
       matrice.date<-listToBeOrdered[[paziente]]
       # Leggi la colonna data secondo la formattazione indicata in ingresso e riscrivila nel formato %d/%m/%Y (lo stesso viene fatto in plot.Timeline)
@@ -326,7 +335,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
       # Ordina il data.frame di ogni paziente per la colonna DeltaT
       listToBeOrdered[[paziente]]<-listToBeOrdered[[paziente]][order(listToBeOrdered[[paziente]][[deltaDate.column.name]]),]
     }
-    close(pb)
+    if(param.verbose == TRUE) close(pb)
     return(listToBeOrdered);
   } 
   load.data.frame<-function( mydata, IDName, EVENTName, dateColumnName=NA, 
@@ -336,7 +345,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     obj.Utils <- utils()
     clearAttributes( );
     param.column.names<<-colnames(mydata)
-    
+    # browser()
     # aaaaaaa <- mydata
     if(length(mydata[[dateColumnName]]) == 0) { obj.LH$sendLog( c("dateColumnName '",dateColumnName,"' not present! ")  ,"ERR"); return() }
     if(length(mydata[[EVENTName]]) == 0) { obj.LH$sendLog( c("EVENTName '",EVENTName,"' not present! ")  ,"ERR"); return() }
@@ -409,7 +418,8 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
                                                                   EVENTName = EVENTName,
                                                                   EVENTDateColumnName = param.dateColumnName,
                                                                   ID.act.group = ID.act.group,
-                                                                  max.char.length.label = param.max.char.length.label
+                                                                  max.char.length.label = param.max.char.length.label,
+                                                                  verbose.mode = param.verbose 
                                                                   )
     if(res$error == TRUE) { 
       if(res$errCode == 1) {obj.LH$sendLog( "event '' (BLANK) detected, please check the file\n"  ,"ERR"); return()}
