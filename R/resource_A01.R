@@ -170,6 +170,8 @@ resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
   #===========================================================    
   getTimeResourceAllocation<-function(  UM="mins" ) {
     
+    cat("\n ATTENZIONE: Si tratta solo di un campionamento, al tempo di interesse! Procedura che sarebbe opportuno rivedere...")
+    
     if(UM %in% names(cache.getTimeResourceAllocation)) {
       return(cache.getTimeResourceAllocation[[UM]])
     }
@@ -288,6 +290,7 @@ resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
     if( what == "raw.events" ) return(dataStorage$raw.events);
     if( what == "events.attributes" ) return(dataStorage$events.attributes);
   }    
+
   #===========================================================
   # costructor
   # E' il costruttore della classe
@@ -316,7 +319,8 @@ resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
     "getTimeResourceAllocation"=getTimeResourceAllocation,
     "getResourceAllocationAtTime"=getResourceAllocationAtTime,
     "plotTimeResourceAllocation"=plotTimeResourceAllocation,
-    "plotOccupationProbability"=plotOccupationProbability
+    "plotOccupationProbability"=plotOccupationProbability,
+    "help"=help
   ) )  
 }
 

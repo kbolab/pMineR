@@ -77,7 +77,16 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     # Se era stato indicato un dizionario (e la relativa colonna) caricalo
     # e popola una colonna aggiuntiva
     new.myData<-c()
+    
+    if(param.verbose == TRUE) obj.LH$sendLog(" 1) Converting the Events for all the patients :\n")
+    if(param.verbose == TRUE) pb <- txtProgressBar(min = 0, max = length(names(pat.process)), style = 3)
+    pb.ct <- 0
+    
     for(idPaz in names(pat.process)) {
+      
+      pb.ct <- pb.ct + 1; 
+      if(param.verbose == TRUE) setTxtProgressBar(pb, pb.ct)
+      
       matrice<-pat.process[[idPaz]]
       names(matrice)<-names(pat.process[[idPaz]])
       
@@ -87,20 +96,24 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
         # prendi la voce corrispondente al nome dell'evento
         column.event.name<-list.dict.column.event.name[[ dict.name ]] 
         arrPosizioniTMP<-which(list.dictionary[[ dict.name ]][[ column.event.name ]]==x )
-        if(length(arrPosizioniTMP)>1) stop("ERRORE::: RIGA RIPETUTA NEL DIZIONARIO!")
+        if(length(arrPosizioniTMP)>1) stop("Error! an Event is associated to more possible new Event names!")
         # e sostituisci
 
         if(length(arrPosizioniTMP)==0) return( "" )
         else return(as.character( list.dictionary[[ dict.name ]][[ column.name ]][arrPosizioniTMP])  )
       }  ))   
-      if(param.verbose==TRUE) cat("\n",idPaz)
+      # if(param.verbose==TRUE) cat("\n Grouping now the events of the patient: ",idPaz)
       matrice[[param.EVENTName]] <- bbb
       matrice <- matrice[  which(matrice[[param.EVENTName]]!="") ,   ]
         
       new.myData <- rbind(new.myData,matrice)
     }
+    
+    if(param.verbose == TRUE) close(pb)
+    
     if(toReturn=="csv") { daRestituire <- new.myData  }
     if(toReturn=="dataLoader"){
+      if(param.verbose == TRUE) obj.LH$sendLog(" 2) Create a new dataLoader object  (this splits in many steps) :\n")
       # Istanzia un oggetto dataLoader che eridita il parametro "verbose"
       daRestituire<-dataLoader()
       daRestituire$load.data.frame(mydata = new.myData,

@@ -57,6 +57,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   notebook <- list()            # internal notebook for events-log
   tmpAttr <- list()
   play.output.format.date <- ""
+  list.computation.matrix<-list()    # lista che contiene i risultati di una computazione
   
   param.verbose <- c()
   obj.LogHandler<-c()               # gestore dei messaggi
@@ -176,13 +177,32 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # browser()
     # if(timeUM != "dmy") obj.LogHandler$sendLog(msg = "'timeUM can be only set to 'dmy', in this version of confCheck_easy::replay();", type="NMI")
     
+    # browser()
+    # Ricrea la struttura di matrici che conterranno l'esito della computazione
+    arr.nodi.end <- str_replace_all(string = WF.struct$info$arr.nodi.end, pattern  = "'",replacement = "")
+    list.computation.matrix$trigger <<- matrix(0,ncol = length(names(WF.struct$info$trigger)),nrow = length(names(dataLog$pat.process)))
+    list.computation.matrix$stati.transizione <<- matrix(0, ncol=length(names(WF.struct$info$stati)),nrow = length(names(dataLog$pat.process)))
+    # list.computation.matrix$stati.finali <<- matrix(0,ncol = length(WF.struct$info$arr.nodi.end), nrow = length(names(dataLog$pat.process)))
+    list.computation.matrix$stati.finali <<- matrix(0, ncol=length(names(WF.struct$info$stati)),nrow = length(names(dataLog$pat.process)))
+    
+    colnames(list.computation.matrix$stati.transizione)<<-names(WF.struct$info$stati)
+    colnames(list.computation.matrix$trigger)<<-names(WF.struct$info$trigger)
+    # colnames(list.computation.matrix$stati.finali)<<-arr.nodi.end
+    colnames(list.computation.matrix$stati.finali)<<-names(WF.struct$info$stati)
+    rownames(list.computation.matrix$stati.transizione) <<- names(dataLog$pat.process)
+    rownames(list.computation.matrix$trigger) <<- names(dataLog$pat.process)
+    rownames(list.computation.matrix$stati.finali) <<- names(dataLog$pat.process)
+    
+
+    
+    
     # clear the notebook
     notebook <<- list()
     # and begin to note!
     addNote(msg = "\n<xml>")
     # Per ogni paziente
     for( indice in names(dataLog$wordSequence.raw)) {
-      
+
       if(dim(dataLog$pat.process[[ indice ]])[1]>0) {
         
         if(param.verbose == TRUE) cat("\n Doing:",indice)
@@ -194,10 +214,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                    col.dateName = dataLog$csv.dateColumnName , 
                                    IDPaz = indice,
                                    event.interpretation = event.interpretation,
-                                   date.format = dataLog$csv.date.format, UM = UM )
+                                   date.format = dataLog$csv.date.format, UM = UM, store.computation.matrix= TRUE )
         # browser()
         if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
         addNote(msg = "\n\t\t<atTheEnd>")
+        # browser()
+        ultimi.stati.computatzione <- unique(str_replace_all(string = res$st.ACTIVE,pattern = "'",replacement = ""))
+        
+        list.computation.matrix$stati.finali[ indice, ultimi.stati.computatzione ] <<- 1
+        
         for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
         for(i in res$last.fired.trigger) addNote(msg = str_c("\n\t\t\t<last.fired.trigger name='",i,"'></last.fired.trigger>"))
         addNote(msg = "\n\t\t</atTheEnd>")
@@ -213,11 +238,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # get.list.replay.result (ex getPlayedSequencesStat.00)
   # Ops! Non ricordo piu' nemmeno io cosa fa questa funzione.....
   #===========================================================      
-  get.list.replay.result<-function( ) {
+  get.list.replay.result<-function( csv.EventLog.inAddition = FALSE  ) {
     list.fired.trigger<-list()
     list.final.states<-list() 
     termination.END.states<-list()
     arr.nodi.end<-c()
+    csv.EventLog<-c()
 
     # prendo la lista dei nodi END
     arr.nodi.end <- WF.struct[[ "info" ]][[ "arr.nodi.end" ]]
@@ -228,7 +254,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     array.fired.trigger<-c()
     final.states<-c()
     fired.trigger<-c()
- # browser()
+  # browser()
     for( i in arr.Computazioni) {
       arr.step<-unlist(xpathApply(doc,paste(c('//xml/computation[@n="',i,'"]/step'),collapse = ""),xmlGetAttr,"n"))
       
@@ -255,10 +281,20 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       else { termination.END.states[[i]] <- FALSE }
     }
     
+    if( csv.EventLog.inAddition == TRUE ) {
+      for( nomePaziente in names(list.computation.matrix$stati.timeline)) {
+        csv.EventLog <- rbind(csv.EventLog,
+                              cbind(rep(nomePaziente,nrow(list.computation.matrix$stati.timeline[[nomePaziente]])),list.computation.matrix$stati.timeline[[nomePaziente]] ))
+      }
+      colnames(csv.EventLog)<-c("idPatient","event","event.status","eventDateTime","deltaTimeFromBegin")
+    }
+    
     return(list(
       "list.fired.trigger"=list.fired.trigger,
       "list.final.states"=list.final.states,
-      "termination.END.states"=termination.END.states
+      "termination.END.states"=termination.END.states,
+      "list.computation.matrix"=list.computation.matrix,
+      "csv.EventLog"=csv.EventLog
     ))
   }
   # incrementa.tempo<-function( tempo , timeDetail )   {
@@ -274,7 +310,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # di LOG (di un paziente)
   #===========================================================    
   playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz, 
-                                event.interpretation="soft" , date.format="%d/%m/%Y %H:%M:%S", UM="days") {
+                                event.interpretation="soft" , date.format="%d/%m/%Y %H:%M:%S", UM="days",
+                                store.computation.matrix = FALSE) {
     # Cerca lo stato che viene triggerato dal BEGIN
     st.LAST<-""
     st.DONE<-c("")
@@ -299,7 +336,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     # Analizza TUTTI gli eventi della sequenza
     for( indice.di.sequenza in seq(1,length(sequenza) )) {
-
+      
       # due variabili comode per dopo
       ev.NOW <- sequenza[indice.di.sequenza]
       indice.di.sequenza.ch <- as.character(indice.di.sequenza)
@@ -325,7 +362,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         while(  as.numeric(difftime(as.POSIXct(data.finale, format = date.format),
                                     as.POSIXct(data.attuale, format = date.format),units = 'mins')) > 0 ) {
 
-          
+          # cat(c("\n\t\t data.attuale = ",data.attuale))
           if(UM=="mins")
             data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + min(1),format = date.format)
           if(UM=="days")
@@ -335,15 +372,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           if(UM=="weeks")
             data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + weeks(1),format = date.format)
           
-          
-                    
-          # cat("\n =========================================== \n Data Attuale ",data.attuale)
-          # cat("\n st.ACTIVE.time = ",st.ACTIVE.time)
-          # browser()
-            # continua a ripetere fino a che per quel giorno non ci sono più trigger
-            # Setta a FALSE la variabile per uscire dal loop
-            # Cerca se c'è un trigger per questa data
-          # browser()
             newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE, 
                                       st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                       st.ACTIVE.time.cum = st.ACTIVE.time.cum,
@@ -359,7 +387,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
               ct <- ct + 1
               
               # gestisci il log
-              newNote();
+              newNote(store.computation.matrix = store.computation.matrix,idPatient = IDPaz);
               note.setStep(number = ct)              
               note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
               note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
@@ -377,16 +405,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
               st.ACTIVE.time [ stati.da.resettare ] <- 0  
 
             }            
-
-            # if(UM=="mins")
-            #   data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + min(1),format = date.format)
-            # if(UM=="days")
-            #   data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + days(1),format = date.format)
-            # if(UM=="hours")
-            #   data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + hours(1),format = date.format)
-            # if(UM=="weeks")
-            #   data.attuale <- format(as.POSIXct(data.attuale,format=date.format) + weeks(1),format = date.format)
-            
             # Aggiungi il delta data a quelli da aggiornare
             st.ACTIVE.time.cum [ stati.da.uppgradare ] <- st.ACTIVE.time.cum [ stati.da.uppgradare ] + 1
             st.ACTIVE.time [ stati.da.uppgradare ] <- st.ACTIVE.time [ stati.da.uppgradare ] + 1
@@ -399,9 +417,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
             st.ACTIVE.time [ stati.da.resettare ] <- 0 
         }
       }
-      # browser()
-      # cat("\n NOW PROCESSING: ",unlist(matriceSequenza[ indice.di.sequenza, c("event","date")]))
-      # browser()
+
       # Azzera il tempo di eventuali stati che sono stati resettati
       stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
       stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
@@ -414,12 +430,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       data.ev.NOW <- matriceSequenza[ riga ,col.dateName ]
       ct <- ct + 1
       # gestisci il log
-      newNote();
+      newNote(store.computation.matrix = store.computation.matrix,idPatient = IDPaz);
       note.setStep(number = ct)
       if("pMineR.internal.ID.Evt" %in% colnames(matriceSequenza))
-      {note.setEvent(eventType = ev.NOW, eventDate =  data.ev.NOW , pMineR.internal.ID.Evt = matriceSequenza[riga,"pMineR.internal.ID.Evt"])}
-      else 
-      {note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW )}
+      {
+        note.setEvent(eventType = ev.NOW, eventDate =  data.ev.NOW , pMineR.internal.ID.Evt = matriceSequenza[riga,"pMineR.internal.ID.Evt"])
+      }
+      else  {
+        note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW )
+      }
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
       # Cerca chi ha soddisfatto le precondizioni
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, 
@@ -435,7 +454,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         note.flush()
         return( list( "st.ACTIVE"=st.ACTIVE,"error"=error,"last.fired.trigger" = last.fired.trigger , "date" = data.ev.NOW   ) );
       }
-      
+
       # Se hai rilevato dei trigger attivi
       if(length(newHop$active.trigger)!=0) {
         note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
@@ -463,9 +482,16 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # vedere i trigger che si possono eventualmente attivare a seguito di 
       # pregressi triggers.
       devo.restare.in.trigger.loop<-TRUE
+      list.to.avoid.inifinte.loop <- list()
+      index.inf.loop <- 1
+      sono.in.un.loop.infinito <- FALSE
+      # cat("\n ---- ORPO")
       # Continua a loopare fino a che e' vero che qualche trigger e' scattato
       while(  devo.restare.in.trigger.loop == TRUE & sum(arr.nodi.end %in% st.ACTIVE) == 0 ) {
+        
 
+        # if( IDPaz =="PSHAP00120160004501") browser()
+        
         # Azzera il tempo di eventuali stati che sono stati resettati
         stati.da.uppgradare <- str_replace_all(st.ACTIVE [ !(st.ACTIVE %in% c("'BEGIN'","'END")) ],"'", "")
         stati.da.resettare <- lista.stati.possibili[ !(lista.stati.possibili %in% stati.da.uppgradare) ]
@@ -479,10 +505,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         # inzializza il log in caso di errore o in caso di trigger
         if(newHop$error==TRUE | length(newHop$active.trigger)!=0) {
           ct <- ct + 1
-          newNote();
+          newNote(store.computation.matrix = store.computation.matrix,idPatient = IDPaz);
           note.setStep(number = ct)
           note.setEvent(eventType = '', eventDate = data.ev.NOW, pMineR.internal.ID.Evt = '')
           note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
+          # list.to.avoid.inifinte.loop[ index.inf.loop ] <- list( "st.ACTIVE"=st.ACTIVE, "")
+          # index.inf.loop <- index.inf.loop + 1
         }
         # Se c'e' un errore, ferma tutto
         if(newHop$error==TRUE) {
@@ -492,14 +520,36 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         }
         # Se hai rilevato qualche trigger attivo
         if(length(newHop$active.trigger)!=0)  {
-          note.setEvent(eventType = '', eventDate = data.ev.NOW, pMineR.internal.ID.Evt = '' )
-          note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
-          note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
-          note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
-          st.ACTIVE <- newHop$st.ACTIVE
-          last.fired.trigger<-newHop$active.trigger
-          # e fai il flush
-          note.flush()          
+          # verifica che la lista dei nodi attivi ed trigger non siano già avvenuto Se no, rischio un loop infinito
+          # Se non è null, significa che è già scattato in passato
+          if(!is.null(list.to.avoid.inifinte.loop[[ last.fired.trigger ]] )) {
+              for(tmptmptmp in names(list.to.avoid.inifinte.loop[[ last.fired.trigger ]])) {
+                # se la lunghezza è uguale
+                if(length(list.to.avoid.inifinte.loop[[ last.fired.trigger ]][[tmptmptmp]]) == length(newHop$st.ACTIVE)) {
+                  # e se sono TUTTI uguali
+                  if(sum(newHop$st.ACTIVE %in% list.to.avoid.inifinte.loop[[ last.fired.trigger ]][[tmptmptmp]]) == length(newHop$st.ACTIVE)) {
+                    sono.in.un.loop.infinito <- TRUE
+                  }
+                }
+              }
+          }
+          if( sono.in.un.loop.infinito == FALSE ) {
+            note.setEvent(eventType = '', eventDate = data.ev.NOW, pMineR.internal.ID.Evt = '' )
+            note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
+            note.set.fired.trigger(array.fired.trigger = newHop$active.trigger)
+            note.set.st.ACTIVE.POST(array.st.ACTIVE.POST = newHop$st.ACTIVE)
+            st.ACTIVE <- newHop$st.ACTIVE
+            last.fired.trigger<-newHop$active.trigger
+            # e fai il flush
+            note.flush()     
+            
+            # aggiorna la lista che contiene i trigger eseguiti e le condizioni si stato così da poterla poi confrontare
+            # in futuro. Se non lo facessi, rischiei un loop infinito
+            
+            if( is.null(list.to.avoid.inifinte.loop[[ last.fired.trigger ]] )) list.to.avoid.inifinte.loop[[ last.fired.trigger ]]<-list()
+            list.to.avoid.inifinte.loop[[ last.fired.trigger ]][[as.character(length(list.to.avoid.inifinte.loop[[ last.fired.trigger ]])+1) ]] <-  st.ACTIVE
+          }
+          else devo.restare.in.trigger.loop<-FALSE
         }
         # altrimenti (se non ci sono stati trigger, vedi di uscire dal loop)
         else devo.restare.in.trigger.loop<-FALSE
@@ -519,14 +569,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       
     }
     
-    # browser()
-    
     # Se la computazione non e', per qualche motivo, interrotta
     if( stop.computation == FALSE  & sum(arr.nodi.end %in% st.ACTIVE) == 0) {
       # Now process the EOF !!
       ct <- ct + 1
       # gestisci il log
-      newNote();
+      newNote(store.computation.matrix = store.computation.matrix,idPatient = IDPaz);
       note.setStep(number = ct)
       note.setEvent(eventType = ev.NOW, eventDate = data.ev.NOW , pMineR.internal.ID.Evt = 'EOF')
       note.set.st.ACTIVE.PRE(array.st.ACTIVE.PRE = st.ACTIVE)
@@ -563,8 +611,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         stop.computation <- TRUE 
       }
     }
-    
-    # browser() 
+
     # Ritorna
     return( list( "st.ACTIVE"=st.ACTIVE,
                   "error"=error,
@@ -646,10 +693,14 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           # aggiungi le righe alla matrice che definisce le azioni
           # browser()
           for(i in seq(1,length(array.to.set))) {
-            tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.set[i],"set",pri  )   )
+            if(!is.null(array.to.set)) {
+              tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.set[i],"set",pri  )   )
+            }
           }
           for(i in seq(1,length(array.to.unset))) {
-            tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.unset[i],"unset",pri  )   )
+            if(!is.null(array.to.unset)) {
+              tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.unset[i],"unset",pri  )   )
+            }
           }          
 
         }
@@ -658,6 +709,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     # Se esista la tabella, verifica i conflitti di set/unset
     if(!is.null(tabella.set.unset)) {
+      
       res <- check.conflitti.set.unset( tabella = tabella.set.unset )
       
       # Ora non dimenticare eventuali stati già presenti!
@@ -794,24 +846,27 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                end = subMatrix.nomeStato[ nrow(subMatrix.nomeStato), "start"]-1)
           # browser()
           # Ora fai due riflessioni...
+          if(comandoToCheck == "afmtm") { esito = st.ACTIVE.time[ nomeStato ] > (quantita) }
+          if(comandoToCheck == "afmetm") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita) }          
           if(comandoToCheck == "afmth") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 ) }
           if(comandoToCheck == "afmeth") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 ) }
           if(comandoToCheck == "afmtd") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24) }
           if(comandoToCheck == "afmetd") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24) }
           if(comandoToCheck == "afmtw") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24 * 7) }
           if(comandoToCheck == "afmetw") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24 * 7) }
-          if(comandoToCheck == "afmtm") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24 * 30) }
-          if(comandoToCheck == "afmetm") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24 * 30) }
+          # if(comandoToCheck == "afmtm") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24 * 30) }
+          # if(comandoToCheck == "afmetm") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24 * 30) }
 
-          
+          if(comandoToCheck == "afltm") { esito = st.ACTIVE.time[ nomeStato ] < (quantita) }
+          if(comandoToCheck == "afletm") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita) }    
           if(comandoToCheck == "aflth") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 ) }
           if(comandoToCheck == "afleth") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 ) }
           if(comandoToCheck == "afltd") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24) }
           if(comandoToCheck == "afletd") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24) }
           if(comandoToCheck == "afltw") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24 * 7) }
           if(comandoToCheck == "afletw") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24 * 7) }  
-          if(comandoToCheck == "afltm") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24 * 30) }
-          if(comandoToCheck == "afletm") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24 * 30) }    
+          # if(comandoToCheck == "afltm") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24 * 30) }
+          # if(comandoToCheck == "afletm") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24 * 30) }    
 
           # cat("\n ",st.ACTIVE.time[ nomeStato ], "  quantita = ",quantita )
           # if( esito == TRUE ) browser()
@@ -1093,6 +1148,151 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     # Distingui fra nodi end e nodi normali (questione di colore)
     arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
+    # arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
+
+  
+    
+    # Ora sistema le froceries grafiche
+    # PER I NODI
+    stringa.stati<-"node [fillcolor = Orange]"
+    stringa.stati.finali <- "node [fillcolor = Red]";
+    for(nome.stato in arr.stati.raggiungibili)  {
+      nome.stato.pulito <- str_replace_all(string = nome.stato,pattern = "'",replacement = "")
+      aa = giveBackComputationCounts(nomeElemento = nome.stato.pulito, tipo='stato', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID)
+      howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
+      penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
+      penwidth<- 1
+      colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
+      if(kindOfNumber=='relative') numberToPrint<-str_c(round(as.numeric(howMany),2)," %")
+      else numberToPrint<-str_c("# ",aa$howMany)
+      # Se non è uno stato finale
+      if(!(nome.stato %in% arr.nodi.end)) {
+        stringa.stati <- str_c(stringa.stati,"\n\t ",nome.stato," [label = '",nome.stato.pulito,"\n",numberToPrint,"', penwidth='",penwidth,"',  pencolor='Gray",colore,"']") 
+      }  
+      else {
+        stringa.stati.finali <- str_c(stringa.stati.finali,"\n\t ",nome.stato," [label = '",nome.stato.pulito,"\n",numberToPrint,"', penwidth='",penwidth,"',  pencolor='Gray",colore,"']")         
+      }
+    }
+    # PER I TRIGGER
+    lista.freq.trigger<-list()
+    stringa.trigger<-"node [fillcolor = white, shape = box ]"
+    for(nome.trigger in arr.trigger.rappresentabili)  {
+      nome.trigger.pulito <- str_replace_all(string = nome.trigger,pattern = "'",replacement = "")
+      aa = giveBackComputationCounts(nomeElemento = nome.trigger.pulito, tipo='trigger', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID )
+      howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
+      if( plot.unfired.Triggers == TRUE | (plot.unfired.Triggers==FALSE & howMany>0)) {
+        lista.freq.trigger[[nome.trigger]]<-(aa$howMany  / aa$totalNumber)
+        penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
+        penwidth<- 1
+        colore <- as.integer(100-(30+(aa$howMany  / aa$totalNumber)*70))
+        if(kindOfNumber=='relative') numberToPrint<-str_c(round(as.numeric(howMany),2)," %")
+        else numberToPrint<-str_c("# ",aa$howMany)
+        stringa.trigger <- str_c(stringa.trigger,"\n\t ",nome.trigger," [label = '",nome.trigger.pulito,"\n",numberToPrint,"', penwidth='",penwidth,"', fontcolor='Gray",colore,"']") 
+      }
+    }    
+    # STRINGA NODO FROM (ARCO)
+    stringa.nodo.from<-"\nedge [arrowsize = 1 ]"
+    for(i in seq(1,nrow(matrice.nodi.from))) {
+      val.perc<-lista.freq.trigger[[ str_c("'",matrice.nodi.from[i,2],"'") ]]
+      arrowsize<- .5 + 7 * val.perc 
+      colore <- as.integer(100-(30+val.perc*70))
+      labelArco <- str_c(round(val.perc*100,2),"%")
+      labelArco<-''
+      nuovaRiga<-str_c("\n\t",matrice.nodi.from[i,1],"->'",matrice.nodi.from[i,2],"' [label = '",labelArco,"', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"'  ]")
+      stringa.nodo.from<-c(stringa.nodo.from,nuovaRiga)
+    }
+    
+    # STRINGA NODO TO (ARCO)
+    stringa.nodo.to<-"\nedge [arrowsize = 1 ]"
+    for(i in seq(1,nrow(matrice.nodi.to))) {
+      val.perc<-lista.freq.trigger[[ str_c("'",matrice.nodi.to[i,1],"'") ]]
+      arrowsize<- .5 + 7 * val.perc      
+      colore <- as.integer(100-(30+val.perc*70))
+      labelArco <- str_c(round(val.perc*100,2),"%")
+      labelArco<-''
+      nuovaRiga<-str_c("\n\t'",matrice.nodi.to[i,1],"'->",matrice.nodi.to[i,2]," [label = '",labelArco,"', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"' ]")
+      stringa.nodo.to<-c(stringa.nodo.to,nuovaRiga)
+    }    
+    
+    a<-paste(c("digraph boxes_and_circles {
+               
+               # a 'graph' statement
+               graph [overlap = true, fontsize = 10]
+               
+               # several 'node' statements
+               node [shape = oval,
+               fontname = Helvetica,
+               style = filled]
+               node [fillcolor = green] 
+               'BEGIN'; 
+               ",stringa.stati.finali,"
+               
+               ",stringa.stati,"
+               ",stringa.trigger,"
+               
+               edge [arrowsize = 1 ]
+               # several edge
+               ",stringa.nodo.from,"
+               ",stringa.nodo.to,"
+  }"), collapse='') 
+    grViz(a);
+  }  
+  old.plot.replay.result<-function( whatToCount='activations' ,     kindOfNumber='relative', 
+                                avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c(), whichPatientID=c("*"), plot.unfired.Triggers = TRUE ) {
+    
+    arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
+    arr.stati.raggiungibili<-c();
+    arr.trigger.rappresentabili<-c();
+    stringa.nodo.from<-c()
+    stringa.nodo.to<-c()   
+    howMany<-list()
+    
+    matrice.nodi.from<-c();    matrice.nodi.to<-c()
+    # Costruisci subito la lista dei nodi plottabili (cosi' non ci penso piu')
+    # Faccio anche la lista dei nodi END
+    for(nomeStato in names(WF.struct$info$stati)) {
+      if( WF.struct$info$stati[[nomeStato]]$plotIt == TRUE) {
+        arr.st.plotIt<-c(arr.st.plotIt,str_c("'",nomeStato,"'"))
+      }
+    }
+    # prendo i nodi end
+    arr.nodi.end <- WF.struct[[ "info" ]][[ "arr.nodi.end" ]]
+    # Frulla per ogni possibile trigger, verificando se si puo' attivare
+    for( trigger.name in names(WF.struct$info$trigger) ) {
+      # Se il trigger e' plottabile
+      if(WF.struct$info$trigger[[trigger.name]]$plotIt == TRUE) {
+        
+        stringa.nodo.from<-str_c( stringa.nodo.from,"\n" )
+        stringa.nodo.to<-str_c( stringa.nodo.to,"\n" )
+        # Prendi i nodi 'unset' (from)
+        arr.nodi.from<-unlist(WF.struct$info$trigger[[trigger.name]]$unset)
+        # Prendi i nodi 'set' (to)
+        arr.nodi.to<-unlist(WF.struct$info$trigger[[trigger.name]]$set)
+        # Considera solo i nodi plottabili (from e to)
+        arr.nodi.from <- arr.nodi.from [arr.nodi.from %in% arr.st.plotIt]
+        arr.nodi.to <- arr.nodi.to [arr.nodi.to %in% arr.st.plotIt]
+        
+        if(length(arr.nodi.to)>0) {
+          # Aggiorna l'array degli stati raggiungibili (in generale)
+          # e l'array con i nomi dei trigger rappresentabili
+          arr.stati.raggiungibili <- unique(c( arr.stati.raggiungibili, arr.nodi.to, arr.nodi.from ))
+          arr.trigger.rappresentabili <- c( arr.trigger.rappresentabili, str_c("'",trigger.name,"'") )
+          
+          # Costruisci le stringhe dei nomi degli archi (from e to) con in mezzo il trigger
+          for( st.nome in arr.nodi.from ) {
+            stringa.nodo.from<-str_c( stringa.nodo.from," ",st.nome,"->'",trigger.name,"'" )
+            matrice.nodi.from <- rbind(matrice.nodi.from,c(st.nome,trigger.name))
+          }
+          for( st.nome in arr.nodi.to ) {
+            stringa.nodo.to<-str_c( stringa.nodo.to," ","'",trigger.name,"'->",st.nome )
+            matrice.nodi.to <- rbind(matrice.nodi.to,c(trigger.name,st.nome))
+          }
+        }
+      }
+    }
+    
+    # Distingui fra nodi end e nodi normali (questione di colore)
+    arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
     arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
     
     # Ora sistema le froceries grafiche
@@ -1173,7 +1373,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                ",stringa.nodo.to,"
   }"), collapse='') 
     grViz(a);
-    }  
+  }  
+  
   #===========================================================  
   # giveBackComputationCounts
   # fa la conta di quanto quello 'stato' o 'trigger' e' stato
@@ -1197,6 +1398,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     arr.Computazioni<- unlist(xpathApply(doc,'//xml/computation',xmlGetAttr,"n"))
     totalAmount <- 0 
     totalNumber <- 0
+    array.patID <- c()
     
     # Loopa per ogni computazione
     for(i in seq(1,length(arr.Computazioni))) {
@@ -1227,7 +1429,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if(sum(st.FINAL.arr %in% avoidFinalStates) >=1 | 
          sum(st.TRANSITION.ON.arr %in% avoidTransitionOnStates) >=1 |
          sum(tr.fired.arr %in% avoidToFireTrigger) >=1 )  {
-        skipComputation<-TRUE;
+            skipComputation<-TRUE;
       }
       
       if(skipComputation == TRUE) next;
@@ -1238,8 +1440,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       
       totalAmount <- totalAmount + howMany
       totalNumber <- totalNumber + 1
+      array.patID <- c(array.patID,PatientID)
     }
-    return( list( "howMany"=totalAmount,  "totalNumber"=totalNumber)  ) 
+    return( list( "howMany"=totalAmount,  "totalNumber"=totalNumber ,"array.patID" = array.patID)  ) 
   }  
   #===========================================================  
   # loadDataset
@@ -1252,12 +1455,14 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # this is a BORING serie of functions used to build the XML
   # they are a lot, so I will not comment all of them.
   #=========================================================== 
-  newNote<-function( number ){
+  newNote<-function( number , store.computation.matrix = FALSE , idPatient = NA){
     tmpAttr<<-list()
     tmpAttr$stepNumber<<-''
     tmpAttr$boolean.fired.trigger<<-FALSE
     tmpAttr$event<<-""
     tmpAttr$event.date<<-""
+    tmpAttr$store.computation.matrix <<- store.computation.matrix
+    tmpAttr$idPatient <<- idPatient
   }
   note.setStep<-function( number ){
     tmpAttr$stepNumber <<- number
@@ -1290,6 +1495,61 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     }
     testo<-str_c(testo,"\n\t\t</step>")
     addNote(msg = testo)
+    
+    # if( tmpAttr$idPatient == "PSHAP00120160004501") browser()
+    
+    # Vedi se devi aggiornare anche la lista delle matrici 
+    # con i log della computazione
+    if( tmpAttr$store.computation.matrix == TRUE ) {
+      tmp.stati.post <- str_replace_all(string = tmpAttr$st.ACTIVE.POST, pattern  = "'",replacement = "")
+      tmp.stati.pre <- str_replace_all(string = tmpAttr$st.ACTIVE.PRE, pattern  = "'",replacement = "")  
+      tmp.stati.pre.da.abbassare <- tmp.stati.pre[ which( !(tmp.stati.pre %in% tmp.stati.post))   ] 
+      tmp.stati.post <- tmp.stati.post[!(tmp.stati.post %in% tmp.stati.pre)]
+      list.computation.matrix$trigger[tmpAttr$idPatient, unique(tmpAttr$fired.trigger)]<<- list.computation.matrix$trigger[tmpAttr$idPatient,unique(tmpAttr$fired.trigger)] +1
+      list.computation.matrix$stati.transizione[tmpAttr$idPatient, unique(tmp.stati.post)]<<- list.computation.matrix$stati.transizione[tmpAttr$idPatient,unique(tmp.stati.post)] +1
+      
+      if(length(list.computation.matrix$stati.timeline)==0) { 
+        list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]]<<-list()
+        list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]]<<-c()
+      }
+      
+      # if( tmpAttr$idPatient == "PSHAP00120160004530") browser()
+      
+      
+      # Dichiara gli inizi di stato      
+      for(nome.stato in tmp.stati.post ) {
+        # browser()
+        if(tmpAttr$pMineR.internal.ID.Evt=="") tempo.dall.inizio = "NA"
+        else tempo.dall.inizio <- dataLog$pat.process[[ tmpAttr$idPatient  ]][ which( dataLog$pat.process[[ tmpAttr$idPatient  ]][ ,"pMineR.internal.ID.Evt"]==tmpAttr$pMineR.internal.ID.Evt )  ,"pMineR.deltaDate"]
+
+        if(length( list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] )==0) {
+          list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] <<-  c(nome.stato,"begin",tmpAttr$event.date, tempo.dall.inizio  )
+        }
+        else { 
+          list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] <<- rbind(
+          list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]],
+          c(nome.stato,"begin",tmpAttr$event.date, tempo.dall.inizio  ))
+        }
+        
+      }
+      # Dichiara la fine di stato
+      for(nome.stato in tmp.stati.pre.da.abbassare  ) {
+        # browser()
+        if(tmpAttr$pMineR.internal.ID.Evt=="") tempo.dall.inizio = "NA"
+        else tempo.dall.inizio <- dataLog$pat.process[[ tmpAttr$idPatient  ]][ which( dataLog$pat.process[[ tmpAttr$idPatient  ]][ ,"pMineR.internal.ID.Evt"]==tmpAttr$pMineR.internal.ID.Evt )  ,"pMineR.deltaDate"]
+        
+        if(length( list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] ) ==0) {
+          list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] <<- c(nome.stato,"end",tmpAttr$event.date,tempo.dall.inizio)
+        }
+        else  {
+          list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] <<- rbind(
+            list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]],
+            c(nome.stato,"end",tmpAttr$event.date,tempo.dall.inizio))
+        }          
+      }
+      
+    }
+    
   }   
   addNote<-function( msg, level='1', notebook.name='computationLog' ) { 
     # Crea la posizione, se ancora non c'e'
@@ -1590,6 +1850,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     param.verbose <<- verboseMode
     play.output.format.date <<- "%d/%m/%Y";
     obj.LogHandler <<- logHandler();
+    list.computation.matrix <<-list();
+    list.computation.matrix$stati.transizione <<- c()
+    list.computation.matrix$trigger <<- c()
+    list.computation.matrix$stati.finali <<- c()    
+    list.computation.matrix$stati.timeline <<- list()
   }
   costructor( verboseMode = verbose.mode);
   #================================================================================= 
@@ -1601,14 +1866,16 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     "plot"=plot, # rimpiazza la plotGraph
     
     "plot.replay.result"=plot.replay.result, # rimpiazza la plotComputationResult
+
     "get.list.replay.result"=get.list.replay.result, # rimpiazza la getPlayedSequencesStat.00
     "get.XML.replay.result"=get.XML.replay.result, # rimpiazza la getXML
-    "plotPatientEventTimeLine" = plotPatientEventTimeLine,
-    "plotPatientReplayedTimeline" = plotPatientReplayedTimeline, # rimpiazza la plotPatientComputedTimeline
+    # "plotPatientEventTimeLine" = plotPatientEventTimeLine,
+    # "plotPatientReplayedTimeline" = plotPatientReplayedTimeline, # rimpiazza la plotPatientComputedTimeline
     
     "getPatientLog"=getPatientLog,
     
-    "getPatientXML"=getPatientXML
+    "getPatientXML"=getPatientXML,
+    "giveBackComputationCounts"=giveBackComputationCounts
     
     # "play.easy"=play.easy
     # "playLoadedData"=playLoadedData,

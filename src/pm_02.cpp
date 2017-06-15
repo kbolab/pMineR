@@ -59,3 +59,10 @@ List transitionsTime(NumericVector listaEventi, NumericVector tempiTransizione, 
   ret["time"] = output_time;
   return ret;
 }
+
+// [[Rcpp::export]]
+int getInterestingSinglePatientData( DataFrame inputDF) {
+  CharacterVector b = inputDF["C100_EVENTO"];
+  int n = b[0].size();
+  return(n);
+}
