@@ -183,6 +183,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     list.computation.matrix$trigger <<- matrix(0,ncol = length(names(WF.struct$info$trigger)),nrow = length(names(dataLog$pat.process)))
     list.computation.matrix$stati.transizione <<- matrix(0, ncol=length(names(WF.struct$info$stati)),nrow = length(names(dataLog$pat.process)))
     # list.computation.matrix$stati.finali <<- matrix(0,ncol = length(WF.struct$info$arr.nodi.end), nrow = length(names(dataLog$pat.process)))
+    # browser()
     list.computation.matrix$stati.finali <<- matrix(0, ncol=length(names(WF.struct$info$stati)),nrow = length(names(dataLog$pat.process)))
     
     colnames(list.computation.matrix$stati.transizione)<<-names(WF.struct$info$stati)
@@ -218,11 +219,14 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         # browser()
         if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
         addNote(msg = "\n\t\t<atTheEnd>")
-        # browser()
+        
         ultimi.stati.computatzione <- unique(str_replace_all(string = res$st.ACTIVE,pattern = "'",replacement = ""))
         
-        list.computation.matrix$stati.finali[ indice, ultimi.stati.computatzione ] <<- 1
+        # Leva BEGIN dagli stati finali o mi si incastra il tutto
+        ultimi.stati.computatzione <- ultimi.stati.computatzione[ which( !(ultimi.stati.computatzione=="BEGIN")) ]
         
+        list.computation.matrix$stati.finali[ indice, ultimi.stati.computatzione ] <<- 1  
+
         for(i in res$st.ACTIVE) addNote(msg = str_c("\n\t\t\t<finalState name=",i,"></finalState>"))
         for(i in res$last.fired.trigger) addNote(msg = str_c("\n\t\t\t<last.fired.trigger name='",i,"'></last.fired.trigger>"))
         addNote(msg = "\n\t\t</atTheEnd>")
