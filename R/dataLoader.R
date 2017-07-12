@@ -130,34 +130,75 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
             array.events.to.remove=c(), 
             array.events.to.keep=c(), 
             array.pazienti.to.remove=c(),
-            array.pazienti.to.keep=c()  ) {
+            array.pazienti.to.keep=c(),
+
+            remove.patients.by.attribute.name = NA,
+            remove.events.by.attribute.name = NA,
+            keep.events.by.attribute.name = NA,
+            keep.patients.by.attribute.name = NA,
+            
+            by.arr.attribute.value= c()  ,
+            is.debug = FALSE
+            ) {
     matriciona <- c()
-    # browser()
+
     # Costruisci la lista dei pazienti da analizzare
     ID.Pazienti.Validi<-names(pat.process)
     if( length(array.pazienti.to.keep) > 0  )   { ID.Pazienti.Validi <- array.pazienti.to.keep }
     else {ID.Pazienti.Validi <- names(pat.process)[ !( names(pat.process) %in% array.pazienti.to.remove )  ]  }
     
-    # loopa
     if(param.verbose == TRUE) obj.LH$sendLog(" 0) Cleaning original dataset :\n")
     if(param.verbose == TRUE) pb <- txtProgressBar(min = 0, max = length(ID.Pazienti.Validi), style = 3)
     pb.ct <- 1
+    # if(is.debug==TRUE) browser();
+    # loopa sui pazienti validi 
     for(patID in ID.Pazienti.Validi  ) {
       
+      skip.patient <- FALSE
       pb.ct <- pb.ct + 1; 
       if(param.verbose == TRUE) setTxtProgressBar(pb, pb.ct)
-      
+      # browser()
+      # EVENTS --------------- (remove events)
       if(length(array.events.to.remove)>0) {
         submatrix <- pat.process[[patID]][ which( !(pat.process[[patID]][ ,param.EVENTName ] %in% array.events.to.remove  )), param.column.names]
       }
       if(length(array.events.to.keep)>0) {
         submatrix <- pat.process[[patID]][ which( (pat.process[[patID]][ ,param.EVENTName ] %in% array.events.to.keep  )), param.column.names]
       }
-      if(length(array.events.to.keep)==0 & length(array.events.to.remove)==0) {
-        submatrix <- pat.process[[patID]][ , param.column.names]
+      # if(length(array.events.to.keep)==0 & length(array.events.to.remove)==0) {
+      #   submatrix <- pat.process[[patID]][ , param.column.names]
+      # }
+      # ATTRIBUTE NAME --------------- (remove events)
+      if( !is.na(remove.events.by.attribute.name) ) {
+        # browser()
+        submatrix <- pat.process[[patID]][ which( !(pat.process[[patID]][ ,remove.events.by.attribute.name ] %in% by.arr.attribute.value  )), param.column.names]
       }
-
-      matriciona <- rbind( matriciona, submatrix ) 
+      if( !is.na(keep.events.by.attribute.name) ) {
+        # browser()
+        submatrix <- pat.process[[patID]][ which( (pat.process[[patID]][ ,keep.events.by.attribute.name ] %in% by.arr.attribute.value  )), param.column.names]
+      }      
+      # ATTRIBUTE NAME --------------- (remove patients)
+      if(!is.na(remove.patients.by.attribute.name)) {
+        if(length( which( (pat.process[[patID]][ ,remove.patients.by.attribute.name ] %in% by.arr.attribute.value  )))>0)  {
+          submatrix <- c()
+        }
+        else  { submatrix <- pat.process[[patID]] }
+      }
+      if(!is.na(keep.patients.by.attribute.name)) {
+        if(length( which( (pat.process[[patID]][ ,keep.patients.by.attribute.name ] %in% by.arr.attribute.value  )))==0)  {
+          submatrix <- c()
+        }
+        else  { submatrix <- pat.process[[patID]] }
+      }      
+      # KEEP PATIENTS
+      if(length(array.pazienti.to.keep)>0) {
+        if( patID %in% array.pazienti.to.keep) submatrix <- pat.process[[patID]]
+      }
+      
+      # if(pat.process[[patID]][ ,"TRIAGE" ][ 1 ]=="Yellow" ) browser()
+      # if(skip.patient==FALSE) {
+        matriciona <- rbind( matriciona, submatrix ) 
+      # }
     }
     if(param.verbose == TRUE) close(pb)
     
@@ -171,16 +212,30 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
                                    array.events.to.remove=c(),
                                    array.pazienti.to.keep=c(),
                                    array.pazienti.to.remove=c(),
-                                   whatToReturn="itself") {
+                                   remove.events.by.attribute.name = NA,
+                                   remove.patients.by.attribute.name = NA,
+                                   keep.events.by.attribute.name = NA,
+                                   keep.patients.by.attribute.name = NA,
+                                   by.arr.attribute.value = c(),
+                                   whatToReturn="itself",
+                                   is.debug=FALSE) {
     
     if(!(whatToReturn %in% c( "itself" , "csv" ,"dataLoader" ) ) ) {
       obj.LH$sendLog( c(" 'whatToReturn can only be 'itself', 'csv' or 'dataLoader'! ")  ,"ERR"); return()
     }
+    
     matriciona <- as.data.frame(ricalcolaCSV( array.events.to.remove = array.events.to.remove,
                                               array.events.to.keep = array.events.to.keep,
                                               array.pazienti.to.remove = array.pazienti.to.remove,
-                                              array.pazienti.to.keep = array.pazienti.to.keep)) 
-    
+                                              array.pazienti.to.keep = array.pazienti.to.keep,
+                                              remove.patients.by.attribute.name = remove.patients.by.attribute.name,
+                                              remove.events.by.attribute.name = remove.events.by.attribute.name,
+                                              keep.events.by.attribute.name = keep.events.by.attribute.name,
+                                              keep.patients.by.attribute.name = keep.patients.by.attribute.name,
+                                              by.arr.attribute.value = by.arr.attribute.value,
+                                              is.debug = is.debug
+                                              )) 
+    # browser()
     IDName <- param.IDName
     EVENTName <- param.EVENTName
     dateColumnName <- param.dateColumnName
@@ -358,6 +413,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     obj.Utils <- utils()
     clearAttributes( );
     param.column.names<<-colnames(mydata)
+    
     # browser()
     # aaaaaaa <- mydata
     if(length(mydata[[dateColumnName]]) == 0) { obj.LH$sendLog( c("dateColumnName '",dateColumnName,"' not present! ")  ,"ERR"); return() }
@@ -365,7 +421,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     if(length(mydata[[IDName]]) == 0) { obj.LH$sendLog( c("IDName '",IDName,"' not present! ")  ,"ERR"); return() }    
     
     obj.dataProcessor <- dataProcessor()
-
+    
     # Add an internal ID attribute to myData (to uniquely identify Logs)
     if(!("pMineR.internal.ID.Evt" %in% colnames(mydata) ))
       { mydata <- cbind("pMineR.internal.ID.Evt"=seq(1,nrow(mydata)),mydata ) }
