@@ -1095,9 +1095,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # 'avoidFinalStates' is an array containing the final states 
   #                to filter the computation
   # kindOfNumber : i numeri: 'relative' o 'absolute'
-  #===========================================================   
+  #===========================================================  
   plot.replay.result<-function( whatToCount='activations' ,     kindOfNumber='relative', 
-                                   avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c(), whichPatientID=c("*"), plot.unfired.Triggers = TRUE ) {
+                                   avoidFinalStates=c(), avoidTransitionOnStates=c(), avoidToFireTrigger=c(), 
+                                whichPatientID=c("*"), plot.unfired.Triggers = TRUE
+                                ) {
     
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
@@ -1105,6 +1107,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     stringa.nodo.from<-c()
     stringa.nodo.to<-c()   
     howMany<-list()
+    
+    debug <- TRUE
     
     matrice.nodi.from<-c();    matrice.nodi.to<-c()
     # Costruisci subito la lista dei nodi plottabili (cosi' non ci penso piu')
@@ -1153,16 +1157,18 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # Distingui fra nodi end e nodi normali (questione di colore)
     arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
     # arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
-
-  
     
     # Ora sistema le froceries grafiche
     # PER I NODI
     stringa.stati<-"node [fillcolor = Orange]"
     stringa.stati.finali <- "node [fillcolor = Red]";
+    if(debug == TRUE) bb = new.giveBackComputationCounts( whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID)
     for(nome.stato in arr.stati.raggiungibili)  {
       nome.stato.pulito <- str_replace_all(string = nome.stato,pattern = "'",replacement = "")
-      aa = giveBackComputationCounts(nomeElemento = nome.stato.pulito, tipo='stato', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID)
+      if(debug == FALSE) aa = giveBackComputationCounts(nomeElemento = nome.stato.pulito, tipo='stato', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID)
+      if(debug == TRUE) { aa<-list();     aa$howMany <- bb$states.howMany[nome.stato.pulito]; aa$totalNumber <- bb$totalNumber; aa$array.patID <- bb$array.patID; }
+      if(debug == TRUE & nome.stato.pulito=="BEGIN") aa$howMany<-aa$totalNumber 
+      # browser()  
       howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
       penwidth<- 1 + 5 * (aa$howMany  / aa$totalNumber)
       penwidth<- 1
@@ -1170,19 +1176,23 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if(kindOfNumber=='relative') numberToPrint<-str_c(round(as.numeric(howMany),2)," %")
       else numberToPrint<-str_c("# ",aa$howMany)
       # Se non è uno stato finale
+      
       if(!(nome.stato %in% arr.nodi.end)) {
+        # browser()
         stringa.stati <- str_c(stringa.stati,"\n\t ",nome.stato," [label = '",nome.stato.pulito,"\n",numberToPrint,"', penwidth='",penwidth,"',  pencolor='Gray",colore,"']") 
       }  
       else {
         stringa.stati.finali <- str_c(stringa.stati.finali,"\n\t ",nome.stato," [label = '",nome.stato.pulito,"\n",numberToPrint,"', penwidth='",penwidth,"',  pencolor='Gray",colore,"']")         
       }
     }
+    # browser()
     # PER I TRIGGER
     lista.freq.trigger<-list()
     stringa.trigger<-"node [fillcolor = white, shape = box ]"
     for(nome.trigger in arr.trigger.rappresentabili)  {
       nome.trigger.pulito <- str_replace_all(string = nome.trigger,pattern = "'",replacement = "")
-      aa = giveBackComputationCounts(nomeElemento = nome.trigger.pulito, tipo='trigger', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID )
+      if(debug == FALSE) aa = giveBackComputationCounts(nomeElemento = nome.trigger.pulito, tipo='trigger', whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, whichPatientID = whichPatientID )
+      if(debug == TRUE) { aa<-list();     aa$howMany <- bb$trigger.howMany[nome.trigger.pulito]; aa$totalNumber <- bb$totalNumber; aa$array.patID <- bb$array.patID; }
       howMany <- as.character((aa$howMany * 100 / aa$totalNumber))
       if( plot.unfired.Triggers == TRUE | (plot.unfired.Triggers==FALSE & howMany>0)) {
         lista.freq.trigger[[nome.trigger]]<-(aa$howMany  / aa$totalNumber)
@@ -1217,7 +1227,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       nuovaRiga<-str_c("\n\t'",matrice.nodi.to[i,1],"'->",matrice.nodi.to[i,2]," [label = '",labelArco,"', penwidth='",arrowsize,"', fontcolor='Gray",colore,"', pencolor='Gray",colore,"' ]")
       stringa.nodo.to<-c(stringa.nodo.to,nuovaRiga)
     }    
-    
+    # browser()
     a<-paste(c("digraph boxes_and_circles {
                
                # a 'graph' statement
@@ -1395,6 +1405,102 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #                           transitati dai pazienti da considerare (e' un filtro)
   # avoidToFireTrigger = badali', indovina un po'?
   #===========================================================  
+  new.giveBackComputationCounts<-function( whatToCount, avoidFinalStates, avoidTransitionOnStates, avoidToFireTrigger , whichPatientID) {
+    
+    # if( !(tipo %in% c("stato","trigger"))) stop("\n ERR: dfj9d0jf90d")
+    if( !(whatToCount %in% c("activations","terminations"))) stop("\n ERR: dfj9dfds0jf90d")
+    
+    # aa = giveBackComputationCounts(nomeElemento = nome.stato.pulito, tipo='stato', 
+    # whatToCount = whatToCount, avoidFinalStates = avoidFinalStates, 
+    # avoidTransitionOnStates = avoidTransitionOnStates, avoidToFireTrigger = avoidToFireTrigger, 
+    # whichPatientID = whichPatientID)
+    
+    # Prendi la matrice con i risultati della computazione
+    matrice <- get.list.replay.result()
+    m.stati.transizione <- matrice$list.computation.matrix$stati.transizione
+    m.trigger <- matrice$list.computation.matrix$trigger
+    m.stati.finali <- matrice$list.computation.matrix$stati.finali
+    
+    # browser()
+    # Riduci la dimensione della matrice ai soli pazienti indicati
+    if( !("*" %in% whichPatientID) & length(whichPatientID)>0 ){
+      m.stati.transizione <- m.stati.transizione[ which(rownames(m.stati.transizione) %in% whichPatientID),  ]
+      m.trigger <- m.trigger[ which(rownames(m.trigger) %in% whichPatientID),  ]
+      m.stati.finali <- m.stati.finali[ which(rownames(m.stati.finali) %in% whichPatientID),  ]
+    }
+    
+    arr.Pazienti.ulteriori.da.rimuovere <- c()
+    
+    # Riduci ulteriormente la dimensione della matrice nel caso si 
+    # debbano evitare delle attivazioni di trigger
+    if(length(avoidToFireTrigger)>1) {
+      arr.Pazienti.ulteriori.da.rimuovere <- c(arr.Pazienti.ulteriori.da.rimuovere,names(which(  !(rowSums(m.trigger[  , avoidToFireTrigger])>0)    )))
+    }
+    if(length(avoidToFireTrigger)==1) {
+      arr.Pazienti.ulteriori.da.rimuovere <- c(arr.Pazienti.ulteriori.da.rimuovere,names(which(  !(m.trigger[  , avoidToFireTrigger]>0)   ))  )
+    }    
+    
+    # Riduci ulteriormente la dimensione della matrice nel caso si 
+    # debbano evitare delle attivazioni di stati
+    if(length(avoidTransitionOnStates)>1) {
+      arr.Pazienti.ulteriori.da.rimuovere <- c(arr.Pazienti.ulteriori.da.rimuovere, names(which(  !(rowSums(m.stati.transizione[  , avoidTransitionOnStates])>0)   )))
+    }    
+    if(length(avoidTransitionOnStates)==1) {
+      arr.Pazienti.ulteriori.da.rimuovere <- c(arr.Pazienti.ulteriori.da.rimuovere, names(which(  !(m.stati.transizione[  , avoidTransitionOnStates]>0)   )) )
+    }    
+    
+    # Riduci ulteriormente la dimensione della matrice nel caso si 
+    # debbano evitare dei pazienti che terminano in uno o più determinati stati
+    if(length(avoidFinalStates)>1) {
+      arr.Pazienti.ulteriori.da.rimuovere <- c(arr.Pazienti.ulteriori.da.rimuovere, names(which(  !(rowSums(m.stati.finali[  , avoidFinalStates])>0)  ))   )
+    }
+    if(length(avoidFinalStates)==1) {
+      arr.Pazienti.ulteriori.da.rimuovere <- c(arr.Pazienti.ulteriori.da.rimuovere, names(which(   !(m.stati.finali[  , avoidFinalStates]>0)   ))   )      
+    } 
+    
+    # Riduci la dimensione della matrice ai soli pazienti indicati
+    if( length(arr.Pazienti.ulteriori.da.rimuovere) > 0 ){
+      m.stati.transizione <- m.stati.transizione[ which(rownames(m.stati.transizione) %in% arr.Pazienti.ulteriori.da.rimuovere),  ]
+      m.trigger <- m.trigger[ which(rownames(m.trigger) %in% arr.Pazienti.ulteriori.da.rimuovere),  ]
+      m.stati.finali <- m.stati.finali[ which(rownames(m.stati.finali) %in% arr.Pazienti.ulteriori.da.rimuovere),  ]
+    }
+    
+    # Se e' stato chiesto uno stato
+    # if(tipo=="stato")  {
+      if(whatToCount =="activations") {
+        # somma <- colSums(m.stati.transizione)
+        # totalNumber <- somma[ which(names(somma)==nomeElemento)]
+        # Trasforma la matrice in soli uni (per non contare più volte uno stesso paziente)
+        m.stati.transizione[  which(m.stati.transizione>0,arr.ind = T) ] <- 1
+        somma <- colSums(m.stati.transizione)
+        # howMany <- somma[ which(names(somma)==nomeElemento)]
+        states.howMany <- somma
+        array.patID<- rownames(m.stati.transizione)
+      }
+      if(whatToCount =="terminations") {
+        # somma <- colSums(m.stati.finali)
+        # totalNumber <- somma[ which(names(somma)==nomeElemento)]
+        # Trasforma la matrice in soli uni (per non contare più volte uno stesso paziente)
+        m.stati.finali[  which(m.stati.finali>0,arr.ind = T) ] <- 1
+        somma <- colSums(m.stati.finali)
+        # howMany <- somma[ which(names(somma)==nomeElemento)]
+        states.howMany <- somma
+        array.patID<- rownames(m.stati.finali)
+      }      
+    # }
+    # if(tipo=="trigger")  {
+      # matrice$list.computation.matrix$trigger
+      # somma <- colSums(m.trigger)
+      # totalNumber <- somma[ which(names(somma)==nomeElemento)]
+      # Trasforma la matrice in soli uni (per non contare più volte uno stesso paziente)
+      m.trigger[  which(m.trigger>0,arr.ind = T) ] <- 1
+      somma <- colSums(m.trigger)
+      # howMany <- somma[ which(names(somma)==nomeElemento)]
+      trigger.howMany <- somma
+      # array.patID<- rownames(m.trigger)      
+    # }
+    return( list( "trigger.howMany"=trigger.howMany, "states.howMany"=states.howMany,  "totalNumber"=length(array.patID) ,"array.patID" = array.patID)  ) 
+  }  
   giveBackComputationCounts<-function( nomeElemento, tipo, whatToCount, avoidFinalStates, avoidTransitionOnStates, avoidToFireTrigger , whichPatientID) {
     # Carica l'XML
     # browser()
@@ -1879,7 +1985,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     "getPatientLog"=getPatientLog,
     
     "getPatientXML"=getPatientXML,
-    "giveBackComputationCounts"=giveBackComputationCounts
+    "giveBackComputationCounts"=giveBackComputationCounts,
+    "new.giveBackComputationCounts"=new.giveBackComputationCounts
     
     # "play.easy"=play.easy
     # "playLoadedData"=playLoadedData,
