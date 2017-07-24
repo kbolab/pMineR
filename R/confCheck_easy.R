@@ -1029,8 +1029,138 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #===========================================================  
   # plotPatientReplayedTimeline (ex plotPatientComputedTimeline)
   # plot the computed timeline for a given patient
-  #===========================================================   
-  plotPatientReplayedTimeline<-function( patientID ) {  
+  #===========================================================
+  plotPatientReplayedTimeline<-function( patientID,
+                                             text.cex=.7, y.intra.gap = 40, x.offset = 100,
+                                             thickness=5 , 
+                                             bar.border = "Navy",bar.volume = "lightsteelblue1",
+                                             text.date.cex =.6) {
+    # browser()
+    plotPatientReplayedTimelineFunction(list.computation.matrix = get.list.replay.result(), patientID = patientID)
+    
+  }
+  old.plotPatientReplayedTimeline<-function( patientID,
+                                         text.cex=.7, y.intra.gap = 40, x.offset = 100,
+                                         thickness=5 , 
+                                         bar.border = "Navy",bar.volume = "lightsteelblue1",
+                                         text.date.cex =.6) {
+    
+    date.notevoli <-c()
+    durate.notevoli <- c()
+    matrice <- list.computation.matrix$stati.timeline[[patientID]]
+
+    tempo.max <- max(  as.numeric(matrice[,4])  )
+    numero.stati <- length(unique(matrice[,1]))
+    arr.stati <- c()
+    for( tmp in 1:length(matrice[,1])) {
+      if( !(matrice[tmp,1] %in%arr.stati)) { arr.stati <- c(arr.stati,matrice[tmp,1]) }
+    }
+    
+    par(mar=c(2,0,2,0)+0)
+    # browser()
+    plot(0,type='n',axes=FALSE,ann=FALSE,
+         xlim = c(0,tempo.max + x.offset+ 15) , 
+         ylim=c(0,(numero.stati+1)*y.intra.gap ), 
+         bty='n',axes = FALSE, xlab='', ylab=''         )
+    
+    # plot( c(), c(), 
+    #       xlim = c(0,tempo.max + x.offset+ 15) , 
+    #       ylim=c(0,(numero.stati+1)*y.intra.gap ), 
+    #       bty='n',axes = FALSE, xlab='', ylab='' )
+    
+    lista.boxes<- list()
+    lista.points<- list()
+    lista.date<-list()
+    
+    for( index in seq(1,length(arr.stati) )) {
+      ypos.line <- (numero.stati+1)*y.intra.gap - index * y.intra.gap
+      stato <- arr.stati[ index ]
+      text(x = 0,y = ypos.line,labels = stato, cex = text.cex, pos = 4)
+      
+      # lista.date[[length(lista.date)+1]] <- list("x"=c(x.offset,tempo.max+x.offset), "y"=c( ypos.line,ypos.line ))
+      
+      sub.matrice <- matrice[ which(matrice[ ,1]==stato )  ,]
+      numero.righe.sub.matrice <- length(sub.matrice)/4
+      # Se è almeno una matrice (se ho almeno due rilevazioni)
+      if(numero.righe.sub.matrice>1) {
+        l.from <- NA
+        l.to <- NA
+        for( i in seq(1,numero.righe.sub.matrice )) {
+          if(sub.matrice[i,2]=="begin") { 
+            l.from <- as.numeric(sub.matrice[i,4]) 
+            durate.notevoli <- c(durate.notevoli, l.from )
+            date.notevoli <- c(date.notevoli, sub.matrice[i,3] )
+            lista.date[[length(lista.date)+1]] <- list("x"=c(x.offset + l.from ,x.offset + l.from), "y"=c( -5, (numero.stati+1)*y.intra.gap +5),"label.data"=sub.matrice[i,3],"label.durata"=sub.matrice[i,4])          
+          }
+          if(sub.matrice[i,2]=="end") {
+            l.to <- as.numeric(sub.matrice[i,4] )
+            lista.date[[length(lista.date)+1]] <- list("x"=c(x.offset + l.to ,x.offset + l.to), "y"=c( -5, (numero.stati+1)*y.intra.gap +5),"label.data"=sub.matrice[i,3],"label.durata"=sub.matrice[i,4])          
+            lista.boxes[[length(lista.boxes)+1]]<-list( "x"=c( l.from ,l.to, l.to, l.from, l.from ) + x.offset, "y"=c( -thickness, -thickness, thickness, thickness , -thickness)+ypos.line )
+            durate.notevoli <- c(durate.notevoli, l.to )
+            date.notevoli <- c(date.notevoli, sub.matrice[i,3]  )
+          }
+        }
+      }
+      # Se c'è solo una riga!
+      if(numero.righe.sub.matrice==1) {
+        l.pos <- as.numeric(sub.matrice[4] )
+        durate.notevoli <- c(durate.notevoli, l.pos )
+        date.notevoli <- c(date.notevoli, sub.matrice[3]  )   
+        lista.date[[length(lista.date)+1]] <- list("x"=c(x.offset + l.pos ,x.offset + l.pos), "y"=c( -5, (numero.stati+1)*y.intra.gap +5),"label.data"=sub.matrice[3], "label.durata"=sub.matrice[4])
+        
+        # Se è un END 
+        if(sub.matrice[2]=="end" |  as.numeric(sub.matrice[4])==tempo.max ) {
+          lista.points[[length(lista.points)+1]]<-list("x"=l.pos + x.offset,"y"=ypos.line)
+        }
+        # Se è un BEGIN
+        if(sub.matrice[2]=="begin" & as.numeric(sub.matrice[4])!=tempo.max) {
+          l.from <- l.pos
+          l.to <- tempo.max
+          lista.boxes[[length(lista.boxes)+1]]<-list( "x"=c( l.from ,l.to, l.to, l.from, l.from ) + x.offset, "y"=c( -thickness, -thickness, thickness, thickness , -thickness)+ypos.line )
+        }
+      }    
+      
+    }
+    
+    # plotta le verticali delle date
+    number <- 1
+    old.x <- c()
+    for(i in seq(1, length(lista.date))) {
+      if(! (lista.date[[i]]$x[1]  %in% old.x) ) {
+        number <- number + 1 
+        points(x =lista.date[[i]]$x, y = lista.date[[i]]$y , type='l', col="grey", lty = 4 )
+        text(x = lista.date[[i]]$x , y = lista.date[[i]]$y[1] + (number * 10)-5, labels = str_replace_all(string = lista.date[[i]]$label.data,pattern = " ",replacement = "\n"), cex = text.date.cex, col='black')
+        text(x = lista.date[[i]]$x , y = (numero.stati+1)*y.intra.gap , labels = as.integer(as.numeric(lista.date[[i]]$label.durata)), cex = text.date.cex, col='black')
+        if(number >= 3) number <- 0
+        old.x <- c(old.x, lista.date[[i]]$x[1] )
+      }
+    }
+    # plotta gli assi degli stati
+    for( index in seq(1,length(arr.stati) )) {
+      points( x = c(x.offset,x.offset+tempo.max), 
+              y = c( (numero.stati+1)*y.intra.gap - index * y.intra.gap, (numero.stati+1)*y.intra.gap - index * y.intra.gap),
+              type='l' , col= "grey")     
+    }
+    # plotta i GANTT
+    for(i in seq(1, length(lista.points))) {
+      points( x = lista.points[[i]]$x, 
+              y = lista.points[[i]]$y,
+              pch=13 , col= bar.border)     
+      # points(x =lista.date[[i]]$x, y = lista.date[[i]]$y , type='l', col="grey", lty = 4 )
+    }  
+    for(i in seq(1, length(lista.boxes))) {
+      points( x = lista.boxes[[i]]$x, 
+              y = lista.boxes[[i]]$y,
+              type='l' , col= bar.border)
+      polygon( x = lista.boxes[[i]]$x, 
+               y = lista.boxes[[i]]$y,
+               col= bar.volume) 
+    }    
+    
+    # list.computation.matrix
+  }  
+    
+  old.plotPatientReplayedTimeline<-function( patientID ) {  
     
     st.POST<-list(); st.PRE<-list(); tr.fired<-list()
     txt.section<-"";
@@ -1980,7 +2110,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     "get.list.replay.result"=get.list.replay.result, # rimpiazza la getPlayedSequencesStat.00
     "get.XML.replay.result"=get.XML.replay.result, # rimpiazza la getXML
     # "plotPatientEventTimeLine" = plotPatientEventTimeLine,
-    # "plotPatientReplayedTimeline" = plotPatientReplayedTimeline, # rimpiazza la plotPatientComputedTimeline
+    "plotPatientReplayedTimeline" = plotPatientReplayedTimeline, # rimpiazza la plotPatientComputedTimeline
     
     "getPatientLog"=getPatientLog,
     
