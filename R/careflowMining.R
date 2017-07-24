@@ -358,7 +358,7 @@ careflowMining<-function( parameters.list = list() ) {
           if (HistMined[k,j] != "OUT"){
             nodeTemp<-c(nodeTemp, paste(j, HistMined[k,j],
                                         "\n","pts.",IDcountsLIST[k,j],
-                                        "\n","event duration",trunc(EVENT.durations[k,j]) ))
+                                        "\n",paste("event duration:",time.unit.global),trunc(EVENT.durations[k,j]) ))
             arches<-c(arches,  trunc(ARCHES.durations[k,j]))
             }
 
@@ -367,7 +367,7 @@ careflowMining<-function( parameters.list = list() ) {
               nodeTemp<-c(nodeTemp, paste(k, HistMined[k,j],
                                           "\n","pts.",
                                           IDsTOTTime[k,]$TotPts,
-                                          "\n","Total history duration",
+                                          "\n",paste("Total history duration:",time.unit.global),
                                           trunc(IDsTOTTime[k,]$MeanMaxtimesDays)
               ))
               arches<-c(arches,  trunc(ARCHES.durations[k,j]))
@@ -391,12 +391,13 @@ careflowMining<-function( parameters.list = list() ) {
                               to = match(aaa$to,unique(nodeTemp)),
                               rel = "related")
 
-      edges$label <-paste("arc duration",aaa$trans)
-      edges$label <- ifelse(edges$label =="arc duration -1","",edges$label)
+      edges$label <-paste(time.unit.global,aaa$trans,sep=":")
+      edges$label <- ifelse(edges$label ==paste(time.unit.global,"-1",sep=":"),"",edges$label)
 
       graph_tmp <- create_graph( nodes_df = nodes,
                                  edges_df = edges)
 
+      graph_tmp$global_attrs[1,"theme"]<- "neato"
       graph_tmp$global_attrs[1,"value"] <- "dot"
       #browser()
       #render_graph(graph_tmp)
