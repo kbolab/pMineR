@@ -9,3 +9,7 @@ getInterestingSinglePatientData <- function(inputDF) {
     .Call('pMineR_getInterestingSinglePatientData', PACKAGE = 'pMineR', inputDF)
 }
 
+filterPatProcess <- function(PatProcess, arrayEventiDaRimuovere, arrayEventiDaTenere, eventColumnNumber) {
+    .Call('pMineR_filterPatProcess', PACKAGE = 'pMineR', PatProcess, arrayEventiDaRimuovere, arrayEventiDaTenere, eventColumnNumber)
+}
+

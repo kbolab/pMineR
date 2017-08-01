@@ -17,8 +17,10 @@
 #'              The consturctor admit the following parameters:
 #' verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
-#' @import stringr stats progress           
+#' @import stringr stats progress    
+#' @importFrom data.table data.table   
 #' @export
+#' @useDynLib pMineR 
 #' @examples \dontrun{
 #'
 #' # create a Loader
@@ -34,7 +36,7 @@
 #' obj.L$getData()
 #' 
 #' }
-dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
+dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memory = FALSE ) {
   arrayAssociativo<-''
   footPrint<-''
   MMatrix<-''
@@ -47,6 +49,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   list.dictionary<-''
   list.dict.column.event.name<-''
   input.format.date<-''
+  original.CSV <- ''
   # print(max.char.length.label)
   param.IDName<-''
   param.EVENTName<-''
@@ -54,6 +57,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   param.verbose<-''
   param.max.char.length.label<-'';
   param.column.names<-''
+  param.save.memory<-'';
   obj.LH<-''
   #=================================================================================
   # clearAttributes
@@ -61,7 +65,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   # for other issues ( dirty variables could have dramatic effetcs! )
   #=================================================================================    
   clearAttributes<-function() {
-    costructor( verboseMode = param.verbose , max.char.length.label = param.max.char.length.label )
+    costructor( verboseMode = param.verbose , max.char.length.label = param.max.char.length.label,saveMemory = param.save.memory )
   }
   #=================================================================================
   # addDictionary
@@ -127,6 +131,78 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   # Ricalcola il CSV togliendo pazienti e/o eventi a piacere
   #=================================================================================   
   ricalcolaCSV<-function( 
+    array.events.to.remove=c(), 
+    array.events.to.keep=c(), 
+    array.pazienti.to.remove=c(),
+    array.pazienti.to.keep=c(),
+    
+    remove.patients.by.attribute.name = NA,
+    remove.events.by.attribute.name = NA,
+    keep.events.by.attribute.name = NA,
+    keep.patients.by.attribute.name = NA,
+    
+    by.arr.attribute.value= c()  ,
+    is.debug = FALSE
+  ) {
+    matriciona <- c()
+    
+    # Costruisci il super CSV
+    # browser()
+    if(param.save.memory == FALSE) CSV.completo <- original.CSV
+    else CSV.completo <- do.call(rbind,  pat.process)
+    cat("\n 1")
+    # array.pazienti.to.keep
+    if(length(array.pazienti.to.keep)>0) {
+      CSV.completo <- CSV.completo[ CSV.completo[ ,param.IDName] %in% array.pazienti.to.keep, ]
+    }
+    # array.pazienti.to.remove
+    if(length(array.pazienti.to.remove)>0) {
+      CSV.completo <- CSV.completo[ !(CSV.completo[ ,param.IDName] %in% array.pazienti.to.remove), ]
+    }
+    cat("\n 2")
+    # array.events.to.remove e array.events.to.keep
+    posizione.colonna.evento <- which(colnames(pat.process[[1]]) == param.EVENTName) -1
+    if(length(array.events.to.remove)>0 | length(array.events.to.keep)>0) {
+      res <- filterPatProcess( CSV.completo, c(":)",array.events.to.remove), c(":)",array.events.to.keep) , posizione.colonna.evento  ) 
+      CSV.completo <- CSV.completo[res$rigaDaTenere,]
+    }
+    cat("\n 3")
+
+    # 'remove.events.by.attribute.name' e 'keep.events.by.attribute.name'
+    # Rimuovi i record in cui una colonna specifica ha il valore indicato. 
+    # Nome della colonna e valori sono passati in due array dalle posizioni corrispondenti
+    if( !is.na(remove.events.by.attribute.name) ) {
+      for( iii in seq(1,length(remove.events.by.attribute.name))) {
+        CSV.completo <- CSV.completo[ which(CSV.completo[, remove.events.by.attribute.name[iii] ] == by.arr.attribute.value[iii]), ]
+      }
+    }
+    if( !is.na(keep.events.by.attribute.name) ) {
+      for( iii in seq(1,length(remove.events.by.attribute.name))) {
+        CSV.completo <- CSV.completo[ which(CSV.completo[, remove.events.by.attribute.name[iii] ] != by.arr.attribute.value[iii]), ]
+      }
+    }  
+    
+    cat("\n 4")
+    # 'remove.patients.by.attribute.name' e 'keep.patients.by.attribute.name'
+    # Rimuovi i record in cui una colonna specifica ha il valore indicato. 
+    # Nome della colonna e valori sono passati in due array dalle posizioni corrispondenti
+    if(!is.na(remove.patients.by.attribute.name)) {
+      for( iii in seq(1,length(remove.patients.by.attribute.name))) {
+        lista.pazienti <- unique(CSV.completo[ which(CSV.completo[, remove.patients.by.attribute.name[iii] ] == by.arr.attribute.value[iii]), param.IDName])
+        CSV.completo <- CSV.completo[ which( !(CSV.completo[, param.IDName ] %in% lista.pazienti)), ]
+      }
+    }
+    if(!is.na(keep.patients.by.attribute.name)) {
+      for( iii in seq(1,length(keep.patients.by.attribute.name))) {
+        lista.pazienti <- unique(CSV.completo[ which(CSV.completo[, keep.patients.by.attribute.name[iii] ] == by.arr.attribute.value[iii]), param.IDName])
+        CSV.completo <- CSV.completo[ which(CSV.completo[, param.IDName ] %in% lista.pazienti), ]
+      }
+    }    
+    cat("\n 5")
+    return(CSV.completo)
+
+  }  
+  old.old.ricalcolaCSV<-function( 
             array.events.to.remove=c(), 
             array.events.to.keep=c(), 
             array.pazienti.to.remove=c(),
@@ -142,7 +218,9 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
             ) {
     matriciona <- c()
 
-    # Costruisci la lista dei pazienti da analizzare
+
+    # Costruisci la lista dei pazienti da analizzare nel caso in cui sia stato 
+    # dichiarato esplicitamente quali tenere
     ID.Pazienti.Validi<-names(pat.process)
     if( length(array.pazienti.to.keep) > 0  )   { ID.Pazienti.Validi <- array.pazienti.to.keep }
     else {ID.Pazienti.Validi <- names(pat.process)[ !( names(pat.process) %in% array.pazienti.to.remove )  ]  }
@@ -153,7 +231,8 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     # if(is.debug==TRUE) browser();
     # loopa sui pazienti validi 
     for(patID in ID.Pazienti.Validi  ) {
-      
+
+      # cat("\n",patID)
       skip.patient <- FALSE
       pb.ct <- pb.ct + 1; 
       if(param.verbose == TRUE) setTxtProgressBar(pb, pb.ct)
@@ -345,6 +424,38 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   # raggruppa i dati, come sono da CSV in una maniera piu' consona ad essere analizzati
   #=================================================================================   
   groupPatientLogActivity<-function(mydata, ID.list.names) {
+    
+    # prendi la lista di pazienti e
+    # per ogni paziente costruisci i gruppi 
+    ID.list<-unique(mydata[[ID.list.names]])
+    ID.act.group<-list();
+    paziente.da.tenere<-c()
+    if(param.verbose == TRUE) pb <- txtProgressBar(min = 0, max = 1, style = 3)
+    pb.ct <- 0
+    if( param.verbose == TRUE ) setTxtProgressBar(pb, pb.ct)
+    
+
+    dimensioni.tabelle <- table(mydata[,ID.list.names])
+    
+    # Fai lo split del data.frame in una lista di data.frame, rispetto al campo dell' ID
+    ID.act.group = split(mydata, list(mydata[[ID.list.names]]))
+    
+    paziente.da.tenere <- names(dimensioni.tabelle)[which(dimensioni.tabelle>2)]
+    
+
+    pb.ct <- pb.ct + 1; 
+    if( param.verbose == TRUE ) setTxtProgressBar(pb, pb.ct)
+    if(param.verbose == TRUE) close(pb)
+    
+    
+    return(
+      list(
+        "ID.act.group" = ID.act.group,
+        "paziente.da.tenere" = paziente.da.tenere
+      )
+    )    
+  }  
+  old.old.groupPatientLogActivity<-function(mydata, ID.list.names) {
 
     # prendi la lista di pazienti e
     # per ogni paziente costruisci i gruppi 
@@ -353,6 +464,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     paziente.da.tenere<-c()
     if(param.verbose == TRUE) pb <- txtProgressBar(min = 0, max = length(ID.list), style = 3)
     pb.ct <- 0
+    # browser()
     for(i in ID.list) {
       
       pb.ct <- pb.ct + 1; 
@@ -361,6 +473,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
       ID.act.group[[i]]<-mydata[ which(mydata[[ID.list.names]]==i  ), ]
       if(nrow(ID.act.group[[i]])>2) {paziente.da.tenere <- c(paziente.da.tenere,i) }
     }    
+    # browser()
     if(param.verbose == TRUE) close(pb)
     return(
       list(
@@ -513,6 +626,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     MM.mean.outflow.time<<-res$MM.mean.outflow.time
     MM.density.list<<-res$MM.density.list   
     MM.den.list.high.det <<- res$MM.den.list.high.det
+    if(save.memory == FALSE) original.CSV <<- mydata
   }
   #=================================================================================
   # load.csv
@@ -647,7 +761,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
   #=================================================================================
   # costructor
   #=================================================================================  
-  costructor<-function( verboseMode , max.char.length.label  ) {
+  costructor<-function( verboseMode , max.char.length.label, saveMemory  ) {
     arrayAssociativo<<-''
     footPrint<<-''
     MMatrix<<-''
@@ -667,12 +781,14 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50 ) {
     param.verbose<<-verbose.mode
     param.column.names<<-''
     param.max.char.length.label<<-max.char.length.label
+    param.save.memory<<- saveMemory
+    original.CSV <<- ''
     
     obj.LH<<-logHandler()
     # print(timesTwo( 3.2 ))
     
   }
-  costructor( verboseMode = verbose.mode, max.char.length.label = max.char.length.label )
+  costructor( verboseMode = verbose.mode, max.char.length.label = max.char.length.label, saveMemory = save.memory )
   #================================================================================= 
   return(list(
     "load.csv"=load.csv,

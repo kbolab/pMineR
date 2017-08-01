@@ -406,7 +406,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   # plot.delta.graph
   # Funzione per il plotting delle distanze rispetto ad una data metrica
   #===========================================================
-  plot.delta.graph<-function( objToCheck, threshold=0, type.of.graph="delta", threshold.4.overlapped=.3 ,giveBackGrViz = FALSE) {
+  plot.delta.graph<-function( objToCheck, threshold=0, type.of.graph="overlapped", threshold.4.overlapped=.3 ,giveBackGrViz = FALSE) {
     
     if( type.of.graph != "overlapped" & type.of.graph !="delta") stop("\n Not yet implemented: err.cod. %43547g8fd")
     ext.MM <- objToCheck$getModel(kindOfOutput = "MMatrix.perc")
