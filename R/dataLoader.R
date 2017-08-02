@@ -150,7 +150,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     # browser()
     if(param.save.memory == FALSE) CSV.completo <- original.CSV
     else CSV.completo <- do.call(rbind,  pat.process)
-    cat("\n 1")
+    
     # array.pazienti.to.keep
     if(length(array.pazienti.to.keep)>0) {
       CSV.completo <- CSV.completo[ CSV.completo[ ,param.IDName] %in% array.pazienti.to.keep, ]
@@ -159,14 +159,14 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     if(length(array.pazienti.to.remove)>0) {
       CSV.completo <- CSV.completo[ !(CSV.completo[ ,param.IDName] %in% array.pazienti.to.remove), ]
     }
-    cat("\n 2")
+    
     # array.events.to.remove e array.events.to.keep
     posizione.colonna.evento <- which(colnames(pat.process[[1]]) == param.EVENTName) -1
     if(length(array.events.to.remove)>0 | length(array.events.to.keep)>0) {
       res <- filterPatProcess( CSV.completo, c(":)",array.events.to.remove), c(":)",array.events.to.keep) , posizione.colonna.evento  ) 
       CSV.completo <- CSV.completo[res$rigaDaTenere,]
     }
-    cat("\n 3")
+    
 
     # 'remove.events.by.attribute.name' e 'keep.events.by.attribute.name'
     # Rimuovi i record in cui una colonna specifica ha il valore indicato. 
@@ -182,7 +182,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
       }
     }  
     
-    cat("\n 4")
+    
     # 'remove.patients.by.attribute.name' e 'keep.patients.by.attribute.name'
     # Rimuovi i record in cui una colonna specifica ha il valore indicato. 
     # Nome della colonna e valori sono passati in due array dalle posizioni corrispondenti
@@ -198,7 +198,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
         CSV.completo <- CSV.completo[ which(CSV.completo[, param.IDName ] %in% lista.pazienti), ]
       }
     }    
-    cat("\n 5")
+    
     return(CSV.completo)
 
   }  
@@ -430,24 +430,14 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     ID.list<-unique(mydata[[ID.list.names]])
     ID.act.group<-list();
     paziente.da.tenere<-c()
-    if(param.verbose == TRUE) pb <- txtProgressBar(min = 0, max = 1, style = 3)
-    pb.ct <- 0
-    if( param.verbose == TRUE ) setTxtProgressBar(pb, pb.ct)
-    
 
     dimensioni.tabelle <- table(mydata[,ID.list.names])
     
     # Fai lo split del data.frame in una lista di data.frame, rispetto al campo dell' ID
     ID.act.group = split(mydata, list(mydata[[ID.list.names]]))
-    
+    # prendi i pazienti da tenere (con almeno due eventi)
     paziente.da.tenere <- names(dimensioni.tabelle)[which(dimensioni.tabelle>2)]
-    
 
-    pb.ct <- pb.ct + 1; 
-    if( param.verbose == TRUE ) setTxtProgressBar(pb, pb.ct)
-    if(param.verbose == TRUE) close(pb)
-    
-    
     return(
       list(
         "ID.act.group" = ID.act.group,
@@ -572,9 +562,10 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     if(!is.na(dateColumnName)) {
       mydata[[dateColumnName]]<-as.character(mydata[[dateColumnName]])
     }
-    if(verbose.mode == TRUE) obj.LH$sendLog("\n 1) internal Grouping (1/3):\n")
+    if(verbose.mode == TRUE) obj.LH$sendLog("\n 1) internal Grouping (1/3):\n Please wait ....... ")
     # group the log of the patient in a structure easier to handle
     ooo <- groupPatientLogActivity(mydata, ID.list.names) 
+    if(verbose.mode == TRUE) obj.LH$sendLog("\n Done! \n ")
     ID.act.group<-ooo$ID.act.group
     paziente.da.tenere<-ooo$paziente.da.tenere
     

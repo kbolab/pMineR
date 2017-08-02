@@ -66,3 +66,52 @@ int getInterestingSinglePatientData( DataFrame inputDF) {
   int n = b[0].size();
   return(n);
 }
+
+// [[Rcpp::export]]
+List filterPatProcess( DataFrame PatProcess , 
+                       CharacterVector arrayEventiDaRimuovere,
+                       CharacterVector arrayEventiDaTenere, 
+                       int eventColumnNumber) {
+  
+  std::string genString1;
+  std::string genString2;
+  NumericVector rigaDaTenere;
+  List newPatProcess;
+  
+  StringVector colonnaEvento = PatProcess[ eventColumnNumber ];
+  
+  int i,t;
+  int daEliminare = 0;
+
+  // Per ogni evento della colonna  
+  for( i=0; i < colonnaEvento.size(); i++ ) {
+    printf("\n-");
+    // VErifica se e' uno degli elementi da rimuovere. Quando li 
+    // trovi popola il vettore ''rigaDaEliminare''
+    if(arrayEventiDaRimuovere.size()>1) {
+      daEliminare = 0;
+      for( t = 1; t < arrayEventiDaRimuovere.size(); t++ ) {
+        genString1 = colonnaEvento(i) ; genString2 = arrayEventiDaRimuovere(t);
+        if( genString1 == genString2  ) {  daEliminare = 1; printf("  => %d",i); }
+      }
+    }
+    if(arrayEventiDaTenere.size()>1) {
+      daEliminare = 1;
+      for( t = 1; t < arrayEventiDaTenere.size(); t++ ) {
+        genString1 = colonnaEvento(i) ; genString2 = arrayEventiDaTenere(t);
+        if( genString1 == genString2  ) {  daEliminare = 0; }
+      }
+    }
+    
+    // Lista quelle da tenere
+    if( daEliminare == 0 ) {
+      rigaDaTenere.push_back( i+1 );
+    }
+  }
+  
+  // Costruisci la lista da ritornare
+  List ret;
+  ret["rigaDaTenere"] = rigaDaTenere;
+  ret["rigaDaTenere2"] = rigaDaTenere;
+  return ret;
+}
