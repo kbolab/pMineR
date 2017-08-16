@@ -742,6 +742,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
       "MM.density.list"=MM.density.list,
       "MM.den.list.high.det"=MM.den.list.high.det,
       "MM.mean.outflow.time"=MM.mean.outflow.time,
+      "original.CSV"=original.CSV,
       "csv.column.names" = param.column.names,
       "csv.IDName"=param.IDName,
       "csv.EVENTName"=param.EVENTName,
