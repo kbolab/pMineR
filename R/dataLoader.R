@@ -193,6 +193,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
       }
     }
     if(!is.na(keep.patients.by.attribute.name)) {
+      # browser()
       for( iii in seq(1,length(keep.patients.by.attribute.name))) {
         lista.pazienti <- unique(CSV.completo[ which(CSV.completo[, keep.patients.by.attribute.name[iii] ] == by.arr.attribute.value[iii]), param.IDName])
         CSV.completo <- CSV.completo[ which(CSV.completo[, param.IDName ] %in% lista.pazienti), ]
@@ -436,7 +437,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     # Fai lo split del data.frame in una lista di data.frame, rispetto al campo dell' ID
     ID.act.group = split(mydata, list(mydata[[ID.list.names]]))
     # prendi i pazienti da tenere (con almeno due eventi)
-    paziente.da.tenere <- names(dimensioni.tabelle)[which(dimensioni.tabelle>2)]
+    paziente.da.tenere <- names(dimensioni.tabelle)[which(dimensioni.tabelle>=2)]
 
     return(
       list(

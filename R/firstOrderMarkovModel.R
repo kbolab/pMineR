@@ -607,6 +607,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
       rigaEND<-paste(   c(rigaEND, "'",i,"'->'END' "), collapse = '') 
     }        
     
+    arr.nodi.con.archi <- c()
     stringaNodiComplessi<-''
     for(i in seq(1,nrow(MM))) {
       listaNodiRiga<-listaNodi[which(MM[i,]>=threshold)]
@@ -626,24 +627,38 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
               fontSize = 5+max(peso,abs(delta.peso))*9
               if(delta.peso>0) colore.delta.peso<-"Red"
               else colore.delta.peso<-"Green"
-               if(peso > threshold | second.peso > threshold)
+               if(peso > threshold | second.peso > threshold) {
                 stringaNodiComplessi<-paste(   c(stringaNodiComplessi, "'",listaNodi[i],"'->'",listaNodiRiga[ct],"' [ label='",peso,"/",second.peso,"', style='dashed', fontcolor='",colore.delta.peso,"', penwidth='",penwidth,"' ,fontsize = '",fontSize,"', color = ",colore.delta.peso,"]\n"), collapse = '')   
+                arr.nodi.con.archi<-c(arr.nodi.con.archi,listaNodi[i],listaNodiRiga[ct] )
+               }
             } else{
-               if(peso > threshold)
+               if(peso > threshold) {
                 stringaNodiComplessi<-paste(   c(stringaNodiComplessi, "'",listaNodi[i],"'->'",listaNodiRiga[ct],"' [ label='",peso,"', penwidth='",penwidth,"' ,fontsize = '",fontSize,"', color = Gray",colore,"]\n"), collapse = '')   
+                arr.nodi.con.archi<-c(arr.nodi.con.archi,listaNodi[i],listaNodiRiga[ct] )                
+               }
             }
           } else {
-             if(peso > threshold)
+             if(peso > threshold) {
               stringaNodiComplessi<-paste(   c(stringaNodiComplessi, "'",listaNodi[i],"'->'",listaNodiRiga[ct],"' [ label='",peso,"', penwidth='",penwidth,"' ,fontsize = '",fontSize,"', color = Gray",colore,"]\n"), collapse = '')   
+              arr.nodi.con.archi<-c(arr.nodi.con.archi,listaNodi[i],listaNodiRiga[ct] )              
+             }
           }
         }
       }
     }
+    # browser()
     listaNodiToPrint<-''
+    arr.nodi.con.archi <- unique(arr.nodi.con.archi)
+    
+    listaNodi <- listaNodi[ listaNodi %in% arr.nodi.con.archi ]
+    
     for(i in seq(1,length(listaNodi))) {
       if(i<length(listaNodi)) listaNodiToPrint <- paste( c(listaNodiToPrint," '",listaNodi[i],"';"), collapse=''    )
       else listaNodiToPrint <- paste( c(listaNodiToPrint," '",listaNodi[i],"'"), collapse=''    )
     }
+    
+    
+    
     # now plot it
     a<-paste(c("digraph boxes_and_circles {
              

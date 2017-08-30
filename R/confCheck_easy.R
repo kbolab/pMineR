@@ -210,12 +210,21 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         
         addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
         if(param.verbose == TRUE) cat(str_c("\nBeginning Pat ",indice,"..."))
+        # ooo <- system.time(res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], 
+        #                            col.eventName = dataLog$csv.EVENTName, 
+        #                            col.dateName = dataLog$csv.dateColumnName , 
+        #                            IDPaz = indice,
+        #                            event.interpretation = event.interpretation,
+        #                            date.format = dataLog$csv.date.format, UM = UM, store.computation.matrix= TRUE ))
+
         res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]], 
-                                   col.eventName = dataLog$csv.EVENTName, 
-                                   col.dateName = dataLog$csv.dateColumnName , 
-                                   IDPaz = indice,
-                                   event.interpretation = event.interpretation,
-                                   date.format = dataLog$csv.date.format, UM = UM, store.computation.matrix= TRUE )
+                                                      col.eventName = dataLog$csv.EVENTName, 
+                                                      col.dateName = dataLog$csv.dateColumnName , 
+                                                      IDPaz = indice,
+                                                      event.interpretation = event.interpretation,
+                                                      date.format = dataLog$csv.date.format, UM = UM, store.computation.matrix= TRUE )
+        
+        # print(ooo)
         # browser()
         if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
         addNote(msg = "\n\t\t<atTheEnd>")
@@ -796,21 +805,21 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     lista.comandi.condition <- list(
       "afmth" = ".afmth\\([0-9]+\\)",
-      "afmeth" = ".afmeth\\([0-9]+\\)",      
+      "afmeth" = ".afmeth\\([0-9]+\\)",
       "afmtd" = ".afmtd\\([0-9]+\\)",
       "afmetd" = ".afmetd\\([0-9]+\\)",
       "afmtw" = ".afmtw\\([0-9]+\\)",
-      "afmetw" = ".afmetw\\([0-9]+\\)",      
+      "afmetw" = ".afmetw\\([0-9]+\\)",
       "afmtm" = ".afmtm\\([0-9]+\\)",
-      "afmetm" = ".afmetm\\([0-9]+\\)",      
+      "afmetm" = ".afmetm\\([0-9]+\\)",
       "aflth" = ".aflth\\([0-9]+\\)",
       "afleth" = ".afleth\\([0-9]+\\)",
       "afltd" = ".afltd\\([0-9]+\\)",
       "afletd" = ".afletd\\([0-9]+\\)",
       "afltw" = ".afltw\\([0-9]+\\)",
-      "afletw" = ".afletw\\([0-9]+\\)",      
+      "afletw" = ".afletw\\([0-9]+\\)",
       "afltm" = ".afltm\\([0-9]+\\)",
-      "afletm" = ".afletm\\([0-9]+\\)"      
+      "afletm" = ".afletm\\([0-9]+\\)"
     )
     
     # Passa il contenuto di st.ACTIVE.time e st.ACTIVE.time.cum in minuti
@@ -1810,7 +1819,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #=================================================================================  
   play<-function(number.of.cases, min.num.of.valid.words=NA, 
                       max.word.length=100, howToBuildBad="resample", 
-                      toReturn="csv", debug.mode = FALSE, output.format.date = "%d/%m/%Y",
+                      toReturn="csv", debug.mode = FALSE, output.format.date = "%d/%m/%Y %H:%M:%S",
                       typeOfRandomDataGenerator="dayAfterDay") {
     # cat("\n (1)")
     # Aggiorna il formato data dell'ultimp PLAY
@@ -1851,6 +1860,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     if(toReturn=="dataLoader") {
       # Istanzia un oggetto dataLoader che eridita il parametro "verbose"
       daRestituire<-dataLoader(verbose.mode = param.verbose)
+      # browser()
       daRestituire$load.data.frame(mydata = a$valid.data.frame,
                                    IDName = "patID",EVENTName = "event",
                                    dateColumnName = "date" , 
@@ -1888,7 +1898,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # Ora prendine la meta' e fai uno shuffle
     quante.da.mescolare <- number.of.cases - min.num.of.valid.words
     aaa <- lista.res$list.LOGs
- 
+    # browser()
     if(quante.da.mescolare>0) {
       for(indice.parola in seq(1,quante.da.mescolare)) {
         if(param.verbose == TRUE)  cat("\n ",indice.parola)
@@ -1906,6 +1916,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           }
         }
       }
+      # browser()
       # Ora devo controllare, di quelle che ho "shuffellato", quante sono ancora valide!
       for(indice.parola in seq(1,quante.da.mescolare)) {
         # Costruisci la matrice per consentire l'eseguibilita'
@@ -1914,7 +1925,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         numeroGiorno<-1
         for(index.car in seq(1,length(lista.res$list.LOGs[[ indice.parola ]]))) {
           sing.car <- lista.res$list.LOGs[[ indice.parola ]][index.car]
-          nuovaDatatmp <- as.Date("01/01/2000",format="%d/%m/%Y") + numeroGiorno
+          nuovaDatatmp <- as.Date("01/01/2000 12:00:00",format="%d/%m/%Y %H:%M:%S") + numeroGiorno
           nuovaDatatmp <- as.character(format( nuovaDatatmp, format = output.format.date ))
           nuovaRiga<-c(nuovaDatatmp,sing.car)
           # if(typeOfRandomDataGenerator=="dayAfterDay") giorni.da.sommare <-1
@@ -1925,6 +1936,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           
           marice.dati <- rbind(marice.dati,nuovaRiga)
         }
+        # browser()
         colnames(marice.dati)<-c("data","evento")
         
         res <- playSingleSequence( matriceSequenza = marice.dati, 
@@ -1952,7 +1964,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         arr.matching.parola<-c(arr.matching.parola,parola.corretta)
       }
     }
-
+    # browser()
     # dichiara certamente vere quelle iniziali, quelle non shuffellate
 
     arr.matching.parola<-c(arr.matching.parola,rep(TRUE,number.of.cases-quante.da.mescolare))
