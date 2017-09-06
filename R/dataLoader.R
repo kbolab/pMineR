@@ -49,6 +49,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
   list.dictionary<-''
   list.dict.column.event.name<-''
   input.format.date<-''
+  max.pMineR.internal.ID.Evt <-''
   original.CSV <- ''
   # print(max.char.length.label)
   param.IDName<-''
@@ -530,6 +531,8 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     if(!("pMineR.internal.ID.Evt" %in% colnames(mydata) ))
       { mydata <- cbind("pMineR.internal.ID.Evt"=seq(1,nrow(mydata)),mydata ) }
 
+    max.pMineR.internal.ID.Evt <<- max(mydata$pMineR.internal.ID.Evt)
+
     # Change the DATA FORMAT!
     mydata[[dateColumnName]] <- as.character(mydata[[dateColumnName]] )
     mydata[[dateColumnName]] <- strptime(as.character(mydata[[dateColumnName]]), format.column.date)
@@ -748,7 +751,8 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
       "csv.IDName"=param.IDName,
       "csv.EVENTName"=param.EVENTName,
       "csv.dateColumnName"=param.dateColumnName,
-      "csv.date.format"=input.format.date
+      "csv.date.format"=input.format.date,
+      "csv.max.pMineR.internal.ID.Evt"=max.pMineR.internal.ID.Evt
     ))
   }
   #=================================================================================
@@ -767,6 +771,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     list.dictionary<<-list()
     list.dict.column.event.name<<-list()
     input.format.date<<-''
+    max.pMineR.internal.ID.Evt<<-0
     # Not true data, but useful anyway
     param.IDName<<-''
     param.EVENTName<<-''
