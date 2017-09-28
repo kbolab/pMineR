@@ -91,6 +91,25 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     build.Workflow.model()
   }
   #===========================================================  
+  # array.match
+  # verifica se un array sia simile (o no) ad un array di array
+  #===========================================================    
+  array.match<-function( arrIn=c(), lstIn=list() ) {
+    for(i in seq(1,length(lstIn))) {
+      if( all(arrIn == lstIn[[i]]) == TRUE ) return('TRUE');
+    }
+    return('FALSE');
+  }
+  #===========================================================  
+  # int
+  # verifica se un array sia simile (o no) ad un array di array
+  #===========================================================  
+  int<-function( stringa ) {
+    suppressWarnings (i <- as.numeric(stringa))
+    if(is.na((i))) i<-'';
+    return(i);
+  }  
+  #===========================================================  
   # build.Workflow.model
   # it parses the XML to build in memory the WF model
   #===========================================================    
