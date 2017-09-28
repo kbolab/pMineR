@@ -76,6 +76,17 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     list.dict.column.event.name[[ dict.name ]] <<- column.event.name
   }    
   #=================================================================================
+  # addDataDescription
+  #=================================================================================    
+  addDataDescription<-function( fileName, dataDescriptionName="default" ) {
+    list.dataDescription[[ dataDescriptionName ]] <<- xmlInternalTreeParse(fileName)
+    # Cerca la lista delle trasformazioni da operare
+    listaTrasformazioni<-xpathApply(doc,'//virtualAttribute',xmlValue)
+    aaa <- xpathApply(doc,'//virtualAttribute/rule[@name=""]',xmlValue)
+    browser()
+    ct <- 1
+  }    
+  #=================================================================================
   # getTranslation
   #=================================================================================   
   getTranslation<-function(  column.name , dict.name = 'main', toReturn="csv") {
@@ -518,7 +529,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     obj.Utils <- utils()
     clearAttributes( );
     param.column.names<<-colnames(mydata)
-    
+    # print(c("1",date()))
     # browser()
     # aaaaaaa <- mydata
     if(length(mydata[[dateColumnName]]) == 0) { obj.LH$sendLog( c("dateColumnName '",dateColumnName,"' not present! ")  ,"ERR"); return() }
@@ -538,6 +549,8 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     mydata[[dateColumnName]] <- strptime(as.character(mydata[[dateColumnName]]), format.column.date)
     mydata[[dateColumnName]] <- format(mydata[[dateColumnName]],"%d/%m/%Y %H:%M:%S")
     format.column.date <- "%d/%m/%Y %H:%M:%S"
+    
+    # print(c("2",date()))
     
     if(suppress.invalid.date==TRUE) {
       mydata <- mydata[ which(mydata[[dateColumnName]]!="" ),]
@@ -562,6 +575,8 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
       mydata[[EVENT.list.names]] <- gsub("'", "", mydata[[EVENT.list.names]])
     }
     
+    # print(c("3",date()))
+    
     mydata[[ID.list.names]]<-as.character(mydata[[ID.list.names]])
     if(!is.na(dateColumnName)) {
       mydata[[dateColumnName]]<-as.character(mydata[[dateColumnName]])
@@ -572,6 +587,8 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     if(verbose.mode == TRUE) obj.LH$sendLog("\n Done! \n ")
     ID.act.group<-ooo$ID.act.group
     paziente.da.tenere<-ooo$paziente.da.tenere
+    
+    # print(c("4",date()))
     
     # Se non ci sono almeno due eventi per ogni paziente, togli il paziente dalla lista
     # (e dal data frame originale)
@@ -586,6 +603,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
       if(length(ID.act.group)==0) browser()
       ID.act.group<-order.list.by.date(listToBeOrdered = ID.act.group, dateColumnName = dateColumnName, format.column.date = format.column.date)
     }
+    # print(c("5",date()))
     # if(verbose.mode == TRUE) cat("\n 3) Building MMatrices and other stuff")
     if(verbose.mode == TRUE) obj.LH$sendLog(" 3) Building MMatrices and other stuff (3/3):\n")
     
@@ -598,6 +616,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
                                                                   max.char.length.label = param.max.char.length.label,
                                                                   verbose.mode = param.verbose 
                                                                   )
+    # print(c("5",date()))    
     if(res$error == TRUE) { 
       if(res$errCode == 1) {obj.LH$sendLog( "event '' (BLANK) detected, please check the file\n"  ,"ERR"); return()}
       if(res$errCode == 2) {obj.LH$sendLog( c("an event has a label with a length greter than ",param.max.char.length.label," chars...\n")  ,"ERR"); return()}
@@ -626,6 +645,9 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
   #=================================================================================
   # load.csv
   #=================================================================================  
+  load.csv.GUI<-function() {
+    runApp(appDir = system.file("shiny-gui", "dataLoader.load.csv", package = "pMineR"))
+  }
   load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, 
                       format.column.date="%d/%m/%Y %H:%M:%S", 
                       convertUTF = TRUE, suppress.invalid.date = TRUE) {
@@ -790,12 +812,14 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
   #================================================================================= 
   return(list(
     "load.csv"=load.csv,
+    "load.csv.GUI"=load.csv.GUI,
     "load.data.frame"=load.data.frame,
     "getData"=getData,
     "applyFilter"=applyFilter,
     # "removeEvents"=removeEvents,
     # "keepOnlyEvents"=keepOnlyEvents,
     "addDictionary"=addDictionary,
+    "addDataDescription"=addDataDescription,
     "getTranslation"=getTranslation,
     "plot.Timeline"=plot.Timeline,
     "plot.transition.time.probability"=plot.transition.time.probability

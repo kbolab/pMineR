@@ -1,3 +1,12 @@
+#' Sfdfdsfdome useful tools
+#' 
+#' @description  A class which provide some tools. pMineR intarnal use only.ddd
+#' @import Rcpp
+#' @export
+IsASCII<-function( fileName ) {
+  return(c_IsASCII(fileName = fileName))
+}
+
 #' Some useful tools
 #' 
 #' @description  A class which provide some tools. pMineR intarnal use only.
@@ -65,10 +74,10 @@ utils<-function() {
     big.csv<-c()
     ct <- 1
     
-
+    
     for(i in names(listaProcessi)) {
       numeroElementi<-length(listaProcessi[[i]])
-
+      
       if(typeOfRandomDataGenerator=="dayAfterDay") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=1))
       if(typeOfRandomDataGenerator=="randomDay1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) )
       if(typeOfRandomDataGenerator=="randomWeek1-4") giorni.da.sommare <- as.integer(runif(n = numeroElementi,min=1,max=4) * 7)
@@ -119,7 +128,6 @@ textObj<-function() {
 #' @export
 #' @useDynLib pMineR
 dataProcessor<-function() {
-  
   #=================================================================================
   # buildMMMatrices.and.other.structures
   # costruisce la MM matrix ed anche altra robaccia
@@ -129,7 +137,7 @@ dataProcessor<-function() {
                                                  ID.act.group,
                                                  max.char.length.label = 50,
                                                  verbose.mode = TRUE) {
-
+    
     # costruisci la matrice
     MM<-matrix(0, ncol=length(unique(mydata[[EVENT.list.names]]))+2, nrow=length(unique(mydata[[EVENT.list.names]]))+2 )
     colnames(MM)<-c("BEGIN","END",unique(as.character(mydata[[EVENT.list.names]])))
@@ -145,12 +153,12 @@ dataProcessor<-function() {
     if(length(grep("'", colnames(MM))))  {
       return( list("error"=TRUE, "errCode"=3)  )
     }    
-
+    
     # Creiamo anche la matrice con le density dei tempi di transizione
     # (ma solo se c'e' un campo DATA TIME)
     MM.den.list<-list()
     MM.den.list.high.det<-list()
-   
+    
     # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
     # per ogni paziente
     if( verbose.mode == TRUE ) pb <- txtProgressBar(min = 0, max = length(ID.act.group), style = 3)
@@ -207,7 +215,7 @@ dataProcessor<-function() {
     }
     if( verbose.mode == TRUE ) close(pb)
     quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
-
+    
     # Calcola la matrice delle medie dei tempi
     # Sarebbe bello avere le density... vabbe'. piu' avanti
     if(EVENTDateColumnName!='' & !is.na(EVENTDateColumnName)){
@@ -238,7 +246,192 @@ dataProcessor<-function() {
       IDPat<-names(  ID.act.group)[i]
       wordSequence.TMP01[[IDPat]]<-ID.act.group[[ IDPat ]][[EVENTName]]
     }    
-
+    
+    return(list( "arrayAssociativo" = rownames(MM),
+                 "footPrint"="",
+                 "MMatrix"=MM,
+                 "MM.mean.time"=MM.mean.time,
+                 "MM.density.list"=MM.den.list,
+                 "MM.mean.outflow.time"=MM.mean.outflow.time,
+                 "MM.den.list.high.det" = MM.den.list.high.det,
+                 "pat.process"=ID.act.group,
+                 "wordSequence.raw"=wordSequence.TMP01,
+                 "error"=FALSE) )    
+  }  
+  
+  #=================================================================================
+  # buildMMMatrices.and.other.structures
+  # costruisce la MM matrix ed anche altra robaccia
+  #=================================================================================    
+  buildMMMatrices.and.other.structures.v2<-function(mydata, EVENT.list.names, 
+                                                 EVENTName, EVENTDateColumnName=NA, 
+                                                 ID.act.group,
+                                                 max.char.length.label = 50,
+                                                 verbose.mode = TRUE) {
+    # cat("\n 1")
+    # costruisci la matrice
+    separatoreNomi <- "|;|,|.|:|"
+    MM<-matrix(0, ncol=length(unique(mydata[[EVENT.list.names]]))+2, nrow=length(unique(mydata[[EVENT.list.names]]))+2 )
+    colnames(MM)<-c("BEGIN","END",unique(as.character(mydata[[EVENT.list.names]])))
+    rownames(MM)<-colnames(MM)
+    matrice.possibili.nomi <- expand.grid(c("BEGIN","END",unique(as.character(mydata[[EVENT.list.names]]))),c("BEGIN","END",unique(as.character(mydata[[EVENT.list.names]]))))
+    ooo <- apply(matrice.possibili.nomi,MARGIN = 1,function(x){ paste(c(x[1],separatoreNomi,x[2]),collapse = '') } )
+    # listaOccorrenzeTempi <- cbind(ooo,rep("",length(ooo)))
+    listaOccorrenzeTempi<-rep("",length(ooo))
+    names(listaOccorrenzeTempi) <- ooo
+    
+    # listaOccorrenzeTempi <- rep(list(c(1)),length(ooo))
+    # names(listaOccorrenzeTempi) <- ooo;
+    
+    # print(max.char.length.label)
+    if(("" %in% trimws(colnames(MM))) == TRUE) {
+      return( list("error"=TRUE, "errCode"=1)  )
+    }
+    
+    if(max(nchar(colnames(MM)))>max.char.length.label)  {
+      return( list("error"=TRUE, "errCode"=2)  )
+    }
+    if(length(grep("'", colnames(MM))))  {
+      return( list("error"=TRUE, "errCode"=3)  )
+    }    
+    MM.pulita <- MM
+    nuova.MM <- MM
+    
+    # Creiamo anche la matrice con le density dei tempi di transizione
+    # (ma solo se c'e' un campo DATA TIME)
+    MM.den.list<-list()
+    MM.den.list.high.det<-list()
+    
+    
+    if(sum(is.na(mydata[[EVENTDateColumnName]] )) !=0 ) stop("ERROR: a date is set to a NA")
+    if(EVENTDateColumnName=="") stop("ERROR: missing 'EVENTDateColumnName'")
+    
+    posizione.colonna.evento <- which(colnames(ID.act.group[[1]]) == EVENTName) -1
+    posizione.colonna.data.inizio.evento <- which(colnames(ID.act.group[[1]]) == EVENTDateColumnName) -1
+    # cat("\n 2")
+    c_buildMMMatrices_and_other_structures_v2( 
+      ID.act.group, 
+      nuova.MM, 
+      posizione.colonna.evento,
+      (which(colnames(nuova.MM)=="BEGIN")-1),
+      (which(colnames(nuova.MM)=="END")-1),
+      posizione.colonna.data.inizio.evento,
+      rownames(nuova.MM),
+      separatoreNomi,
+      listaOccorrenzeTempi,
+      names(listaOccorrenzeTempi)) 
+    # Sai tu perche', mi ha sporcato MM: devo ripulirla
+    # (forse perche' globale?? Bo'..)
+    MM <- MM * 0
+    
+    # Ora, a partire dal contenuto della 'listaOccorrenzeTempi', devi costruire la 'MM.den.list'
+    Matrice.occorrenze.tempi <- cbind(names(listaOccorrenzeTempi),listaOccorrenzeTempi)
+    tmp.MM.den.list <- list()
+      
+    oppalo <- apply(X = Matrice.occorrenze.tempi, MARGIN = 1,
+                     FUN = function(x) {
+                              stati<-strsplit( x = x[1],split = separatoreNomi,fixed = TRUE)[[1]]
+                              valori.esplosi <- strsplit( x = x[2],split = ",",fixed = TRUE)[[1]]
+                              valori.esplosi <- as.numeric(valori.esplosi[ which(!(valori.esplosi %in% c(""))) ])
+                              valori.esplosi <- valori.esplosi[ which(!is.na(valori.esplosi)) ]
+                              if(length(tmp.MM.den.list[[ stati[1] ]])==0) tmp.MM.den.list[[ stati[1] ]]<<-list()
+                              if(length(tmp.MM.den.list[[ stati[1] ]][[ stati[2] ]])==0) tmp.MM.den.list[[ stati[1] ]][[ stati[2] ]]<<-as.numeric(valori.esplosi)
+                           }
+                    )
+    MM.den.list <- tmp.MM.den.list
+    # cat("\n 3")
+    # ora scorri la storia dei singoli pazienti per estrarre le ricorrenze
+    # per ogni paziente
+    # if( verbose.mode == TRUE ) pb <- txtProgressBar(min = 0, max = length(ID.act.group), style = 3)
+    for(patID in seq(1,length(ID.act.group))) {
+      # if( verbose.mode == TRUE ) setTxtProgressBar(pb, patID)
+      # su ogni elemento del percorso clinico
+      # t e' il "tempo" in senso di "step"
+      # for(t in seq(1,nrow(ID.act.group[[patID]]))) {
+      #   # vedi se devi legare il BEGIN
+      #   if( t == 1) {
+      #     valore<-MM[ "BEGIN", ID.act.group[[patID]][ t ,EVENT.list.names] ]
+      #     MM[ "BEGIN", ID.act.group[[patID]][ t ,EVENT.list.names] ]<-valore+1
+      #   }
+      #   # vedi se devi legare l'END   
+      #   if( t == nrow(ID.act.group[[patID]])) {
+      #     nomeCampo<-ID.act.group[[patID]][t,EVENT.list.names]
+      #     MM[nomeCampo,"END"]<-MM[nomeCampo,"END"]+1
+      #   }
+      #   # browser()
+      #   # tmp.uuu <- getInterestingSinglePatientData( ID.act.group[[patID]] );
+      #   # cat("\n",tmp.uuu)
+      #   # tutti gli altri
+      #   if( t < nrow(ID.act.group[[patID]])) {
+      #     nomeCampo.pre<-ID.act.group[[patID]][t,EVENT.list.names]
+      #     nomeCampo.post<-ID.act.group[[patID]][t+1,EVENT.list.names]
+      #     MM[ nomeCampo.pre, nomeCampo.post ]<-MM[ nomeCampo.pre, nomeCampo.post ]+1
+      #     if(EVENTDateColumnName!='' & ! is.na(EVENTDateColumnName)){
+      #       delta.date<-as.numeric(difftime(as.POSIXct(ID.act.group[[patID]][t+1,EVENTDateColumnName], format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(ID.act.group[[patID]][t,EVENTDateColumnName], format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
+      #       if(length(MM.den.list[[ nomeCampo.pre]])==0) MM.den.list[[ nomeCampo.pre]]<-list()
+      #       if(length(MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]])==0) MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c()
+      #       MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]]<-c(MM.den.list[[ nomeCampo.pre]][[ nomeCampo.post ]],delta.date)
+      #     }
+      #   }    
+      # }
+      # invoca il programma in C per estrarre i tempi reciproci fra TUTTI
+      iii <- unlist(lapply(ID.act.group[[patID]][,EVENT.list.names] , function(x) which(colnames(MM)==x) ))
+      massimo <-max(iii)
+      out.MM<-rep( 0 , (massimo)*(massimo) )
+      out.delta<-c()
+      nuovoOut <- c()
+      
+      aaa <- transitionsTime( iii , ID.act.group[[patID]][,"pMineR.deltaDate"], max(iii) );
+      
+      mm.in <- matrix(c(iii,ID.act.group[[patID]][,"pMineR.deltaDate"]),nrow=2,byrow = T)
+      mm.out <- t(matrix(c(aaa$from,aaa$to,aaa$time),nrow=3,byrow = T))
+      for( riga in seq(1,nrow(mm.out))) {
+        int.from <-colnames(MM)[mm.out[riga,1]];
+        int.to <-colnames(MM)[mm.out[riga,2]];
+        delta.tempo <-mm.out[riga,3];
+        if(length(MM.den.list.high.det[[ int.from ]])==0) MM.den.list.high.det[[ int.from]]<-list()
+        if(length(MM.den.list.high.det[[ int.from]][[ int.to ]])==0) MM.den.list.high.det[[ int.from]][[ int.to ]]<-c()
+        MM.den.list.high.det[[ int.from]][[ int.to ]]<-c(MM.den.list.high.det[[ int.from]][[ int.to ]],delta.tempo)
+      }
+    }
+    # if( verbose.mode == TRUE ) close(pb)
+    quanti.da.fare<-length(names(MM.den.list)) * length(names(MM.den.list))
+    
+    # cat("\n 4")
+    # browser()
+    # Calcola la matrice delle medie dei tempi
+    # Sarebbe bello avere le density... vabbe'. piu' avanti
+    if(EVENTDateColumnName!='' & !is.na(EVENTDateColumnName)){
+      MM.mean.time<-MM
+      MM.mean.time[ 1:nrow(MM.mean.time) , 1:ncol(MM.mean.time)   ]<-Inf
+      for(state.from in names(MM.den.list))  {
+        for(state.to in names(MM.den.list[[state.from]]))  {
+          MM.mean.time[state.from,state.to ]<-mean(MM.den.list[[ state.from]][[ state.to ]])
+        }        
+      }
+    }
+    
+    # CALCOLO LA MATRICE DEI FLUSSI FUORI DALLO STATO
+    
+    if(EVENTDateColumnName!='' & !is.na(EVENTDateColumnName)){
+      MM.mean.outflow.time<-MM
+      MM.mean.outflow.time[ 1:nrow(MM.mean.outflow.time) , 1:ncol(MM.mean.outflow.time)   ]<-NA
+      for(state.from in names(MM.den.list))  {
+        for(state.to in names(MM.den.list[[state.from]]))  {
+          MM.mean.outflow.time[state.from,state.to ]<-mean(MM.den.list[[ state.from]][[ state.to ]][which(MM.den.list[[ state.from]][[ state.to ]] >=0 & state.from != state.to)])
+        }
+      }
+    }
+    
+    # costruisci una semplice versione, con le parole (come piace tanto a Van der Aalst)
+    wordSequence.TMP01<-list();
+    for(i in seq(1,length(ID.act.group))) {
+      IDPat<-names(  ID.act.group)[i]
+      wordSequence.TMP01[[IDPat]]<-ID.act.group[[ IDPat ]][[EVENTName]]
+    }    
+    
+    # browser()
+    cat("\n 5")
     return(list( "arrayAssociativo" = rownames(MM),
                  "footPrint"="",
                  "MMatrix"=MM,
@@ -257,7 +450,7 @@ dataProcessor<-function() {
   # Creata per poter evitare di dover usare il pacchetto markovChain
   #=================================================================================      
   createSequenceMatrix<-function( sequence2parse ) {
-
+    
     sequenza.simboli <- unique(as.character(sequence2parse))
     MM<-matrix(0, ncol=length(sequenza.simboli), nrow=length(sequenza.simboli) )  
     colnames(MM)<-sequenza.simboli
@@ -278,6 +471,7 @@ dataProcessor<-function() {
   
   return(list(
     "buildMMMatrices.and.other.structures"=buildMMMatrices.and.other.structures,
+    "buildMMMatrices.and.other.structures.v2"=buildMMMatrices.and.other.structures.v2,
     "createSequenceMatrix" = createSequenceMatrix
   ))
 }
@@ -290,10 +484,10 @@ dataProcessor<-function() {
 #' @description  A class which provide some tools. pMineR intarnal use only. wow
 #' @export
 plotPatientReplayedTimelineFunction<-function( list.computation.matrix , patientID,
-                                       text.cex=.7, y.intra.gap = 40, x.offset = 100,
-                                       thickness=5 , 
-                                       bar.border = "Navy",bar.volume = "lightsteelblue1",
-                                       text.date.cex =.6) {
+                                               text.cex=.7, y.intra.gap = 40, x.offset = 100,
+                                               thickness=5 , 
+                                               bar.border = "Navy",bar.volume = "lightsteelblue1",
+                                               text.date.cex =.6) {
   
   date.notevoli <-c()
   durate.notevoli <- c()
@@ -304,7 +498,7 @@ plotPatientReplayedTimelineFunction<-function( list.computation.matrix , patient
   for( tmp in 1:length(matrice[,1])) {
     if( !(matrice[tmp,1] %in%arr.stati)) { arr.stati <- c(arr.stati,matrice[tmp,1]) }
   }
-  
+  # browser()
   par(mar=c(2,0,2,0)+0)
   plot( x=c(), y=c(), 
         xlim = c(0,tempo.max + x.offset+ 15) , 
@@ -401,4 +595,4 @@ plotPatientReplayedTimelineFunction<-function( list.computation.matrix , patient
   }    
   
   # list.computation.matrix
-}  
+} 

@@ -61,6 +61,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   
   param.verbose <- c()
   obj.LogHandler<-c()               # gestore dei messaggi
+  global.lista.comandi.condition<-list()
+  global.arr.comandi.rilevati<-c()
   
   #=================================================================================
   # clearAttributes
@@ -79,6 +81,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     if(!is.na(WF.fileName)){
       WF.xml <<- xmlInternalTreeParse( WF.fileName )
       WF.xml.fileName <<- WF.fileName
+      pre.parsing.PWL.file(fileName = WF.fileName)
     }
     if(!is.na(WF.text)){
       WF.xml <<- xmlInternalTreeParse(WF.text, asText=TRUE)
@@ -349,6 +352,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     # Analizza TUTTI gli eventi della sequenza
     for( indice.di.sequenza in seq(1,length(sequenza) )) {
+      riga.completa.EventLog <- matriceSequenza[ indice.di.sequenza, ]
       
       # due variabili comode per dopo
       ev.NOW <- sequenza[indice.di.sequenza]
@@ -388,7 +392,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
             newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE, 
                                       st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                       st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                      EOF = FALSE , UM = UM  )
+                                      EOF = FALSE , UM = UM,
+                                      riga.completa.EventLog = c())
             # Se c'e' un errore, ferma tutto
             if(newHop$error==TRUE) {
               note.set.error(error = newHop$error)
@@ -457,7 +462,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE, 
                                 st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                 st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                EOF = FALSE  , UM = UM )
+                                EOF = FALSE  , UM = UM,
+                                riga.completa.EventLog = riga.completa.EventLog )
       history.hop[[indice.di.sequenza.ch]]$active.trigger<-newHop$active.trigger
       history.hop[[indice.di.sequenza.ch]]$ev.NOW<-ev.NOW
       history.hop[[indice.di.sequenza.ch]]$st.ACTIVE<-newHop$st.ACTIVE
@@ -514,7 +520,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = "", st.DONE = st.DONE, 
                                   st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                   st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                  EOF = FALSE  , UM = UM )
+                                  EOF = FALSE  , UM = UM,
+                                  riga.completa.EventLog = c())
         # inzializza il log in caso di errore o in caso di trigger
         if(newHop$error==TRUE | length(newHop$active.trigger)!=0) {
           ct <- ct + 1
@@ -595,7 +602,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE, 
                                 st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                 st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                EOF = TRUE  )
+                                EOF = TRUE,
+                                riga.completa.EventLog = c())
       
       # Se c'e' un errore, ferma tutto
       if(newHop$error==TRUE) {
@@ -644,7 +652,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #   st.ACTIVE.time.cum - il tempo di 'uptime' degli stati (cumulativo)
   #   EOF - 'TRUE' indica che la computazione è finita
   #===========================================================    
-  attiva.trigger<-function( st.LAST, ev.NOW, st.DONE, st.ACTIVE, st.ACTIVE.time, st.ACTIVE.time.cum, EOF , UM="days" ) {
+  attiva.trigger<-function( st.LAST, ev.NOW, st.DONE, st.ACTIVE, st.ACTIVE.time, st.ACTIVE.time.cum, EOF , UM="days",riga.completa.EventLog = c() ) {
     # inizializza
     new.st.DONE<-st.DONE;
     new.st.LAST<-c()
@@ -675,12 +683,23 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         
         stringa.to.eval<- str_replace_all(string = stringa.to.eval,pattern = " OR ",replacement = " | ")
         stringa.to.eval<- str_replace_all(string = stringa.to.eval,pattern = " AND ",replacement = " & ")
-        
+
+        # browser()
+        # Fai il parse sugli attributi
+        stringa.to.eval <- parse.for.attribute.conditions(
+          stringa = stringa.to.eval,
+          st.ACTIVE.time = st.ACTIVE.time,
+          st.ACTIVE.time.cum = st.ACTIVE.time.cum,
+          riga.completa.EventLog = riga.completa.EventLog) 
+                
+        # Fai il parse sui DELTA T
         stringa.to.eval <- parse.for.temporal.conditions(
                                   stringa = stringa.to.eval,
                                   st.ACTIVE.time = st.ACTIVE.time,
                                   st.ACTIVE.time.cum = st.ACTIVE.time.cum,
                                   UM = UM) 
+        
+
         
         # Parsa la stringa
         if(stringa.to.eval=="") risultato <- TRUE
@@ -794,6 +813,37 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     ))
   }
   #===========================================================  
+  # parse.for.attribute.conditions
+  # esegue il parse per eventuali vincoli sugli attributi
+  #===========================================================      
+  parse.for.attribute.conditions<- function(stringa , st.ACTIVE.time , st.ACTIVE.time.cum, riga.completa.EventLog) {
+    a <- 1
+    
+    stringaToMatch <- "\\$ev\\.NOW::attr\\(['\"][0-9a-zA-Z_ ,\\.\\?]+['\"]\\)"
+    stringa.run <- stringa
+    
+    matrice.match <- str_locate_all(string = stringa.run, pattern = stringaToMatch )[[1]]
+    while( length(matrice.match) > 0  ) {
+      # Lavora sempre e solo sulla prima riga 
+      # (tanto poi la matrice si riduce di dimensioni all'iterazione successiva)
+      riga <- 1
+      # scorri per tutte le occorrenze del match
+      pos.par <- str_locate(string = stringaToMatch, pattern = "\\(")[1]-2
+      attributeName <- str_sub(string = stringa.run,start = matrice.match[riga, "start"]+pos.par,end = matrice.match[riga, "end"]-2)
+      valore.da.sostituire <- riga.completa.EventLog[,attributeName]
+      
+      stringa.pre <- str_sub(string = stringa.run, start = 1, end = matrice.match[riga, "start"]-1)
+      stringa.post <- str_sub(string = stringa.run, start  = matrice.match[riga, "end"]+2,end = str_length(string = stringa.run))
+      
+      nuova.stringa <- paste(c(stringa.pre," '",valore.da.sostituire,"' ",stringa.post),collapse = '')
+      stringa.run <- nuova.stringa
+      
+      matrice.match <- str_locate_all(string = stringa.run, pattern = stringaToMatch )[[1]]
+    }
+    
+    return(stringa.run)
+  }
+  #===========================================================  
   # parse.for.temporal.conditions
   # esegue il parse per eventuali 'condition' con aspetti temporali. Li metto su una
   # funzione a parte per facilitare la visibilità della funzione chiamante (ben 
@@ -801,6 +851,98 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #===========================================================    
   parse.for.temporal.conditions <- function(stringa , st.ACTIVE.time , st.ACTIVE.time.cum , UM = "days") {
 
+    stringa.run <- stringa
+    
+    # lista.comandi.condition <- list(
+    #   "afmth" = ".afmth\\([0-9]+\\)",
+    #   "afmeth" = ".afmeth\\([0-9]+\\)",
+    #   "afmtd" = ".afmtd\\([0-9]+\\)",
+    #   "afmetd" = ".afmetd\\([0-9]+\\)",
+    #   "afmtw" = ".afmtw\\([0-9]+\\)",
+    #   "afmetw" = ".afmetw\\([0-9]+\\)",
+    #   "afmtm" = ".afmtm\\([0-9]+\\)",
+    #   "afmetm" = ".afmetm\\([0-9]+\\)",
+    #   "aflth" = ".aflth\\([0-9]+\\)",
+    #   "afleth" = ".afleth\\([0-9]+\\)",
+    #   "afltd" = ".afltd\\([0-9]+\\)",
+    #   "afletd" = ".afletd\\([0-9]+\\)",
+    #   "afltw" = ".afltw\\([0-9]+\\)",
+    #   "afletw" = ".afletw\\([0-9]+\\)",
+    #   "afltm" = ".afltm\\([0-9]+\\)",
+    #   "afletm" = ".afletm\\([0-9]+\\)"
+    # )
+    # browser()
+    lista.comandi.condition <- global.lista.comandi.condition
+    lista.comandi.condition <-  lista.comandi.condition[ global.arr.comandi.rilevati ]
+    
+    # Passa il contenuto di st.ACTIVE.time e st.ACTIVE.time.cum in minuti
+    
+    if( UM == "mins")  moltiplicatore <- 1
+    if( UM == "hours") moltiplicatore <- 60
+    if( UM == "days")  moltiplicatore <- 60 * 24
+    if( UM == "weeks") moltiplicatore <- 60 * 24 * 7
+    
+    st.ACTIVE.time <- st.ACTIVE.time * moltiplicatore
+    st.ACTIVE.time.cum <- st.ACTIVE.time.cum * moltiplicatore
+
+    for( comandoToCheck in names(lista.comandi.condition) ) {
+
+      # poni un default per l'esito
+      esito = FALSE
+      
+      stringaToMatch <- lista.comandi.condition[[ comandoToCheck ]]
+      pos.par <- str_locate(string = stringaToMatch, pattern = "\\(")[1]-1
+
+      matrice.match <- str_locate_all(string = stringa.run, pattern = stringaToMatch )[[1]]
+      while( length(matrice.match) > 0  ) {    
+        # if(nrow(matrice.match)>=2) browser()
+        riga <- 1
+
+        # poni un default per l'esito
+        esito = FALSE
+        
+        # estrai la quantità fra le parentesi
+        quantita <- str_sub(string = stringa.run,start = matrice.match[riga, "start"]+pos.par,end = matrice.match[riga, "end"]-1)
+        quantita <- as.numeric(quantita)
+  
+        # estrai il nome dello stato
+        nomeStato <- str_sub(string = stringa.run,end = matrice.match[riga, "start"]-1)
+        subMatrix.nomeStato <- str_locate_all(string = nomeStato, pattern = "'" )[[1]]
+        nomeStato <- str_sub(string = nomeStato,
+                             start = subMatrix.nomeStato[ nrow(subMatrix.nomeStato)-1, "start"]+1,
+                             end = subMatrix.nomeStato[ nrow(subMatrix.nomeStato), "start"]-1)
+        # Ora fai due riflessioni...
+        if(comandoToCheck == "afmtm") { esito = st.ACTIVE.time[ nomeStato ] > (quantita) }
+        if(comandoToCheck == "afmetm") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita) }          
+        if(comandoToCheck == "afmth") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 ) }
+        if(comandoToCheck == "afmeth") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 ) }
+        if(comandoToCheck == "afmtd") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24) }
+        if(comandoToCheck == "afmetd") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24) }
+        if(comandoToCheck == "afmtw") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24 * 7) }
+        if(comandoToCheck == "afmetw") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24 * 7) }
+
+        if(comandoToCheck == "afltm") { esito = st.ACTIVE.time[ nomeStato ] < (quantita) }
+        if(comandoToCheck == "afletm") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita) }    
+        if(comandoToCheck == "aflth") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 ) }
+        if(comandoToCheck == "afleth") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 ) }
+        if(comandoToCheck == "afltd") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24) }
+        if(comandoToCheck == "afletd") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24) }
+        if(comandoToCheck == "afltw") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24 * 7) }
+        if(comandoToCheck == "afletw") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24 * 7) }  
+
+        stringa.run <- paste(c( str_sub(stringa.run,end = subMatrix.nomeStato[ nrow(subMatrix.nomeStato)-1, "start"]-1), "'",esito,"'",str_sub(stringa.run,start = matrice.match[riga, "end"] +1) ), collapse='')
+
+        matrice.match <- str_locate_all(string = stringa.run, pattern = stringaToMatch )[[1]]
+      }
+    }
+    
+    stringa.new <- stringa.run
+    
+
+    return(stringa.new);
+  }
+  old.old.parse.for.temporal.conditions <- function(stringa , st.ACTIVE.time , st.ACTIVE.time.cum , UM = "days") {
+    
     stringa.run <- stringa
     
     lista.comandi.condition <- list(
@@ -833,15 +975,17 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     st.ACTIVE.time.cum <- st.ACTIVE.time.cum * moltiplicatore
     
     for( comandoToCheck in names(lista.comandi.condition) ) {
-
+      
       # poni un default per l'esito
       esito = FALSE
       
       stringaToMatch <- lista.comandi.condition[[ comandoToCheck ]]
       pos.par <- str_locate(string = stringaToMatch, pattern = "\\(")[1]-1
-
+      
+      
       if( length(str_locate_all(string = stringa.run, pattern = stringaToMatch )[[1]]) > 0  ) {
         matrice.match <- str_locate_all(string = stringa.run, pattern = stringaToMatch )[[1]]
+        
         for(riga in nrow(matrice.match)) {
           
           # poni un default per l'esito
@@ -850,14 +994,13 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           # estrai la quantità fra le parentesi
           quantita <- str_sub(string = stringa.run,start = matrice.match[riga, "start"]+pos.par,end = matrice.match[riga, "end"]-1)
           quantita <- as.numeric(quantita)
-    
+          
           # estrai il nome dello stato
           nomeStato <- str_sub(string = stringa.run,end = matrice.match[riga, "start"]-1)
           subMatrix.nomeStato <- str_locate_all(string = nomeStato, pattern = "'" )[[1]]
           nomeStato <- str_sub(string = nomeStato,
                                start = subMatrix.nomeStato[ nrow(subMatrix.nomeStato)-1, "start"]+1,
                                end = subMatrix.nomeStato[ nrow(subMatrix.nomeStato), "start"]-1)
-          # browser()
           # Ora fai due riflessioni...
           if(comandoToCheck == "afmtm") { esito = st.ACTIVE.time[ nomeStato ] > (quantita) }
           if(comandoToCheck == "afmetm") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita) }          
@@ -867,9 +1010,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           if(comandoToCheck == "afmetd") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24) }
           if(comandoToCheck == "afmtw") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24 * 7) }
           if(comandoToCheck == "afmetw") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24 * 7) }
-          # if(comandoToCheck == "afmtm") { esito = st.ACTIVE.time[ nomeStato ] > (quantita * 60 * 24 * 30) }
-          # if(comandoToCheck == "afmetm") { esito = st.ACTIVE.time[ nomeStato ] >= (quantita * 60 * 24 * 30) }
-
+          
           if(comandoToCheck == "afltm") { esito = st.ACTIVE.time[ nomeStato ] < (quantita) }
           if(comandoToCheck == "afletm") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita) }    
           if(comandoToCheck == "aflth") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 ) }
@@ -878,27 +1019,14 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           if(comandoToCheck == "afletd") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24) }
           if(comandoToCheck == "afltw") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24 * 7) }
           if(comandoToCheck == "afletw") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24 * 7) }  
-          # if(comandoToCheck == "afltm") { esito = st.ACTIVE.time[ nomeStato ] < (quantita * 60 * 24 * 30) }
-          # if(comandoToCheck == "afletm") { esito = st.ACTIVE.time[ nomeStato ] <= (quantita * 60 * 24 * 30) }    
-
-          # cat("\n ",st.ACTIVE.time[ nomeStato ], "  quantita = ",quantita )
-          # if( esito == TRUE ) browser()
           
-          # stringa.run <- paste( c( str_sub(stringa.run,end = matrice.match[riga, "start"]-1),' == \'',nomeStato,'\' ',str_sub(stringa.run,start = matrice.match[riga, "end"]+1) )    , collapse='')
-          # browser()
           stringa.run <- paste(c( str_sub(stringa.run,end = subMatrix.nomeStato[ nrow(subMatrix.nomeStato)-1, "start"]-1), "'",esito,"'",str_sub(stringa.run,start = matrice.match[riga, "end"] +1) ), collapse='')
-          # if(esito==TRUE){
-          #   stringa.run <- paste( c( str_sub(stringa.run,end = matrice.match[riga, "start"]-1),' == \'',nomeStato,'\' ',str_sub(stringa.run,start = matrice.match[riga, "end"]+1) )    , collapse='')
-          # } else {
-          #   stringa.run <- paste( c( str_sub(stringa.run,end = matrice.match[riga, "start"]-1),' != \'',nomeStato,'\' ',str_sub(stringa.run,start = matrice.match[riga, "end"]+1) )    , collapse='')
-          # }
         }
       }
     }
     stringa.new <- stringa.run
     return(stringa.new);
-  }
-  
+  }  
   #===========================================================  
   # get.XML.replay.result (ex getXML)
   # it returns the XML file
@@ -1048,7 +1176,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     plotPatientReplayedTimelineFunction(list.computation.matrix = get.list.replay.result(), patientID = patientID)
     
   }
-  old.plotPatientReplayedTimeline<-function( patientID,
+  very.old.plotPatientReplayedTimeline<-function( patientID,
                                          text.cex=.7, y.intra.gap = 40, x.offset = 100,
                                          thickness=5 , 
                                          bar.border = "Navy",bar.volume = "lightsteelblue1",
@@ -1065,17 +1193,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if( !(matrice[tmp,1] %in%arr.stati)) { arr.stati <- c(arr.stati,matrice[tmp,1]) }
     }
     
+    space.for.text <- 100
+    
     par(mar=c(2,0,2,0)+0)
     # browser()
     plot(0,type='n',axes=FALSE,ann=FALSE,
-         xlim = c(0,tempo.max + x.offset+ 15) , 
-         ylim=c(0,(numero.stati+1)*y.intra.gap ), 
-         bty='n',axes = FALSE, xlab='', ylab=''         )
-    
-    # plot( c(), c(), 
-    #       xlim = c(0,tempo.max + x.offset+ 15) , 
-    #       ylim=c(0,(numero.stati+1)*y.intra.gap ), 
-    #       bty='n',axes = FALSE, xlab='', ylab='' )
+         xlim = c(0,tempo.max + x.offset+ 15) ,
+         ylim=c(0,(numero.stati+1)*y.intra.gap ),
+         bty='n',axes = FALSE, xlab='', ylab='' )
+
     
     lista.boxes<- list()
     lista.points<- list()
@@ -1138,8 +1264,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if(! (lista.date[[i]]$x[1]  %in% old.x) ) {
         number <- number + 1 
         points(x =lista.date[[i]]$x, y = lista.date[[i]]$y , type='l', col="grey", lty = 4 )
-        text(x = lista.date[[i]]$x , y = lista.date[[i]]$y[1] + (number * 10)-5, labels = str_replace_all(string = lista.date[[i]]$label.data,pattern = " ",replacement = "\n"), cex = text.date.cex, col='black')
-        text(x = lista.date[[i]]$x , y = (numero.stati+1)*y.intra.gap , labels = as.integer(as.numeric(lista.date[[i]]$label.durata)), cex = text.date.cex, col='black')
+        text(x = lista.date[[i]]$x, y = lista.date[[i]]$y[1] + (number * 10)-5, labels = str_replace_all(string = lista.date[[i]]$label.data,pattern = " ",replacement = "\n"), cex = text.date.cex, col='black')
+        text(x = lista.date[[i]]$x, y = (numero.stati+1)*y.intra.gap , labels = as.integer(as.numeric(lista.date[[i]]$label.durata)), cex = text.date.cex, col='black')
+        
+        # points(x =lista.date[[i]]$x , y = lista.date[[i]]$y , type='l', col="grey", lty = 4 )
+        # text(x = lista.date[[i]]$x , y = lista.date[[i]]$y[1] + (number * 10)-5, labels = str_replace_all(string = lista.date[[i]]$label.data,pattern = " ",replacement = "\n"), cex = text.date.cex, col='black')
+        # text(x = lista.date[[i]]$x , y = (numero.stati+1)*y.intra.gap , labels = as.integer(as.numeric(lista.date[[i]]$label.durata)), cex = text.date.cex, col='black')
         if(number >= 3) number <- 0
         old.x <- c(old.x, lista.date[[i]]$x[1] )
       }
@@ -1152,16 +1282,16 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     }
     # plotta i GANTT
     for(i in seq(1, length(lista.points))) {
-      points( x = lista.points[[i]]$x, 
+      points( x = lista.points[[i]]$x + x.offset, 
               y = lista.points[[i]]$y,
               pch=13 , col= bar.border)     
       # points(x =lista.date[[i]]$x, y = lista.date[[i]]$y , type='l', col="grey", lty = 4 )
     }  
     for(i in seq(1, length(lista.boxes))) {
-      points( x = lista.boxes[[i]]$x, 
+      points( x = lista.boxes[[i]]$x + x.offset, 
               y = lista.boxes[[i]]$y,
               type='l' , col= bar.border)
-      polygon( x = lista.boxes[[i]]$x, 
+      polygon( x = lista.boxes[[i]]$x + x.offset, 
                y = lista.boxes[[i]]$y,
                col= bar.volume) 
     }    
@@ -1169,7 +1299,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # list.computation.matrix
   }  
     
-  old.plotPatientReplayedTimeline<-function( patientID ) {  
+  oldissimo.plotPatientReplayedTimeline<-function( patientID ) {  
     
     st.POST<-list(); st.PRE<-list(); tr.fired<-list()
     txt.section<-"";
@@ -1771,6 +1901,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         if(tmpAttr$pMineR.internal.ID.Evt=="") tempo.dall.inizio = "NA"
         else tempo.dall.inizio <- dataLog$pat.process[[ tmpAttr$idPatient  ]][ which( dataLog$pat.process[[ tmpAttr$idPatient  ]][ ,"pMineR.internal.ID.Evt"]==tmpAttr$pMineR.internal.ID.Evt )  ,"pMineR.deltaDate"]
 
+        if ( tmpAttr$pMineR.internal.ID.Evt =="EOF") tempo.dall.inizio <- max(dataLog$pat.process[[ tmpAttr$idPatient  ]][ , "pMineR.deltaDate"])
+
+        # dataLog$pat.process[[ tmpAttr$idPatient  ]][1, dataLog$csv.dateColumnName ]
+        valoreDifferenzaData.se.ignota<-as.numeric(difftime(as.POSIXct(tmpAttr$event.date, format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(dataLog$pat.process[[ tmpAttr$idPatient  ]][1, dataLog$csv.dateColumnName ], format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
+        
+        
         if(length( list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] )==0) {
           list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] <<-  c(nome.stato,"begin",tmpAttr$event.date, tempo.dall.inizio  )
         }
@@ -1786,6 +1922,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         # browser()
         if(tmpAttr$pMineR.internal.ID.Evt=="") tempo.dall.inizio = "NA"
         else tempo.dall.inizio <- dataLog$pat.process[[ tmpAttr$idPatient  ]][ which( dataLog$pat.process[[ tmpAttr$idPatient  ]][ ,"pMineR.internal.ID.Evt"]==tmpAttr$pMineR.internal.ID.Evt )  ,"pMineR.deltaDate"]
+        
+        if ( tmpAttr$pMineR.internal.ID.Evt =="EOF") tempo.dall.inizio <- max(dataLog$pat.process[[ tmpAttr$idPatient  ]][ , "pMineR.deltaDate"])
+        valoreDifferenzaData.se.ignota<-as.numeric(difftime(as.POSIXct(tmpAttr$event.date, format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(dataLog$pat.process[[ tmpAttr$idPatient  ]][1, dataLog$csv.dateColumnName ], format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
         
         if(length( list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] ) ==0) {
           list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] <<- c(nome.stato,"end",tmpAttr$event.date,tempo.dall.inizio)
@@ -2089,6 +2228,19 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
 
     return(arr.parole)
   }
+  pre.parsing.PWL.file<-function( fileName ) { 
+    # fileName <- "./original.lineeGuida.xml"
+    oo <- readLines( fileName )
+    global.arr.comandi.rilevati <<- c()
+    for(i in seq(1,length(oo))) {
+      for( comandoToCheck in names(global.lista.comandi.condition) ) {
+        matrice.match <- str_locate_all(string = oo[i], pattern = comandoToCheck )[[1]]
+        if( length(matrice.match) > 0  ) global.arr.comandi.rilevati <<- c(global.arr.comandi.rilevati, comandoToCheck)
+      }
+    }
+    global.arr.comandi.rilevati <<- unique(global.arr.comandi.rilevati)
+  }
+  
   #=================================================================================
   # costructor
   #=================================================================================  
@@ -2107,6 +2259,26 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     list.computation.matrix$trigger <<- c()
     list.computation.matrix$stati.finali <<- c()    
     list.computation.matrix$stati.timeline <<- list()
+    # array e lista dei comandi da parsare
+    global.lista.comandi.condition <<- list(
+      "afmth" = ".afmth\\([0-9]+\\)",
+      "afmeth" = ".afmeth\\([0-9]+\\)",
+      "afmtd" = ".afmtd\\([0-9]+\\)",
+      "afmetd" = ".afmetd\\([0-9]+\\)",
+      "afmtw" = ".afmtw\\([0-9]+\\)",
+      "afmetw" = ".afmetw\\([0-9]+\\)",
+      "afmtm" = ".afmtm\\([0-9]+\\)",
+      "afmetm" = ".afmetm\\([0-9]+\\)",
+      "aflth" = ".aflth\\([0-9]+\\)",
+      "afleth" = ".afleth\\([0-9]+\\)",
+      "afltd" = ".afltd\\([0-9]+\\)",
+      "afletd" = ".afletd\\([0-9]+\\)",
+      "afltw" = ".afltw\\([0-9]+\\)",
+      "afletw" = ".afletw\\([0-9]+\\)",
+      "afltm" = ".afltm\\([0-9]+\\)",
+      "afletm" = ".afletm\\([0-9]+\\)"
+    )  
+    global.arr.comandi.rilevati<<-names(global.lista.comandi.condition)
   }
   costructor( verboseMode = verbose.mode);
   #================================================================================= 
