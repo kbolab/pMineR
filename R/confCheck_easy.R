@@ -60,9 +60,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   list.computation.matrix<-list()    # lista che contiene i risultati di una computazione
   
   param.verbose <- c()
+  param.use.global.comp.cache<-TRUE
   obj.LogHandler<-c()               # gestore dei messaggi
   global.lista.comandi.condition<-list()
   global.arr.comandi.rilevati<-c()
+  global.comp.cache<-list()         # cache per la computazione
+  auto.detected.UM<-""              # Unità di misura temporale rilevata
   
   #=================================================================================
   # clearAttributes
@@ -125,18 +128,25 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     for(state.name in array.stati) {
       plotIt<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"plotIt")[[1]]
       st.type<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"type")[[1]]
+      st.label<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"label")[[1]]
       
+      # default value per il plotIt
       if(length(plotIt)==0) plotIt=TRUE
       else plotIt = str_replace_all(string = plotIt,pattern = "'",replacement = "") 
       
+      # default value per il type
       if(length(st.type)==0) st.type="normal"
       else st.type = str_replace_all(string = st.type,pattern = "'",replacement = "") 
       
+      # default value per la label
+      if(length(st.label)==0) st.label=state.name
+
       # Carica quanto indicato nell'XML nella variabile che poi andra' copiata 
       # negli attributi globali
       lista.stati[[ state.name ]]<-list()
       lista.stati[[ state.name ]][["plotIt"]]<-plotIt
       lista.stati[[ state.name ]][["type"]]<-st.type
+      lista.stati[[ state.name ]][["label"]]<-st.label
     }    
     
     # Per ogni trigger, carica la 'condition', i 'set' e gli 'unset'  
@@ -161,6 +171,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       if(length(arr.unsetAll)==0) arr.unsetAll <- FALSE
       else arr.unsetAll <- TRUE
       
+      # Ora leggi tutte le condition di ogni trigger ed associa l'attributo "need.time.condition"
+      # settato a TRUE o FALSE in funzione che tale trigger abbia un'analisi temporale nella condizione.
+      # (Se no, verrà messa in cache, dato che dipende solo dallo stato degli stati)
+      has.temporal.condition <- FALSE
+      for( comandoToCheck in names(global.lista.comandi.condition) ) {
+        matrice.match <- str_locate_all(string = condizione, pattern = comandoToCheck )[[1]]
+        if( length(matrice.match) > 0  ) has.temporal.condition <- TRUE
+      }
+      
       # Carica quanto indicato nell'XML nella variabile che poi andra' copiata 
       # negli attributi globali      
       lista.trigger[[ trigger.name ]]<-list()
@@ -170,6 +189,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       lista.trigger[[ trigger.name ]][["unset"]]<-arr.unset
       lista.trigger[[ trigger.name ]][["unsetAll"]]<-arr.unsetAll
       lista.trigger[[ trigger.name ]][["plotIt"]]<-plotIt
+      lista.trigger[[ trigger.name ]][["has.temporal.condition"]]<-has.temporal.condition
     }
 
     # Costruisci la lista dei nodi 'END'
@@ -179,7 +199,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         arr.nodi.end<-c(arr.nodi.end,str_c("'",nomeStato,"'"))
       }      
     }
-
     # popola l'attributo della classe
     WF.struct[[ "info" ]]<<- list()
     WF.struct[[ "info" ]][[ "stati" ]] <<- lista.stati
@@ -190,8 +209,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # replay (ex playLoadedData)
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================    
-  replay<-function( number.perc = 1 , event.interpretation = "soft", UM="days") {
+  replay<-function( number.perc = 1 , event.interpretation = "soft", UM="") {
     
+    if( UM == "" ) UM <- auto.detected.UM
     # Chiama addNote, che via via popola una stringa 
     # che alla fine conterra' l'intero XML
     ct<-1
@@ -680,7 +700,14 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     global.array.to.set<-c(); global.array.to.unset<-c();
     errore <- FALSE;   errMsg<-"";
     tabella.set.unset <- c()
-
+    
+    # Crea le stringhe per la cache  ------------------------------------------
+    string.st.NOW <- str_trim(ev.NOW)
+    EOF <- as.character(EOF)
+    string.st.ACTIVE <- paste(  sort(unique(st.ACTIVE)) , collapse = '_')
+    stringone.stato <- paste( c(string.st.NOW,EOF,string.st.ACTIVE), collapse = '_'  ) 
+    # fine creazione stringhe per la cache ------------------------------------
+    
     # Frulla per ogni possibile trigger, verificando se si puo' attivare
     for( trigger.name in names(WF.struct[[ "info" ]][[ "trigger" ]]) ) {
 
@@ -691,38 +718,58 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # Agisci solo nel caso in cui una CONDITION sia stata definita, 
       # per quel trigger (alcuni trigger potrebbero NON avere una CONDITION)
       if(!is.na(precondizione)) {
-      
-        # Inizia a costruire la stringa da parsare, rimpiazzando gli array
-        rimpiazzo.ev.NOW<-paste( c("'",ev.NOW,"'") ,collapse='');
-        rimpiazzo.st.ACTIVE<- paste(c("c(",paste(c(st.ACTIVE),collapse=","),")" ),collapse='')
         
-        stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$ev.NOW\\$",replacement = rimpiazzo.ev.NOW)
-        stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$st.ACTIVE\\$",replacement = rimpiazzo.st.ACTIVE)
-        stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$EOF\\$",replacement = str_c("'",EOF,"'") )
-        
-        stringa.to.eval<- str_replace_all(string = stringa.to.eval,pattern = " OR ",replacement = " | ")
-        stringa.to.eval<- str_replace_all(string = stringa.to.eval,pattern = " AND ",replacement = " & ")
+        # Verifica che in cache non ci sia già il caso in questione!
+        trigger.gia.calcolato <- FALSE
+        if( param.use.global.comp.cache == TRUE & (trigger.name %in% names(global.comp.cache))  ) {
+          if(stringone.stato %in% names(global.comp.cache[[trigger.name]])) { 
+            risultato <- global.comp.cache[[trigger.name]][[stringone.stato]][["fired"]]
+            trigger.gia.calcolato <- TRUE
+          }
+        }
 
-        # browser()
-        # Fai il parse sugli attributi
-        stringa.to.eval <- parse.for.attribute.conditions(
-          stringa = stringa.to.eval,
-          st.ACTIVE.time = st.ACTIVE.time,
-          st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-          riga.completa.EventLog = riga.completa.EventLog) 
-                
-        # Fai il parse sui DELTA T
-        stringa.to.eval <- parse.for.temporal.conditions(
-                                  stringa = stringa.to.eval,
-                                  st.ACTIVE.time = st.ACTIVE.time,
-                                  st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                  UM = UM) 
+        if( trigger.gia.calcolato == FALSE ) { 
+          # Se sono qui significa che il tutto NON e' in cache
+          # Inizia a costruire la stringa da parsare, rimpiazzando gli array
+          rimpiazzo.ev.NOW<-paste( c("'",ev.NOW,"'") ,collapse='');
+          rimpiazzo.st.ACTIVE<- paste(c("c(",paste(c(st.ACTIVE),collapse=","),")" ),collapse='')
+          
+          stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$ev.NOW\\$",replacement = rimpiazzo.ev.NOW)
+          stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$st.ACTIVE\\$",replacement = rimpiazzo.st.ACTIVE)
+          stringa.to.eval <- str_replace_all(string = stringa.to.eval,pattern = "\\$EOF\\$",replacement = str_c("'",EOF,"'") )
+          
+          stringa.to.eval<- str_replace_all(string = stringa.to.eval,pattern = " OR ",replacement = " | ")
+          stringa.to.eval<- str_replace_all(string = stringa.to.eval,pattern = " AND ",replacement = " & ")
+  
+          # Fai il parse sugli attributi
+          stringa.to.eval <- parse.for.attribute.conditions(
+            stringa = stringa.to.eval,
+            st.ACTIVE.time = st.ACTIVE.time,
+            st.ACTIVE.time.cum = st.ACTIVE.time.cum,
+            riga.completa.EventLog = riga.completa.EventLog) 
+                  
+          # Fai il parse sui DELTA T
+          stringa.to.eval <- parse.for.temporal.conditions(
+                                    stringa = stringa.to.eval,
+                                    st.ACTIVE.time = st.ACTIVE.time,
+                                    st.ACTIVE.time.cum = st.ACTIVE.time.cum,
+                                    UM = UM) 
+          
+          # Parsa la stringa
+          if(stringa.to.eval=="") risultato <- TRUE
+          else risultato <- eval(expr = parse(text = stringa.to.eval))
+        }
         
-
+        # Se previsto, aggiorna la cache! ---------------------------------------------
+        if( param.use.global.comp.cache == TRUE ) {
+          # se non c'è l'elemento di lista, crealo
+          if( !(trigger.name %in% names(global.comp.cache))  ) {
+            global.comp.cache[[trigger.name]] <-  list()  
+          }
+          global.comp.cache[[trigger.name]][[stringone.stato]][["fired"]] <- risultato
+        }
+        # Fine aggiornamneto cache ----------------------------------------------------
         
-        # Parsa la stringa
-        if(stringa.to.eval=="") risultato <- TRUE
-        else risultato <- eval(expr = parse(text = stringa.to.eval))
         
         # Se la condizione e' soddisfatta, aggiorna le variabili
         if( risultato == TRUE ) {
@@ -742,7 +789,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
           }
           
           # aggiungi le righe alla matrice che definisce le azioni
-          # browser()
           for(i in seq(1,length(array.to.set))) {
             if(!is.null(array.to.set)) {
               tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.set[i],"set",pri  )   )
@@ -752,9 +798,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
             if(!is.null(array.to.unset)) {
               tabella.set.unset <- rbind( tabella.set.unset, c( trigger.name,array.to.unset[i],"unset",pri  )   )
             }
-          }          
-
+          }
         }
+        
       }
     }
     
@@ -1082,7 +1128,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # 'clear' is the graph as passed
   # 'computed' is the graph weighted by real computation flows
   #===========================================================   
-  plot<-function(  ) {
+  plot<-function( ) {
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
     arr.trigger.rappresentabili<-c();
@@ -1159,8 +1205,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                ",stringa.nodo.from,"
                ",stringa.nodo.to,"
   }"), collapse='') 
-    grViz(a);
-}
+    grViz(a);    
+  }
   #===========================================================  
   # plotPatientEventTimeLine
   # plot the event timeline for a ginven patient
@@ -2247,8 +2293,37 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
 
     return(arr.parole)
   }
+  #=================================================================================
+  # KaplanMeier
+  # KM (Funzioni per l'analisi statistica)
+  #=================================================================================   
+  KaplanMeier<-function( fileName ) {
+    # Chiedere a Jacopo
+  } 
+  stat.desc.grupedBarplot<-function( state1, state2, cov1, cov2, terminations = TRUE   ) {
+    risultato <- get.list.replay.result()
+    
+    # Estrai la matrice in funzione del fatto che vogliamo vedere le terminazioni o le transizioni
+    if(terminations == TRUE) { matrice <- ooo$list.computation.matrix$stati.finali }
+    else { matrice <- ooo$list.computation.matrix$stati.transizione }
+    
+    # # Prendi gli ID dei pazienti per i due rispettivi stati (state1 e state2)
+    # colnames(ooo$list.computation.matrix$stati.finali)
+    
+    
+    
+    
+  }
+  
+  #=================================================================================
+  # pre.parsing.PWL.file
+  # Fai un pre-parsing per capire quale subset di espressioni regolari devi andare
+  # ad indagare e .... con che UM temporale
+  #=================================================================================     
   pre.parsing.PWL.file<-function( fileName ) { 
-    # fileName <- "./original.lineeGuida.xml"
+    
+    # Leggi le righe dell'XML e vedi se trovi le occorrenze per l'analisi temporale: se sì, cerca 
+    # di capire quali
     oo <- readLines( fileName )
     global.arr.comandi.rilevati <<- c()
     for(i in seq(1,length(oo))) {
@@ -2257,9 +2332,45 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         if( length(matrice.match) > 0  ) global.arr.comandi.rilevati <<- c(global.arr.comandi.rilevati, comandoToCheck)
       }
     }
+
+    # Cerca di intuire l'unità di misura  da usare :)
+    # partiamo dalle settimane
+    suggested.UM <- 60 * 60 * 24 * 7
+    if( "afmth" %in% global.arr.comandi.rilevati |
+        "afmeth" %in% global.arr.comandi.rilevati |
+        "aflth" %in% global.arr.comandi.rilevati |
+        "afleth" %in% global.arr.comandi.rilevati 
+        ) suggested.UM <- min(suggested.UM,  60 )
+
+    if( "afmtd" %in% global.arr.comandi.rilevati |
+        "afmetd" %in% global.arr.comandi.rilevati |
+        "afltd" %in% global.arr.comandi.rilevati |
+        "afletd" %in% global.arr.comandi.rilevati 
+    ) suggested.UM <- min(suggested.UM, 60 * 24)
+    
+    if( "afmtw" %in% global.arr.comandi.rilevati |
+        "afmetw" %in% global.arr.comandi.rilevati |
+        "afltw" %in% global.arr.comandi.rilevati |
+        "afletw" %in% global.arr.comandi.rilevati 
+    ) suggested.UM <- min(suggested.UM,  60 * 24 *7)
+    
+    if( "afmtm" %in% global.arr.comandi.rilevati |
+        "afmetm" %in% global.arr.comandi.rilevati |
+        "afltm" %in% global.arr.comandi.rilevati |
+        "afletm" %in% global.arr.comandi.rilevati 
+    ) suggested.UM <- min(suggested.UM, 1)
+    # browser()
+    auto.detected.UM <<- "weeks"
+    if(suggested.UM==1) auto.detected.UM <<- "mins"
+    if(suggested.UM==60) auto.detected.UM <<- "hours"
+    if(suggested.UM==60*24) auto.detected.UM <<- "days"
+    if(suggested.UM==60*24 *7) auto.detected.UM <<- "weeks"
+    
     global.arr.comandi.rilevati <<- unique(global.arr.comandi.rilevati)
   }
-  
+  set.param<-function(use.cache=NA){
+    if(!is.na(use.cache)) param.use.global.comp.cache<<-use.cache
+  }
   #=================================================================================
   # costructor
   #=================================================================================  
@@ -2298,6 +2409,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       "afletm" = ".afletm\\([0-9]+\\)"
     )  
     global.arr.comandi.rilevati<<-names(global.lista.comandi.condition)
+    # Unita' di misura temporale minima rilevata automaticamente
+    auto.detected.UM<<-"mins"
+    # Cache di calcolo
+    param.use.global.comp.cache<<-FALSE
+    global.comp.cache<<-list()
   }
   costructor( verboseMode = verbose.mode);
   #================================================================================= 
@@ -2319,7 +2435,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     
     "getPatientXML"=getPatientXML,
     "giveBackComputationCounts"=giveBackComputationCounts,
-    "new.giveBackComputationCounts"=new.giveBackComputationCounts
+    "new.giveBackComputationCounts"=new.giveBackComputationCounts,
+    "set.param"=set.param,
+    "KaplanMeier"=KaplanMeier
     
     # "play.easy"=play.easy
     # "playLoadedData"=playLoadedData,
