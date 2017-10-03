@@ -1967,10 +1967,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         else tempo.dall.inizio <- dataLog$pat.process[[ tmpAttr$idPatient  ]][ which( dataLog$pat.process[[ tmpAttr$idPatient  ]][ ,"pMineR.internal.ID.Evt"]==tmpAttr$pMineR.internal.ID.Evt )  ,"pMineR.deltaDate"]
 
         if ( tmpAttr$pMineR.internal.ID.Evt =="EOF") tempo.dall.inizio <- max(dataLog$pat.process[[ tmpAttr$idPatient  ]][ , "pMineR.deltaDate"])
-
+        # if(tempo.dall.inizio == "NA") browser()
         # dataLog$pat.process[[ tmpAttr$idPatient  ]][1, dataLog$csv.dateColumnName ]
         valoreDifferenzaData.se.ignota<-as.numeric(difftime(as.POSIXct(tmpAttr$event.date, format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(dataLog$pat.process[[ tmpAttr$idPatient  ]][1, dataLog$csv.dateColumnName ], format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
-
+        if(tempo.dall.inizio == "NA") tempo.dall.inizio <- valoreDifferenzaData.se.ignota
 
         if(length( list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] )==0) {
           list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] <<-  c(nome.stato,"begin",tmpAttr$event.date, tempo.dall.inizio  )
@@ -1991,6 +1991,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         if ( tmpAttr$pMineR.internal.ID.Evt =="EOF") tempo.dall.inizio <- max(dataLog$pat.process[[ tmpAttr$idPatient  ]][ , "pMineR.deltaDate"])
         valoreDifferenzaData.se.ignota<-as.numeric(difftime(as.POSIXct(tmpAttr$event.date, format = "%d/%m/%Y %H:%M:%S"),as.POSIXct(dataLog$pat.process[[ tmpAttr$idPatient  ]][1, dataLog$csv.dateColumnName ], format = "%d/%m/%Y %H:%M:%S"),units = 'mins'))
 
+        if(tempo.dall.inizio == "NA") tempo.dall.inizio <- valoreDifferenzaData.se.ignota
+        
         if(length( list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] ) ==0) {
           list.computation.matrix$stati.timeline[[ tmpAttr$idPatient  ]] <<- c(nome.stato,"end",tmpAttr$event.date,tempo.dall.inizio)
         }
