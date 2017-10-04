@@ -2299,8 +2299,42 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # KaplanMeier
   # KM (Funzioni per l'analisi statistica)
   #=================================================================================
-
-  KaplanMeier <- function(state.to,state.from,max.time=500,censoring=T){
+  KaplanMeier <- function( states.to,states.from,max.time=500,
+                           censoring=T, plotIT = TRUE, 
+                           cols=c("red","darkgreen","blue","brown","orange"), plotCI = TRUE,
+                           main = "Kaplan-Meier curves", lwd = 2) {
+    list.km <- list(); res <- list()
+    
+    if(length(states.to) != length(states.from)) stop("'states.to' and 'states.from' have to have the same length")
+    
+    for(i in 1:length(states.to)) {
+      res[[i]] <- single.KaplanMeier(state.to = states.to[i],
+                                         state.from = states.from[i],
+                                         max.time = max.time,
+                                         censoring = censoring)
+      list.km[[i]] <- res[[i]]$KM
+    }
+    if(plotIT == TRUE) plot.cc.KM( list.km ,cols = cols,plotCI = plotCI, main = main, lwd = lwd )
+    
+    ###COMPARE KAPLAN-MEIER
+    if(length(res)>1) { 
+      sstot<-c()
+      for(i in 1:length(res)) {
+        res[[i]]$result$group <- paste(c("path ",i),collapse = '')
+        sstot <- rbind(sstot,res[[i]]$result)
+      }
+      sstot$group <- as.factor(sstot$group)
+  
+      KMtot<- survfit(Surv(time, completed) ~ group,  type="kaplan-meier", conf.type="log",data=sstot)
+      log.rank <- survdiff(Surv(time, completed) ~ group,data=sstot)
+    } else log.rank<-NA
+    
+    return(list(
+      "res"=res,
+      "log.rank" = log.rank
+      ))
+  }
+  single.KaplanMeier <- function(state.to,state.from,max.time=500,censoring=T){
 
     list.replay <- get.list.replay.result()
     trans <- list.replay$list.computation.matrix$stati.transizione
@@ -2338,9 +2372,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     result <- as.data.frame(result)
 
     KM<- survfit(Surv(time, completed) ~ 1,  type="kaplan-meier", conf.type="log",data=result)
-    #plot(KM,fun = "event",mark = T,mark.time = F,ylim=c(0,1))
-
-    return(result)
+    # browser()
+    # plot(KM,fun = "event",mark = T,mark.time = F,ylim=c(0,1))
+    # plot.cc.KM(KM)
+    return(
+      list(
+        "result"=result,
+        "KM"=KM
+      )
+    )
   }
 
 

@@ -596,3 +596,41 @@ plotPatientReplayedTimelineFunction<-function( list.computation.matrix , patient
   
   # list.computation.matrix
 } 
+
+plot.cc.KM <- function( KM.list , cols=c("red","darkgreen","blue","brown","orange"), 
+                        plotCI = TRUE, main = "Kaplan-meier curves", lwd = 2) { 
+  
+  # Prendi il tempo massimo (per l'xlim del grafico)
+  max.tempi <- 0
+  for(i in 1:length(KM.list)) { max.tempi <- max(max.tempi, summary(KM.list[[i]])$time ) }
+  
+  # Fai un plot a vuoti, delle dimensioni giuste
+  plot(NULL,xlim=c(0,max.tempi),ylim=c(0,1) , xlab="time",ylab="prob.", main = main)
+  
+  # Scorri tutti le KM
+  for(i in 1:length(KM.list)) { 
+    
+    # Prendi i summary (le liste con i risultati)
+    ooo <- summary(KM.list[[i]])
+    x.p <- ooo$time; y.p <- ooo$surv; y.p.upper <- ooo$upper; y.p.lower <- ooo$lower;
+    x.p <- c(0,x.p); y.p <- c(1,y.p); y.p.upper <- c(1,y.p.upper); y.p.lower <- c(1,y.p.lower)
+    
+    # punto per punti plotta la KM
+    for( punti in 1:length(x.p) ) {
+      # i punti della KM
+      points( x=c( x.p[punti],x.p[punti+1]  ), y=c( y.p[punti],y.p[punti] ) , type='l' , col = cols[i] , lwd = lwd  )
+      points( x=c( x.p[punti+1],x.p[punti+1]  ), y=c( y.p[punti],y.p[punti+1] ) , type='l', col = cols[i] , lwd = lwd )
+      
+      if( plotCI == TRUE ) { 
+        # Intervallo di confidenza upper
+        points( x=c( x.p[punti],x.p[punti+1]  ), y=c( y.p.upper[punti],y.p.upper[punti] ) , type='l' , col = cols[i] , lty = 4  )
+        points( x=c( x.p[punti+1],x.p[punti+1]  ), y=c( y.p.upper[punti],y.p.upper[punti+1] ) , type='l', col = cols[i] , lty = 4 )
+        # Intervallo di confidenza lower
+        points( x=c( x.p[punti],x.p[punti+1]  ), y=c( y.p.lower[punti],y.p.lower[punti] ) , type='l' , col = cols[i] , lty = 4  )
+        points( x=c( x.p[punti+1],x.p[punti+1]  ), y=c( y.p.lower[punti],y.p.lower[punti+1] ) , type='l', col = cols[i] , lty = 4 )
+      }
+    }
+  }
+  
+}
+
