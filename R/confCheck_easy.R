@@ -65,6 +65,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   global.lista.comandi.condition<-list()
   global.arr.comandi.rilevati<-c()
   global.comp.cache<-list()         # cache per la computazione
+  global.personal.ID<-NA
   auto.detected.UM<-""              # Unità di misura temporale rilevata
 
   #=================================================================================
@@ -1128,7 +1129,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # 'clear' is the graph as passed
   # 'computed' is the graph weighted by real computation flows
   #===========================================================
-  plot<-function( ) {
+  plot<-function( giveBack.grVizScript = FALSE, plotIt = TRUE ) {
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
     arr.trigger.rappresentabili<-c();
@@ -1205,7 +1206,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                ",stringa.nodo.from,"
                ",stringa.nodo.to,"
   }"), collapse='')
-    grViz(a);
+    if( plotIt == TRUE ) grViz(a);
+    if( giveBack.grVizScript == TRUE ) return(a)
   }
   #===========================================================
   # plotPatientEventTimeLine
@@ -2299,6 +2301,20 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # KaplanMeier
   # KM (Funzioni per l'analisi statistica)
   #=================================================================================
+  KaplanMeier.GUI<- function() {
+    
+    graph.guideline.grViz <- plot(giveBack.grVizScript = TRUE, plotIt = FALSE)
+    informazioni <- getInfo()
+    # prepara un env che poi verrà distrutto
+    .GlobalEnv$pMineR.IO.shiny.confCheck_easy.list <- list( "graph.guideline.grViz"=graph.guideline.grViz,
+                                                            "states"=informazioni$states,
+                                                            "parent.ID"=global.personal.ID
+                                                            )
+    on.exit(rm(pMineR.IO.shiny.confCheck_easy.list, envir=.GlobalEnv))    
+    
+    # Lancia la APP
+    runApp(appDir = system.file("shiny-gui", "confCheck_easy.KaplanMeier", package = "pMineR"))    
+  }
   KaplanMeier <- function( states.to,states.from,max.time=500,
                            censoring=T, plotIT = TRUE, 
                            cols=c("red","darkgreen","blue","brown","orange"), plotCI = TRUE,
@@ -2397,11 +2413,15 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # # Prendi gli ID dei pazienti per i due rispettivi stati (state1 e state2)
     # colnames(ooo$list.computation.matrix$stati.finali)
 
-
-
-
   }
-
+  getInfo<-function(){
+    states <-  names(WF.struct$info$stati)
+    triggers <-  names(WF.struct$info$trigger)
+    return(list(
+      "states" = states,
+      "triggers" = triggers
+    ))
+  }
   #=================================================================================
   # pre.parsing.PWL.file
   # Fai un pre-parsing per capire quale subset di espressioni regolari devi andare
@@ -2458,6 +2478,12 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   set.param<-function(use.cache=NA){
     if(!is.na(use.cache)) param.use.global.comp.cache<<-use.cache
   }
+  getClass<-function(){
+    return(list(
+      "class"="confCheck_easy",
+      "obj.ID"=global.personal.ID
+      ))
+  }
   #=================================================================================
   # costructor
   #=================================================================================
@@ -2501,6 +2527,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # Cache di calcolo
     param.use.global.comp.cache<<-FALSE
     global.comp.cache<<-list()
+    global.personal.ID<<-paste( c(as.character(runif(1,1,100000)),as.character(runif(1,1,100000)),as.character(runif(1,1,100000))), collapse = '' )
   }
   costructor( verboseMode = verbose.mode);
   #=================================================================================
@@ -2524,7 +2551,10 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     "giveBackComputationCounts"=giveBackComputationCounts,
     "new.giveBackComputationCounts"=new.giveBackComputationCounts,
     "set.param"=set.param,
-    "KaplanMeier"=KaplanMeier
+    "KaplanMeier"=KaplanMeier,
+    "KaplanMeier.GUI"=KaplanMeier.GUI,
+    "getInfo"=getInfo,
+    "getClass"=getClass
 
     # "play.easy"=play.easy
     # "playLoadedData"=playLoadedData,

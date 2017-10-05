@@ -17,7 +17,7 @@
 #'              The consturctor admit the following parameters:
 #' verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
-#' @import stringr stats progress    
+#' @import stringr stats progress R.utils   
 #' @importFrom data.table data.table   
 #' @export
 #' @useDynLib pMineR 
@@ -60,6 +60,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
   param.column.names<-''
   param.save.memory<-'';
   obj.LH<-''
+  global.personal.ID<-NA
   #=================================================================================
   # clearAttributes
   # this method clear all the attributes in order to make the object re-useable
@@ -645,8 +646,26 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
   #=================================================================================
   # load.csv
   #=================================================================================  
-  load.csv.GUI<-function() {
+  load.csv.GUI<-function( fileName ) {
+    
+    fileName <- getAbsolutePath(pathname = fileName)
+    
+    # prepara un env che poi verrà distrutto
+    .GlobalEnv$pMineR.IO.shiny.dataLoader.list <- list( "nomeDelFile" = fileName )
+    on.exit(rm(pMineR.IO.shiny.dataLoader.list, envir=.GlobalEnv))    
+    
+    # Lancia la APP
     runApp(appDir = system.file("shiny-gui", "dataLoader.load.csv", package = "pMineR"))
+    
+    # carica il CSV
+    if(pMineR.IO.shiny.dataLoader.list$esito == "carica") { 
+      load.csv(nomeFile = fileName, IDName=pMineR.IO.shiny.dataLoader.list$IDColumnName, 
+               EVENTName = pMineR.IO.shiny.dataLoader.list$eventColumnName,
+               dateColumnName = pMineR.IO.shiny.dataLoader.list$dateColumnName,
+               sep = pMineR.IO.shiny.dataLoader.list$sep, format.column.date = pMineR.IO.shiny.dataLoader.list$formatoData,
+               convertUTF = pMineR.IO.shiny.dataLoader.list$UTF8ForceConversion,
+               suppress.invalid.date = pMineR.IO.shiny.dataLoader.list$badDateSuppressing )
+    }
   }
   load.csv<-function( nomeFile, IDName, EVENTName,  quote="\"",sep = ",", dateColumnName=NA, 
                       format.column.date="%d/%m/%Y %H:%M:%S", 
@@ -777,6 +796,12 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
       "csv.max.pMineR.internal.ID.Evt"=max.pMineR.internal.ID.Evt
     ))
   }
+  getClass<-function(){
+    return(list(
+      "class"="dataLoader",
+      "obj.ID"=global.personal.ID
+    ))
+  }  
   #=================================================================================
   # costructor
   #=================================================================================  
@@ -805,6 +830,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     original.CSV <<- ''
     
     obj.LH<<-logHandler()
+    global.personal.ID<<-paste( c(as.character(runif(1,1,100000)),as.character(runif(1,1,100000)),as.character(runif(1,1,100000))), collapse = '' )
     # print(timesTwo( 3.2 ))
     
   }
@@ -822,6 +848,7 @@ dataLoader<-function( verbose.mode = TRUE, max.char.length.label = 50, save.memo
     "addDataDescription"=addDataDescription,
     "getTranslation"=getTranslation,
     "plot.Timeline"=plot.Timeline,
-    "plot.transition.time.probability"=plot.transition.time.probability
+    "plot.transition.time.probability"=plot.transition.time.probability,
+    "getClass"=getClass
   ))
 }

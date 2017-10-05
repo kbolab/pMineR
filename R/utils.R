@@ -6,7 +6,35 @@
 IsASCII<-function( fileName ) {
   return(c_IsASCII(fileName = fileName))
 }
+register.getGlobalRegisterName<-function(  ) {
+  return("pMineR.register.obj")
+}
+#' Build the Register!
+#' 
+#' @description  A wrapper function for building a register object for pMineR objects
+#' @export
+register<-function( varName ) {
+  default.register.name <- register.getGlobalRegisterName()
+  # Se l'oggetto REGISTRO non c'e'', crealo :)
+  stringa.comando <- paste( c(  default.register.name,"<<-pMiner.register()"  ) ,collapse = '')
+  if(!exists(default.register.name)) eval(expr = parse(text = stringa.comando))
+  # Ora registra la variabile
+  stringa.comando <- paste( c(  default.register.name,"$register( var.name = '",varName,"')"  ) ,collapse = '')
+  eval(expr = parse(text = stringa.comando))
+}
+#' Retrieve the Obj name
+#' 
+#' @description  Get the name of the variable which contains the object with the indicated ID
+#' @export
+register.getObjName<-function( ID ) {
+  default.register.name <- register.getGlobalRegisterName()
+  # Se l'oggetto REGISTRO non c'e'', crealo :)
+  if(!exists(default.register.name)){ cat("ERROR! Missing the Register named '",default.register.name,"'"); stop() }
 
+  stringa.comando <- paste( c(  "tmpRes <- ",default.register.name,"$getObjName( ID = '",ID,"')"  ) ,collapse = '')  
+  eval(expr = parse(text = stringa.comando))
+  return(tmpRes)
+}
 #' Some useful tools
 #' 
 #' @description  A class which provide some tools. pMineR intarnal use only.
@@ -603,7 +631,7 @@ plot.cc.KM <- function( KM.list , cols=c("red","darkgreen","blue","brown","orang
   # Prendi il tempo massimo (per l'xlim del grafico)
   max.tempi <- 0
   for(i in 1:length(KM.list)) { max.tempi <- max(max.tempi, summary(KM.list[[i]])$time ) }
-  
+  # browser()
   # Fai un plot a vuoti, delle dimensioni giuste
   plot(NULL,xlim=c(0,max.tempi),ylim=c(0,1) , xlab="time",ylab="prob.", main = main)
   

@@ -74,6 +74,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
   MM.den.list.high.det <- NA
   istanceClass<-list()
   obj.log<-NA
+  global.personal.ID<-NA
   
   # ***************************************************************************************************
   # WRAPPING METHODS
@@ -818,7 +819,12 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     }    
     return(combinazioni)  
   }
-  
+  getClass<-function(){
+    return(list(
+      "class"="firstOrderMarkovModel",
+      "obj.ID"=global.personal.ID
+    ))
+  }    
   #===========================================================
   # costructor
   # E' il costruttore della classe
@@ -838,6 +844,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     istanceClass<<-list()
     obj.log<<-logHandler();
     setInstanceClass(className = "firstOrderMarkovModel")
+    global.personal.ID<<-paste( c(as.character(runif(1,1,100000)),as.character(runif(1,1,100000)),as.character(runif(1,1,100000))), collapse = '' )
   }
   #===========================================================
   costructor( parametersFromInput = parameters.list);
@@ -850,6 +857,7 @@ firstOrderMarkovModel<-function( parameters.list = list() ) {
     "play"=play,
     "plot"=plot,
     "distanceFrom"=distanceFrom,
+    "getClass"=getClass,
     
     "getInstanceClass"=getInstanceClass,
     "plot.delta.graph"=plot.delta.graph,
