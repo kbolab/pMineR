@@ -1,7 +1,9 @@
 
-# array.stati <- obj$getInfo()$states
+# Prende il nome dell'oggetto confCheck_easy che mi ha invocato
 parent.ID <- pMineR.IO.shiny.confCheck_easy.list$parent.ID
 nomeOggetto <- register.getObjName(ID = parent.ID)
+
+# e la lista degli stati del grafo
 stringa.comando <- str_c( "array.stati<-",nomeOggetto,"$getInfo()$states")
 eval(expr = parse(text = stringa.comando))
 
@@ -13,13 +15,12 @@ shinyUI(pageWithSidebar(
   
   # Sidebar with a slider input for number of observations
   sidebarPanel(
-    # actionButton("doIt", "Fai qualcosa"),
     selectInput("stato.from.1", "1sr State From:",c(" ",array.stati)) ,
     selectInput("stato.to.1", "1sr State To:",c(" ",array.stati)),    
-    # tags$hr(),
+
     selectInput("stato.from.2", "2nd State From:",c(" ",array.stati)),
     selectInput("stato.to.2", "2nd State To:",c(" ",array.stati)),
-    # tags$hr(),
+
     selectInput("stato.from.3", "3nd State From:",c(" ",array.stati)),
     selectInput("stato.to.3", "3nd State To:",c(" ",array.stati)),
     tags$hr(),

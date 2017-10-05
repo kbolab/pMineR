@@ -4,51 +4,6 @@
 #' @import stringr XML DiagrammeR lubridate survival
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
 #' @export
-#' @examples \dontrun{
-#'
-#' #  Create a Conformance Checker obj
-#' obj.cc <- confCheck_easy()
-#'
-#' # Load an XML with the workflow to check
-#' obj.cc$loadWorkFlow( WF.fileName='../otherFiles/import_01/rules.v2.xml' )
-#'
-#' # plot the graph related to the XML
-#' obj.cc$plot()
-#'
-#' # now play 20 processes, 10 correct and 10 mismatchful
-#' # (matching and not matching can be seen thanks to the 'valido' column)
-#' aaa <- obj.cc$play(number.of.cases = 20,min.num.of.valid.words = 10)
-#'
-#' # Build a dataLoaderObject
-#' objDL <- dataLoader()
-#'
-#' # load the previously genearated data.frame
-#' objDL$load.data.frame(mydata = aaa$valid.data.frame,IDName = "patID",
-#' EVENTName = "event",dateColumnName = "date")
-#'
-#' # now load the data into the obj
-#' obj.cc$loadDataset(dataList = objDL$getData())
-#' # replay the loaded data
-#' obj.cc$replay()
-#'
-#' # plot the result, showing the terminations in absolute values
-#' obj.cc$plot.replay.result(whatToCount = "terminations",
-#' kindOfNumber = "absolute")
-#' # plot the result, showing the transitions in relative values
-#' obj.cc$plot.replay.result(whatToCount = "activations",
-#' kindOfNumber = "relative")
-#'
-#' # get the XML of the replay
-#' xmlText <- obj.cc$get.XML.replay.result()
-#' # or the same data in form of list
-#' list.result <- obj.cc$get.list.replay.result()
-#'
-#' # plot the timeline of the first patient
-#' # and the timeline computed during the re-play
-#' obj.cc$plotPatientEventTimeLine(patientID = "1")
-#' obj.cc$plotPatientReplayedTimeline(patientID = "1")
-#'
-#' }
 confCheck_easy<-function( verbose.mode = TRUE ) {
   WF.xml <- c()                 # The XML with the WF
   WF.xml.fileName <- c()        # Just the XML filename
@@ -236,9 +191,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     rownames(list.computation.matrix$stati.transizione) <<- names(dataLog$pat.process)
     rownames(list.computation.matrix$trigger) <<- names(dataLog$pat.process)
     rownames(list.computation.matrix$stati.finali) <<- names(dataLog$pat.process)
-
-
-
 
     # clear the notebook
     notebook <<- list()
