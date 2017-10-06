@@ -17,7 +17,7 @@
 #'              The consturctor admit the following parameters:
 #' verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
-#' @import stringr utils stats           
+#' @import stringr stats           
 #' @export
 #' @examples \dontrun{
 #' 
