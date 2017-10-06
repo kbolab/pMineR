@@ -1,6 +1,7 @@
 #' A class born to cope with resources
 #' @description  A class to manage resourcese
-#' @param parameters.list a list containing the parameters. The possible ones are: 'considerAutoLoop' and 'threshold'. 'considerAutoLoop' is a boolean which indicates if the autoloops have to be admitted, while 'threshold' is the minimum value that a probability should have to do not be set to zero, in the transition matrix.
+#' @param parameters.list list. a list containing the parameters. The possible ones are: 'considerAutoLoop' and 'threshold'. 'considerAutoLoop' is a boolean which indicates if the autoloops have to be admitted, while 'threshold' is the minimum value that a probability should have to do not be set to zero, in the transition matrix.
+#' @param verbose.mode boolean. Verbose mode TRUE / FALSE
 #' @export
 resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
   
@@ -9,8 +10,10 @@ resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
   obj.LH<-logHandler()
   data.dataLoader<-c()
   parameter<-c()
+  is.trained<-NA
   param.verbose.mode<-TRUE
   cache.getTimeResourceAllocation<-list()
+  global.personal.ID<-NA
   
   #===========================================================
   # loadDataset
@@ -290,7 +293,12 @@ resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
     if( what == "raw.events" ) return(dataStorage$raw.events);
     if( what == "events.attributes" ) return(dataStorage$events.attributes);
   }    
-
+  getClass<-function(){
+    return(list(
+      "class"="resource_A01",
+      "obj.ID"=global.personal.ID
+    ))
+  }  
   #===========================================================
   # costructor
   # E' il costruttore della classe
@@ -308,6 +316,7 @@ resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
     parameter$out.evt<<-c()
     param.verbose.mode<<-verbose.mode
     cache.getTimeResourceAllocation<<-list()
+    global.personal.ID<<-paste( c(as.character(runif(1,1,100000)),as.character(runif(1,1,100000)),as.character(runif(1,1,100000))), collapse = '' )
   }
   #===========================================================
   costructor( parametersFromInput = parameters.list , verbose.mode = verbose.mode);
@@ -320,7 +329,7 @@ resource_A01<-function( parameters.list = list(), verbose.mode =TRUE ) {
     "getResourceAllocationAtTime"=getResourceAllocationAtTime,
     "plotTimeResourceAllocation"=plotTimeResourceAllocation,
     "plotOccupationProbability"=plotOccupationProbability,
-    "help"=help
+    "getClass"=getClass
   ) )  
 }
 

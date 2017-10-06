@@ -17,8 +17,11 @@
 #'              The consturctor admit the following parameters:
 #' verbose.mode are some notification wished, during the computation? The defaul value is \code{true}
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
-#' @import stringr stats progress R.utils   
-#' @importFrom data.table data.table   
+#' @param save.memory boolean. If TRUE, dataLoader() avoid to keep in memory the entire original csv.
+#' @param max.char.length.label numeric. It defines the max length of the event name strings
+#' @import stringr stats progress R.utils 
+#' @importFrom data.table data.table 
+#' @importFrom lubridate hour hours minute minutes week weeks month day days
 #' @export
 #' @useDynLib pMineR 
 #' @examples \dontrun{

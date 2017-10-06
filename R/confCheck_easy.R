@@ -1,7 +1,7 @@
 #' A simple conformance checking class
 #'
 #' @description  A first module for making conformance checking
-#' @import stringr XML DiagrammeR lubridate survival
+#' @import stringr XML DiagrammeR survival
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
 #' @export
 confCheck_easy<-function( verbose.mode = TRUE ) {
@@ -85,6 +85,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       plotIt<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"plotIt")[[1]]
       st.type<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"type")[[1]]
       st.label<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"label")[[1]]
+      st.col<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"col")[[1]]
 
       # default value per il plotIt
       if(length(plotIt)==0) plotIt=TRUE
@@ -96,6 +97,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
 
       # default value per la label
       if(length(st.label)==0) st.label=state.name
+      
+      # defailt value per il colore
+      if(length(st.col)==0) st.col=""
 
       # Carica quanto indicato nell'XML nella variabile che poi andra' copiata
       # negli attributi globali
@@ -103,6 +107,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       lista.stati[[ state.name ]][["plotIt"]]<-plotIt
       lista.stati[[ state.name ]][["type"]]<-st.type
       lista.stati[[ state.name ]][["label"]]<-st.label
+      lista.stati[[ state.name ]][["col"]]<-st.col
     }
 
     # Per ogni trigger, carica la 'condition', i 'set' e gli 'unset'
@@ -118,6 +123,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       arr.unset<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/unset'),collapse = ""),xmlValue)
       arr.unsetAll<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/unsetAll'),collapse = ""),xmlValue)
       pri<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]'),collapse = ""),xmlGetAttr,"pri")[[1]]
+      st.col<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]'),collapse = ""),xmlGetAttr,"col")[[1]]
+
       if(is.null(pri)) pri<-0;
       pri <- as.numeric(pri)
 
@@ -126,6 +133,9 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
 
       if(length(arr.unsetAll)==0) arr.unsetAll <- FALSE
       else arr.unsetAll <- TRUE
+      
+      # defailt value per il colore
+      if(length(st.col)==0) st.col=""      
 
       # Ora leggi tutte le condition di ogni trigger ed associa l'attributo "need.time.condition"
       # settato a TRUE o FALSE in funzione che tale trigger abbia un'analisi temporale nella condizione.
@@ -145,6 +155,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       lista.trigger[[ trigger.name ]][["unset"]]<-arr.unset
       lista.trigger[[ trigger.name ]][["unsetAll"]]<-arr.unsetAll
       lista.trigger[[ trigger.name ]][["plotIt"]]<-plotIt
+      lista.trigger[[ trigger.name ]][["st.col"]]<-st.col
       lista.trigger[[ trigger.name ]][["has.temporal.condition"]]<-has.temporal.condition
     }
 
@@ -1081,7 +1092,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   # 'clear' is the graph as passed
   # 'computed' is the graph weighted by real computation flows
   #===========================================================
-  plot<-function( giveBack.grVizScript = FALSE, plotIt = TRUE ) {
+  plot<-function( giveBack.grVizScript = FALSE, plotIt = TRUE, old=T ) {
     arr.st.plotIt<-c("'BEGIN'");  arr.nodi.end<-c()
     arr.stati.raggiungibili<-c();
     arr.trigger.rappresentabili<-c();
@@ -1133,12 +1144,52 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     # Distingui fra nodi end e nodi nnormali (questione di colore)
     arr.terminazioni.raggiungibili <- arr.nodi.end[arr.nodi.end %in% arr.stati.raggiungibili]
     arr.stati.raggiungibili<- arr.stati.raggiungibili[!(arr.stati.raggiungibili %in% arr.nodi.end)]
-
+    
+    clean.arr.terminazioni.raggiungibili <- str_replace_all(string = arr.terminazioni.raggiungibili,pattern = "'","")
+    clean.arr.stati.raggiungibili <- str_replace_all(string = arr.stati.raggiungibili,pattern = "'","")
+    
+    # Cambia i colori, se necessario
+    nuova.stringa.nodi<-""
+    for(i in clean.arr.terminazioni.raggiungibili) {
+      colore <- str_trim(WF.struct$info$stati[[i]]$col)
+      if(colore=="") colore <- "red"
+      nuova.stringa.nodi <- str_c(nuova.stringa.nodi,"\n node [fillcolor = ",colore,"] '",i,"' ")
+    }
+    
+    for(i in clean.arr.stati.raggiungibili) {
+      if(i!="BEGIN"){ 
+        colore <- str_trim(WF.struct$info$stati[[i]]$col)
+        if(colore=="") colore <- "orange"
+        if(str_sub(string = colore,start = 1,end = 1)=="#") colore<- str_c("'",colore,"'")
+        nuova.stringa.nodi <- str_c(nuova.stringa.nodi,"\n node [fillcolor = ",colore,"] '",i,"' ")
+      }
+    }    
+    
     a<-paste(c("digraph boxes_and_circles {
 
                # a 'graph' statement
                graph [overlap = true, fontsize = 10]
-
+               
+               # several 'node' statements
+               node [shape = oval,
+               fontname = Helvetica,
+               style = filled]
+               node [fillcolor = green]
+               'BEGIN';
+               ",nuova.stringa.nodi,"
+               
+               node [fillcolor = white, shape = box ]
+               ",paste(arr.trigger.rappresentabili,collapse=" "),"
+               
+               edge [arrowsize = 1 ]
+               # several edge
+               ",stringa.nodo.from,"
+               ",stringa.nodo.to,"
+  }"), collapse='')
+    
+    b<-paste(c("digraph boxes_and_circles {
+               # a 'graph' statement
+               graph [overlap = true, fontsize = 10]
                # several 'node' statements
                node [shape = oval,
                fontname = Helvetica,
@@ -1147,17 +1198,16 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                'BEGIN';
                node [fillcolor = red]
                ",paste(arr.terminazioni.raggiungibili,collapse=" "),"
-
                node [fillcolor = orange]
                ",paste(arr.stati.raggiungibili,collapse=" "),"
                node [fillcolor = white, shape = box ]
                ",paste(arr.trigger.rappresentabili,collapse=" "),"
-
                edge [arrowsize = 1 ]
                # several edge
                ",stringa.nodo.from,"
                ",stringa.nodo.to,"
-  }"), collapse='')
+  }"), collapse='')    
+
     if( plotIt == TRUE ) grViz(a);
     if( giveBack.grVizScript == TRUE ) return(a)
   }

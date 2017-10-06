@@ -1,6 +1,7 @@
 #' check if the file is pure ASCII
 #' 
 #' @description  a simple function able to check if the indicated file is a pure ASCII file
+#' @param fileName the name of the file that need to be checked
 #' @import Rcpp
 #' @export
 IsASCII<-function( fileName ) {
@@ -605,8 +606,8 @@ plotPatientReplayedTimelineFunction<-function( list.computation.matrix , patient
   # list.computation.matrix
 } 
 # =============================================================================
-#' plot.cc.KM
-#' Funzione per plottare una o piu' KM
+# plot.cc.KM
+# Funzione per plottare una o piu' KM
 # =============================================================================
 plot.cc.KM <- function( KM.list , cols=c("red","darkgreen","blue","brown","orange"), 
                         plotCI = TRUE, main = "Kaplan-meier curves", lwd = 2) { 
@@ -645,3 +646,11 @@ plot.cc.KM <- function( KM.list , cols=c("red","darkgreen","blue","brown","orang
   
 }
 
+#' #' check if the ffdile is pure ASCII
+#' #' 
+#' #' @description  a sifdfmple function able to check if the indicated file is a pure ASCII file
+#' #' @param stringa the nadfme of the file that need to be checked
+#' #' @export
+#' plot_grViz <- function( stringa ) {
+#'   grViz(stringa)
+#' } 
