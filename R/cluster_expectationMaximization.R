@@ -78,11 +78,11 @@ cluster_expectationMaximization <- function() {
         clusterM <- list()
         nRows <- length(eventType)
         nCols <- length(eventType)
-          for (k in seq(1:num)){
-            clusterM[[k]] <- matrix(runif(nRows*nCols), nrow=nRows,ncol=nCols)
-            rownames(clusterM[[k]]) <- eventType
-            colnames(clusterM[[k]]) <- eventType
-          }
+        for (k in seq(1:num)){
+          clusterM[[k]] <- matrix(runif(nRows*nCols), nrow=nRows,ncol=nCols)
+          rownames(clusterM[[k]]) <- eventType
+          colnames(clusterM[[k]]) <- eventType
+        }
       }
       
       else{
@@ -96,12 +96,12 @@ cluster_expectationMaximization <- function() {
       clusterM <- list()
       clusterM <- setMaximization(aa[[iter]])
       clusterM <- clusterM[ ! sapply(clusterM, is.null) ]
-#     RG -im
-#       Riga aggiunta per ovviare al caso in cui END abbia degli NaN sulla riga
-#       (non ho capito perche' ma a volte capita... e' normale? Andrebbe capito e sistemata questa 
-#       'pezza' al meglio)
+      #     RG -im
+      #       Riga aggiunta per ovviare al caso in cui END abbia degli NaN sulla riga
+      #       (non ho capito perche' ma a volte capita... e' normale? Andrebbe capito e sistemata questa 
+      #       'pezza' al meglio)
       clusterM[  which(is.na(clusterM), arr.ind = TRUE) ]<-0
-#     RG -fm
+      #     RG -fm
       iter <- iter + 1
       M <- list()
       comp <- numeric()
@@ -122,116 +122,116 @@ cluster_expectationMaximization <- function() {
         tmp <- list()
         comp <- numeric()
         # some kind of comparison (sum of each cell difference absolute value)
-          for(k in 1:length(clusterM))
-          {
-            tmp[[k]] <- M[[iter]][[k]] - M[[iter-1]][[k]]
-            comp[k] <- sum(abs(tmp[[k]])) 
-          }
+        for(k in 1:length(clusterM))
+        {
+          tmp[[k]] <- M[[iter]][[k]] - M[[iter-1]][[k]]
+          comp[k] <- sum(abs(tmp[[k]])) 
+        }
         logNotes[[iter]] <<- list("iteration"=iter, "expectation"=aa[[iter]], "maximization"=M[[iter]], "control parameter"=comp)
         # some convergence threshold
-          if(sum(comp) < .000000000001){
-            break
-          }
+        if(sum(comp) < .000000000001){
+          break
+        }
       }
     }
     
     clusters <<- list("iterations"=iter, "clusters"=clusterM,"PtoClust"=aa[[iter]],"PtoC"=aa)
   }
-    
-    ##########################################################################################################
-    # EXPECTATION FUNCTION - subfunction of calculateClusters: assign actual processes to "nearest" cluster 
-    ##########################################################################################################
-   
-      
-   getExpectation <- function(num,clusterM){  
+  
+  ##########################################################################################################
+  # EXPECTATION FUNCTION - subfunction of calculateClusters: assign actual processes to "nearest" cluster 
+  ##########################################################################################################
+  
+  
+  getExpectation <- function(num,clusterM){  
     prob <- list()
-      for (k in seq(1:length(clusterM))){
-        transitionCountMatrix <- matrix()
-        BprocessInstancesE <- list()
-        numberOfProcesses <- length(processInstances)
-        transitionCount <- list()
-        tmp3 <- vector()
-          for (p in seq(1:numberOfProcesses)){
-            evt <- vector()
-            tmp <- vector()
-            tmp2 <- vector()
-            if(processInstances[[p]][1]!="BEGIN" && processInstances[[p]][length(processInstances[[p]])]!="END"){
-            BprocessInstancesE <- c("BEGIN",processInstances[[p]],"END")
+    for (k in seq(1:length(clusterM))){
+      transitionCountMatrix <- matrix()
+      BprocessInstancesE <- list()
+      numberOfProcesses <- length(processInstances)
+      transitionCount <- list()
+      tmp3 <- vector()
+      for (p in seq(1:numberOfProcesses)){
+        evt <- vector()
+        tmp <- vector()
+        tmp2 <- vector()
+        if(processInstances[[p]][1]!="BEGIN" && processInstances[[p]][length(processInstances[[p]])]!="END"){
+          BprocessInstancesE <- c("BEGIN",processInstances[[p]],"END")
+        }
+        else{BprocessInstancesE <- processInstances[[p]]}
+        obj <- dataProcessor()
+        a <- obj$createSequenceMatrix(BprocessInstancesE)
+        transitionCountMatrix <- a$transitionCountMatrix
+        rowNames <- row.names(transitionCountMatrix)
+        for(i in 1:length(rowNames)){
+          for(j in 1:length(rowNames)){
+            if (transitionCountMatrix[rowNames[i],rowNames[j]] != 0){
+              # total probability is product of transition probabilities and number of times the transition happended (p^n)
+              tmp[j] <- (clusterM[[k]][rowNames[i],rowNames[j]])^(transitionCountMatrix[rowNames[i],rowNames[j]])
             }
-            else{BprocessInstancesE <- processInstances[[p]]}
-            obj <- dataProcessor()
-            a <- obj$createSequenceMatrix(BprocessInstancesE)
-            transitionCountMatrix <- a$transitionCountMatrix
-            rowNames <- row.names(transitionCountMatrix)
-              for(i in 1:length(rowNames)){
-                for(j in 1:length(rowNames)){
-                  if (transitionCountMatrix[rowNames[i],rowNames[j]] != 0){
-                    # total probability is product of transition probabilities and number of times the transition happended (p^n)
-                    tmp[j] <- (clusterM[[k]][rowNames[i],rowNames[j]])^(transitionCountMatrix[rowNames[i],rowNames[j]])
-                  }
-                }
-                tmp2[i] <- prod(tmp, na.rm = TRUE)
-              }
-            tmp3[p] <- prod(tmp2, na.rm = TRUE)
           }
-        #prob is a list of k=number_of_cluster elements, each containing a vector of probabilities (one for each unique sequence in the Log)
-        prob[[k]] <- list(tmp3)
+          tmp2[i] <- prod(tmp, na.rm = TRUE)
+        }
+        tmp3[p] <- prod(tmp2, na.rm = TRUE)
       }
-    #get maximum probability for each sequence and assign to that cluster
-     prob_dataFrame <- as.data.frame(sapply(prob,unlist))
-     names(prob_dataFrame) <- c(1:length(clusterM))
-     processToCluster <- colnames(prob_dataFrame)[apply(prob_dataFrame,1,which.max)]
-     processToCluster <- as.factor(processToCluster)
-     
-     return(processToCluster)
+      #prob is a list of k=number_of_cluster elements, each containing a vector of probabilities (one for each unique sequence in the Log)
+      prob[[k]] <- list(tmp3)
     }
+    #get maximum probability for each sequence and assign to that cluster
+    prob_dataFrame <- as.data.frame(sapply(prob,unlist))
+    names(prob_dataFrame) <- c(1:length(clusterM))
+    processToCluster <- colnames(prob_dataFrame)[apply(prob_dataFrame,1,which.max)]
+    processToCluster <- as.factor(processToCluster)
     
+    return(processToCluster)
+  }
+  
   ##########################################################################################################
   # MAXIMIZATION FUNCTION - returns transition matrices for clusters 
   ##########################################################################################################
-
-     setMaximization <- function(processToCluster){
-       tmp <- list()
-       subLog <- list()
-       M <- list()
-         for (i in 1:length(levels(processToCluster))){
-          if(as.character(i) %in% levels(processToCluster)){
-            tmp <- which(processToCluster==i)
-            subLog[[i]] <- processInstances[tmp]
-              for (y in 1:length(subLog[[i]])){
-                subLog[[i]][[y]] <- c("BEGIN",subLog[[i]][[y]],"END")
-              }
-          num.el <- sapply(subLog[[i]], length)
-          res <- cbind(unlist(subLog[[i]]), rep(1:length(subLog[[i]]), num.el))
-          obj <- dataProcessor()
-          a <- obj$createSequenceMatrix(res[,1])
-          cc <- a$transitionCountMatrix
-          cc <- cc/sum(cc)
-            for (n in 1:length(eventType)){
-              if (!eventType[n] %in% colnames(cc)) {
-                al <- vector(length = length(colnames(cc)))
-                cc <- cbind(cc,al)
-                colnames(cc)[dim(cc)[2]] <- paste(eventType[n])
-                al <- vector(length = length(colnames(cc)))
-                cc <- rbind(cc,al)
-                rownames(cc)[dim(cc)[1]] <- paste(eventType[n])
-              }
-            }
-          cc["END","BEGIN"] <- 0
-          M[[i]] <- cc
+  
+  setMaximization <- function(processToCluster){
+    tmp <- list()
+    subLog <- list()
+    M <- list()
+    for (i in 1:length(levels(processToCluster))){
+      if(as.character(i) %in% levels(processToCluster)){
+        tmp <- which(processToCluster==i)
+        subLog[[i]] <- processInstances[tmp]
+        for (y in 1:length(subLog[[i]])){
+          subLog[[i]][[y]] <- c("BEGIN",subLog[[i]][[y]],"END")
+        }
+        num.el <- sapply(subLog[[i]], length)
+        res <- cbind(unlist(subLog[[i]]), rep(1:length(subLog[[i]]), num.el))
+        obj <- dataProcessor()
+        a <- obj$createSequenceMatrix(res[,1])
+        cc <- a$transitionCountMatrix
+        cc <- cc/sum(cc)
+        for (n in 1:length(eventType)){
+          if (!eventType[n] %in% colnames(cc)) {
+            al <- vector(length = length(colnames(cc)))
+            cc <- cbind(cc,al)
+            colnames(cc)[dim(cc)[2]] <- paste(eventType[n])
+            al <- vector(length = length(colnames(cc)))
+            cc <- rbind(cc,al)
+            rownames(cc)[dim(cc)[1]] <- paste(eventType[n])
           }
-         }
-
-       return(M)
-     }
-     
+        }
+        cc["END","BEGIN"] <- 0
+        M[[i]] <- cc
+      }
+    }
+    
+    return(M)
+  }
+  
   
   
   #===========================================================
   # getClusters
   #===========================================================  
   getClusters<-function() {
-
+    
     return(clusters)
     
   }
@@ -270,15 +270,15 @@ cluster_expectationMaximization <- function() {
     processFOMM <- list(list())
     BprocessInstancesE <- list()
     transitionMatrix <- list()
-      for (k in 1:length(processInstances)){
-        BprocessInstancesE[[k]] <- c("BEGIN",processInstances[[k]],"END")
-        obj <- dataProcessor()
-        a <- obj$createSequenceMatrix(BprocessInstancesE[[k]])
-        TCM <- a$transitionCountMatrix
-        transitionMatrix[[k]] <- TCM/sum(TCM)
-        processFOMM[[k]] <-firstOrderMarkovModel( parameters.list=list("considerAutoLoop"=TRUE,"threshold"=0.1)  )
-        processFOMM[[k]]$loadDataset(dataList = list("MMatrix"=transitionMatrix[[k]]))
-      }
+    for (k in 1:length(processInstances)){
+      BprocessInstancesE[[k]] <- c("BEGIN",processInstances[[k]],"END")
+      obj <- dataProcessor()
+      a <- obj$createSequenceMatrix(BprocessInstancesE[[k]])
+      TCM <- a$transitionCountMatrix
+      transitionMatrix[[k]] <- TCM/sum(TCM)
+      processFOMM[[k]] <-firstOrderMarkovModel( parameters.list=list("considerAutoLoop"=TRUE,"threshold"=0.1)  )
+      processFOMM[[k]]$loadDataset(dataList = list("MMatrix"=transitionMatrix[[k]]))
+    }
     
     DistWithin <- list()
     for (i in 1:length(table(lastIterPtoC))){
@@ -303,7 +303,7 @@ cluster_expectationMaximization <- function() {
   # getClusterLog
   #===========================================================  
   getClusterLog<-function() {
-
+    
     return(logNotes)
   }
   
