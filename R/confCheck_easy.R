@@ -1,7 +1,7 @@
 #' A simple conformance checking class
 #'
 #' @description  A first module for making conformance checking
-#' @import stringr XML DiagrammeR survival
+#' @import XML DiagrammeR survival
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
 #' @export
 confCheck_easy<-function( verbose.mode = TRUE ) {

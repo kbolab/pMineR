@@ -19,9 +19,10 @@
 #' @param verbose.mode boolean. If TRUE some messages will appear in console, during the computation; otherwise the computation will be silent.
 #' @param save.memory boolean. If TRUE, dataLoader() avoid to keep in memory the entire original csv.
 #' @param max.char.length.label numeric. It defines the max length of the event name strings
-#' @import stringr stats progress R.utils 
+#' @import stats progress R.utils 
 #' @importFrom data.table data.table 
 #' @importFrom lubridate hour hours minute minutes week weeks month day days
+#' @importFrom stringr str_replace_all str_replace str_locate_all str_locate str_c str_trim str_sub str_trim 
 #' @export
 #' @useDynLib pMineR 
 #' @examples \dontrun{
