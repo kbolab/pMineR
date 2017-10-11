@@ -75,11 +75,36 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   build.Workflow.model<-function() {
     lista.trigger<-list()
     lista.stati<-list()
+    lista.link <- list();
 
     # carica la lista degli stati e dei triggers
     array.stati<-unlist(xpathApply(WF.xml,'//xml/workflow/node',xmlGetAttr, "name"))
     array.trigger<-unlist(xpathApply(WF.xml,'//xml/workflow/trigger',xmlGetAttr, "name"))
-
+    array.link<-unlist(xpathApply(WF.xml,'//xml/workflow/link',xmlGetAttr, "name"))
+# browser()
+    # Per ogni LINK carica gli attributi 
+    if(length(array.link)>0) { 
+      for(link.name in array.link) {
+        lista.link[[link.name]] <- list()
+        obj.link<- xpathApply(WF.xml,paste(c('//xml/workflow/link[@name="',link.name,'"]'),collapse = ""),xmlGetAttr,"obj")[[1]]
+        # file.link<- xpathApply(WF.xml,paste(c('//xml/workflow/link[@name="',link.name,'"]'),collapse = ""),xmlGetAttr,"file")[[1]]      
+        complete.log<- xpathApply(WF.xml,paste(c('//xml/workflow/link[@name="',link.name,'"]'),collapse = ""),xmlGetAttr,"complete")[[1]]      
+  
+        if(length(obj.link)==0) obj.link <- "PWF"
+        # if(length(file.link)==0) file.link <- ""
+        if(length(complete.log)==0) complete.log <- "TRUE"
+  
+        if(obj.link!="PWF") stop("\n Error: at the moment only PWF-objs can be linked, please specify 'PWF'")
+        # if(file.link=="") stop("\n Error: you have to specify a filename!")
+  
+        lista.link[[link.name]]$obj <- obj.link
+        # lista.link[[link.name]]$file <- file.link
+        lista.link[[link.name]]$complete.log <- complete.log    
+        lista.link[[link.name]]$arr.states<-c()
+        lista.link[[link.name]]$arr.triggers<-c()
+      }
+    }
+      
     # Per ogni stato carica gli attributi (ad es. 'plotIt')
     for(state.name in array.stati) {
       plotIt<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"plotIt")[[1]]
@@ -87,6 +112,36 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       st.label<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"label")[[1]]
       st.col<- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]'),collapse = ""),xmlGetAttr,"col")[[1]]
 
+      # aggancia eventuali LINK
+      tmp.lista.link <- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]/link'),collapse = ""))
+      struttura.link <- list()
+      if(length(tmp.lista.link)>0) { 
+        # browser()
+        arr.link.names <- unlist(xpathApply(tmp.lista.link[[1]],'//xml/workflow/node/link',xmlGetAttr,"name"))
+        for(linkName in arr.link.names) {
+# browser()
+          # obj.link <- str_trim(str_to_upper(xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]/link[@linkName="',linkName,'"]'),collapse = ""),xmlGetAttr,"obj")[[1]]))
+          # file <- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]/link[@linkName="',linkName,'"]'),collapse = ""),xmlGetAttr,"file")[[1]]
+          executeOn <- xpathApply(WF.xml,paste(c('//xml/workflow/node[@name="',state.name,'"]/link[@name="',linkName,'"]'),collapse = ""),xmlGetAttr,"executeOn")[[1]]
+          # 
+          if(length(executeOn)==0) executeOn <- "activations"
+          executeOn <- str_trim(str_to_lower(executeOn))
+          # if(length(file)==0) file <- ""
+          # if(length(complete.log)==0) complete.log <- "TRUE"
+          # 
+          # if(obj.link!="PWF") stop("\n Error: at the moment only PWF-objs can be linked, please specify 'PWF'")
+          # if(file=="") stop("\n Error: you have to specify a filename!")
+          
+          struttura.link[[linkName]]$name <- linkName
+          struttura.link[[linkName]]$executeOn <- executeOn
+          
+          lista.link[[link.name]]$arr.states <- c(lista.link[[link.name]]$arr.states,state.name)
+          # struttura.link[[linkName]]$obj <- obj.link
+          # struttura.link[[linkName]]$file <- file
+          # struttura.link[[linkName]]$complete.log <- complete.log
+        }
+      }
+      
       # default value per il plotIt
       if(length(plotIt)==0) plotIt=TRUE
       else plotIt = str_replace_all(string = plotIt,pattern = "'",replacement = "")
@@ -108,6 +163,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       lista.stati[[ state.name ]][["type"]]<-st.type
       lista.stati[[ state.name ]][["label"]]<-st.label
       lista.stati[[ state.name ]][["col"]]<-st.col
+      lista.stati[[ state.name ]][["link"]]<-struttura.link
     }
 
     # Per ogni trigger, carica la 'condition', i 'set' e gli 'unset'
@@ -124,7 +180,37 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       arr.unsetAll<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/unsetAll'),collapse = ""),xmlValue)
       pri<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]'),collapse = ""),xmlGetAttr,"pri")[[1]]
       st.col<- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]'),collapse = ""),xmlGetAttr,"col")[[1]]
-
+      
+      tmp.lista.link <- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/link'),collapse = ""))
+      # aggancia eventuali LINK
+      struttura.link <- list()
+      
+      if(length(tmp.lista.link)>0) { 
+        # browser()  
+        arr.link.names <- unlist(xpathApply(tmp.lista.link[[1]],'//xml/workflow/trigger/link',xmlGetAttr,"name"))
+        for(linkName in arr.link.names) {
+          # browser()
+          # obj.link <- str_trim(str_to_upper(xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/link[@linkName="',linkName,'"]'),collapse = ""),xmlGetAttr,"obj")[[1]]))
+          # file <- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/link[@linkName="',linkName,'"]'),collapse = ""),xmlGetAttr,"file")[[1]]
+          # complete.log <- xpathApply(WF.xml,paste(c('//xml/workflow/trigger[@name="',trigger.name,'"]/link[@linkName="',linkName,'"]'),collapse = ""),xmlGetAttr,"complete.log")[[1]]
+          # 
+          # if(length(obj.link)==0) obj.link <- "PWF"
+          # if(length(file)==0) file <- ""
+          # if(length(complete.log)==0) complete.log <- "TRUE"
+          # 
+          # if(obj.link!="PWF") stop("\n Error: at the moment only PWF-objs can be linked, please specify 'PWF'")
+          # if(file=="") stop("\n Error: you have to specify a filename!")
+          
+          struttura.link[[linkName]]$name <- linkName
+          struttura.link[[linkName]]$executeOn <- "activations"
+          
+          lista.link[[link.name]]$arr.triggers <- c(lista.link[[link.name]]$arr.triggers,trigger.name)
+          # struttura.link[[linkName]]$obj <- obj.link
+          # struttura.link[[linkName]]$file <- file
+          # struttura.link[[linkName]]$complete.log <- complete.log
+        }
+      }
+      
       if(is.null(pri)) pri<-0;
       pri <- as.numeric(pri)
 
@@ -157,6 +243,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       lista.trigger[[ trigger.name ]][["plotIt"]]<-plotIt
       lista.trigger[[ trigger.name ]][["st.col"]]<-st.col
       lista.trigger[[ trigger.name ]][["has.temporal.condition"]]<-has.temporal.condition
+      lista.trigger[[ trigger.name ]][["link"]]<-struttura.link
     }
 
     # Costruisci la lista dei nodi 'END'
@@ -167,16 +254,21 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       }
     }
     # popola l'attributo della classe
-    WF.struct[[ "info" ]]<<- list()
+    if(length(WF.struct)==0) WF.struct[[ "info" ]]<<- list()
+    if(is.null(WF.struct[[ "info" ]])) WF.struct[[ "info" ]]<<- list()
+    
     WF.struct[[ "info" ]][[ "stati" ]] <<- lista.stati
     WF.struct[[ "info" ]][[ "trigger" ]] <<- lista.trigger
+    WF.struct[[ "info" ]][[ "link" ]] <<- lista.link
     WF.struct[[ "info" ]][[ "arr.nodi.end" ]] <<- arr.nodi.end
+    # browser()
+    # u <- 1
   }
   #===========================================================
   # replay (ex playLoadedData)
   # esegue il conformanche checking con l'insieme dei LOG precedentemente caricati
   #===========================================================
-  replay<-function( number.perc = 1 , event.interpretation = "soft", UM="") {
+  replay<-function( number.perc = 1 , event.interpretation = "soft", UM="", resolve.netwok = TRUE, debug = FALSE) {
 
     if( UM == "" ) UM <- auto.detected.UM
     # Chiama addNote, che via via popola una stringa
@@ -228,7 +320,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                                       col.dateName = dataLog$csv.dateColumnName ,
                                                       IDPaz = indice,
                                                       event.interpretation = event.interpretation,
-                                                      date.format = dataLog$csv.date.format, UM = UM, store.computation.matrix= TRUE )
+                                                      date.format = dataLog$csv.date.format, UM = UM, 
+                                                      store.computation.matrix= TRUE , debug = debug)
 
         # print(ooo)
         # browser()
@@ -252,12 +345,68 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     }
     # Chiudi l'XML
     addNote(msg = "\n</xml>")
+    
+    # Azzera la strutture che conterra' il risultato della computazione
+    WF.struct$linked.PWF.obj.computation.results<<-list()
+    
+    # Se e' stato scelto di explodere eventuali link
+    if( resolve.netwok == TRUE ) {
+      # Se ci sono link censiti
+      if(length(WF.struct$info$link)>0) {
+        # Per ogni Link dichiarato, cerca i nodi ed i trigger che possono averlo invocato
+        for( nome.link in names(WF.struct$info$link)) {
+          
+          WF.struct$linked.PWF.obj.computation.results[[nome.link]]<<-list()          
+          # Per ogni stato che lo riguarda...
+          for( nome.stato in WF.struct$info$link$link_01$arr.states ) {
+            # crea un oggetto confCheck_easy e carica lo PWF
+            # (usando l'informazione sul suo path precedentemente caricata nella struttura')
+            WF.struct$linked.PWF.obj.computation.results[[nome.link]][[nome.stato]]<<-confCheck_easy()
+            fileName <- WF.struct$info$link[[nome.link]]$fileName
+            WF.struct$linked.PWF.obj.computation.results[[nome.link]][[nome.stato]]$loadWorkFlow(WF.fileName = fileName)
+            
+            # FASI PRELIMINARI DI LANCIO DELL'ISTANZA.....
+            struttura.risultati <- get.list.replay.result()
+            # Estrai il dataset nelle due direzioni:
+            # (a) per i soli pazienti in 'attivazione' o in 'fine'
+            # (b) nel tempo (dall'inizio o dal momento dell'attivazione)
+            da.eseguire.on <- WF.struct$info$stati[[nome.stato]]$link[[nome.link]]$executeOn
+            tabella <- c()
+            if(da.eseguire.on == "activations") tabella <- struttura.risultati$list.computation.matrix$stati.transizione
+            if(da.eseguire.on == "terminations") tabella <- struttura.risultati$list.computation.matrix$stati.finali
+
+            arr.pazienti.da.tenere <- rownames(tabella)[  which(tabella[ , which(colnames(tabella) == nome.stato) ] != 0) ]
+
+            if(length(arr.pazienti.da.tenere) > 0) { 
+              # Ricostruisci il CSV completo, includendo SOLO i pazienti da preservare
+              # (avrei potuto usare il dataLoader::applyFilter(), ma sarebbe stato più lento!)
+              CSV.completo <- do.call(rbind,  dataLog$pat.process[  names(dataLog$pat.process) %in% arr.pazienti.da.tenere ])
+              
+              # pulisci le colonne frutto delle elaborazioni precedenti
+              # (al momento mi risulta solo la 'pMineR.deltaDate')
+              CSV.completo <- CSV.completo[ !(colnames(CSV.completo) %in% c("pMineR.deltaDate")) ]
+              # crea l'oggetto dataLoader all'uopo
+              tmp.obj.L <- dataLoader()
+              tmp.obj.L$load.data.frame(mydata = CSV.completo,IDName = dataLog$csv.IDName,EVENTName = dataLog$csv.EVENTName,dateColumnName = dataLog$csv.dateColumnName,convertUTF = FALSE,suppress.invalid.date = FALSE,format.column.date = "%d/%m/%Y %H:%M:%S"  )
+              tmp.dati.da.far.frullare <- tmp.obj.L$getData()
+              # Fai il load nell'oggetto confCheck_easy            
+              WF.struct$linked.PWF.obj.computation.results[[nome.link]][[nome.stato]]$loadDataset(dataList = tmp.dati.da.far.frullare)
+              # ed infine, fai il replay...
+              WF.struct$linked.PWF.obj.computation.results[[nome.link]][[nome.stato]]$replay()
+            }
+            # Se, invece, non sono restati pazienti, casta il nodo a NA
+            if(length(arr.pazienti.da.tenere) == 0) WF.struct$linked.PWF.obj.computation.results[[nome.link]][[nome.stato]]<-NA
+            
+          }
+        }
+      }
+    }
   }
   #===========================================================
   # get.list.replay.result (ex getPlayedSequencesStat.00)
   # Ops! Non ricordo piu' nemmeno io cosa fa questa funzione.....
   #===========================================================
-  get.list.replay.result<-function( csv.EventLog.inAddition = FALSE  ) {
+  get.list.replay.result<-function( linkName=NA, fromState=NA, csv.EventLog.inAddition = FALSE  ) {
     list.fired.trigger<-list()
     list.final.states<-list()
     termination.END.states<-list()
@@ -308,11 +457,14 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       colnames(csv.EventLog)<-c("idPatient","event","event.status","eventDateTime","deltaTimeFromBegin")
     }
 
+    link.results <- WF.struct$linked.PWF.obj.computation.results
+
     return(list(
       "list.fired.trigger"=list.fired.trigger,
       "list.final.states"=list.final.states,
       "termination.END.states"=termination.END.states,
       "list.computation.matrix"=list.computation.matrix,
+      "link.results"=link.results,
       "csv.EventLog"=csv.EventLog
     ))
   }
@@ -330,7 +482,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #===========================================================
   playSingleSequence<-function( matriceSequenza , col.eventName, col.dateName, IDPaz,
                                 event.interpretation="soft" , date.format="%d/%m/%Y %H:%M:%S", UM="days",
-                                store.computation.matrix = FALSE) {
+                                store.computation.matrix = FALSE,
+                                debug = FALSE) {
     # Cerca lo stato che viene triggerato dal BEGIN
     st.LAST<-""
     st.DONE<-c("")
@@ -395,7 +548,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
             newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE,
                                       st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                       st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                      EOF = FALSE , UM = UM,
+                                      EOF = FALSE , UM = UM, debug = debug,
                                       riga.completa.EventLog = c())
             # Se c'e' un errore, ferma tutto
             if(newHop$error==TRUE) {
@@ -465,7 +618,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = ev.NOW, st.DONE = st.DONE,
                                 st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                 st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                EOF = FALSE  , UM = UM,
+                                EOF = FALSE  , UM = UM, debug = debug,
                                 riga.completa.EventLog = riga.completa.EventLog )
       history.hop[[indice.di.sequenza.ch]]$active.trigger<-newHop$active.trigger
       history.hop[[indice.di.sequenza.ch]]$ev.NOW<-ev.NOW
@@ -523,7 +676,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = "", st.DONE = st.DONE,
                                   st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                   st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                  EOF = FALSE  , UM = UM,
+                                  EOF = FALSE  , UM = UM, debug = debug,
                                   riga.completa.EventLog = c())
         # inzializza il log in caso di errore o in caso di trigger
         if(newHop$error==TRUE | length(newHop$active.trigger)!=0) {
@@ -605,7 +758,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       newHop <- attiva.trigger( st.LAST = st.LAST, ev.NOW = '', st.DONE = st.DONE,
                                 st.ACTIVE = st.ACTIVE, st.ACTIVE.time = st.ACTIVE.time,
                                 st.ACTIVE.time.cum = st.ACTIVE.time.cum,
-                                EOF = TRUE,
+                                EOF = TRUE, debug = debug,
                                 riga.completa.EventLog = c())
 
       # Se c'e' un errore, ferma tutto
@@ -655,7 +808,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   #   st.ACTIVE.time.cum - il tempo di 'uptime' degli stati (cumulativo)
   #   EOF - 'TRUE' indica che la computazione è finita
   #===========================================================
-  attiva.trigger<-function( st.LAST, ev.NOW, st.DONE, st.ACTIVE, st.ACTIVE.time, st.ACTIVE.time.cum, EOF , UM="days",riga.completa.EventLog = c() ) {
+  attiva.trigger<-function( st.LAST, ev.NOW, st.DONE, st.ACTIVE, st.ACTIVE.time, st.ACTIVE.time.cum, 
+                            EOF , UM="days",riga.completa.EventLog = c(), debug = FALSE ) {
     # inizializza
     new.st.DONE<-st.DONE;
     new.st.LAST<-c()
@@ -678,6 +832,8 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       # Prendi la condizione
       precondizione <- WF.struct[["info"]][["trigger"]][[trigger.name]]$condition
       stringa.to.eval<-precondizione
+      
+      if(debug == TRUE) cat("\n condition: ",stringa.to.eval)
 
       # Agisci solo nel caso in cui una CONDITION sia stata definita,
       # per quel trigger (alcuni trigger potrebbero NON avere una CONDITION)
@@ -1098,6 +1254,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
     arr.trigger.rappresentabili<-c();
     stringa.nodo.from<-c()
     stringa.nodo.to<-c()
+    # browser()
     # Costruisci subito la lista dei nodi plottabili (cosi' non ci penso piu')
     # Faccio anche la lista dei nodi END
     for(nomeStato in names(WF.struct$info$stati)) {
@@ -1123,7 +1280,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
         # Considera solo i nodi plottabili (from e to)
         arr.nodi.from <- arr.nodi.from [arr.nodi.from %in% arr.st.plotIt]
         arr.nodi.to <- arr.nodi.to [arr.nodi.to %in% arr.st.plotIt]
-
+# browser()
         if(length(arr.nodi.to)>0) {
           # Aggiorna l'array degli stati raggiungibili (in generale)
           # e l'array con i nomi dei trigger rappresentabili
@@ -2299,6 +2456,16 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
 
     return(arr.parole)
   }
+  loadLinkedWorkFlow <- function( fileName, linkName, verbose.mode = TRUE)  {
+    # popola l'attributo della classe
+    if(length(WF.struct)==0) stop("\n ERRORE: prima bisogna caricare il main PWF")
+    if(is.null(WF.struct[[ "info" ]])) stop("\nERRORE: prima bisogna caricare il main PWF")
+    # Limitati a copiare il path: il caricamento avverra' successivamente per ogni
+    # stato che lo invoca
+    if(!isFile(fileName)) stop("sembra che il file non esista.... prego, verifica")
+    WF.struct$info$link[[linkName]]$fileName <<- fileName
+    WF.struct$info$link[[linkName]]$verbose.mode <<- verbose.mode
+  }
   #=================================================================================
   # KaplanMeier
   # KM (Funzioni per l'analisi statistica)
@@ -2536,6 +2703,7 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
   return(list(
     "loadWorkFlow"=loadWorkFlow,
     "loadDataset"=loadDataset,
+    "loadLinkedWorkFlow"=loadLinkedWorkFlow,
     "play"=play,  # rimpiazza la play.easy
     "replay"=replay, # rimpiazza la playLoadedData
     "plot"=plot, # rimpiazza la plotGraph
