@@ -50,6 +50,13 @@ shinyServer(function(input, output, session) {
     stringa.comando <- str_c( "grafo<-",nomeOggetto,"$KaplanMeier(states.from=arr.from,states.to=arr.to)")
       eval(expr = parse(text = stringa.comando))
     }
+    
+    # render del p.value
+    output$Kaplan<-renderText({ 
+      stringa <- str_c("\nChisq= ",grafo$log.rank$chisq," on ",length(x = grafo$log.rank$n)-1," degrees of freedom, p.value = ",pchisq(grafo$log.rank$chisq,length(x = grafo$log.rank$n)-1,lower.tail = FALSE))
+      stringa
+    })    
+    
   })
 
 })

@@ -308,12 +308,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
 
         addNote(msg = str_c("\n\t<computation n='",ct,"' IDPaz='",indice,"'>"))
         if(param.verbose == TRUE) cat(str_c("\nBeginning Pat ",indice,"..."))
-        # ooo <- system.time(res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]],
-        #                            col.eventName = dataLog$csv.EVENTName,
-        #                            col.dateName = dataLog$csv.dateColumnName ,
-        #                            IDPaz = indice,
-        #                            event.interpretation = event.interpretation,
-        #                            date.format = dataLog$csv.date.format, UM = UM, store.computation.matrix= TRUE ))
 
         res <- playSingleSequence( matriceSequenza = dataLog$pat.process[[ indice ]],
                                                       col.eventName = dataLog$csv.EVENTName,
@@ -323,8 +317,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
                                                       date.format = dataLog$csv.date.format, UM = UM, 
                                                       store.computation.matrix= TRUE , debug = debug)
 
-        # print(ooo)
-        # browser()
         if(param.verbose == TRUE) cat(str_c("\nPat ",indice," done;"))
         addNote(msg = "\n\t\t<atTheEnd>")
 
@@ -396,7 +388,6 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
             }
             # Se, invece, non sono restati pazienti, casta il nodo a NA
             if(length(arr.pazienti.da.tenere) == 0) WF.struct$linked.PWF.obj.computation.results[[nome.link]][[nome.stato]]<-NA
-            
           }
         }
       }

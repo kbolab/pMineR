@@ -31,7 +31,7 @@ shinyUI(pageWithSidebar(
   mainPanel(
     tabsetPanel(
       tabPanel("Graph", grVizOutput('diagram', width = "100%", height = "760px")  ),
-      tabPanel("Kaplan-Meier", verbatimTextOutput("Kaplan"),plotOutput("Kaplan.plot") )
+      tabPanel("Kaplan-Meier", plotOutput("Kaplan.plot"), verbatimTextOutput("Kaplan") )
     )
   )
 ))
