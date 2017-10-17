@@ -2511,10 +2511,11 @@ confCheck_easy<-function( verbose.mode = TRUE ) {
       ))
   }
   single.KaplanMeier <- function(state.to,state.from,max.time=500,censoring=T){
-
+# browser()
     list.replay <- get.list.replay.result()
     trans <- list.replay$list.computation.matrix$stati.transizione
-    ids <- names(which(trans[,state.to]==1))
+    # ids <- names(which(trans[,state.to]==1))
+    ids <- intersect( names(which(trans[,state.to]==1)) , names(which(trans[,state.from]==1)) )
     stati.timeline <- list.replay$list.computation.matrix$stati.timeline
 
     time <- numeric()
