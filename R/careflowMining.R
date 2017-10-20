@@ -172,7 +172,7 @@ careflowMining<-function( parameters.list = list() ) {
               #=========select events to ADD
               selected<-selection(matNEW,parameters$support.th)
               #
-              if(length(selected)==0) {break}
+              if(length(selected)==0) {}
               else{
 
                 #Count Patients
